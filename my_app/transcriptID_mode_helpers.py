@@ -25,5 +25,3 @@ def ranges_selector(full_mRNA_length, region):
 
     return (x_start, x_end)
 
-    # st.session_state.x_slice = (x_start, x_end)
-
