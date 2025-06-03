@@ -1,0 +1,5 @@
+# Welcome to the configuration file for RiboMARTA
+# Path to BigWigs
+bigwigs_dir: "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
+# path to annotation file
+gtf_path: "/home/gionmattia/Desktop/OAZ3/annotations/Mus_musculus.GRCm39.113.gtf"

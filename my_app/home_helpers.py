@@ -1,6 +1,13 @@
 # collection of helpers to render home page of RiboMARTA
 import streamlit as st
 import pandas as pd
+import yaml
+
+# Import config file with paths to files used by RiboMARTA
+@st.cache_resource
+def load_config(path_to_yaml):
+    with open(path_to_yaml, 'r') as f:
+        return yaml.safe_load(f)
 
 def genomic_coordinates_selection():
     """

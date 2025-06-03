@@ -3,6 +3,15 @@
 import streamlit as st
 import pandas as pd
 from home_helpers import *
+import os
+
+# Load configuratuion file
+config = load_config("config.yaml")
+# Load path to annotation file in the app
+st.session_state.gtf_path = config["gtf_path"]
+# Load list of bigwigs
+bigwigs_dir = config["bigwigs_dir"]
+st.session_state.bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
 
 
 st.title("Welcome to RiboMARTA")

@@ -10,8 +10,8 @@ st.write("Welcome to Genomic Coordinates Analysis Page. Before proceeding, "
 
 # Load resources (should use a params.config file)
 # Required Resources (should be placed into a config.file)
-bigwigs_dir = "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
-bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
+#bigwigs_dir = "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
+#bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
 
 try:
     # Add new function to format regions_df here.
@@ -29,7 +29,7 @@ except (IndexError, TypeError, AttributeError):
 
 if st.button("Extract Regions"):
 
-    pre_feature_x, post_feature_y, noise_n = extract_regions_from_bw_parallel(bigwig_files, ranges)
+    pre_feature_x, post_feature_y, noise_n = extract_regions_from_bw_parallel(st.session_state.bigwig_files, ranges)
     st.session_state.genomic_slices = {"pre_feature": pre_feature_x, "post_feature": post_feature_y, "noise": noise_n}
 
     with st.expander("Show raw count data per region"):

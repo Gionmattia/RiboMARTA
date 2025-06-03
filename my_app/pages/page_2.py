@@ -25,9 +25,9 @@ with col2:
 
 
 # Required Resources (should be placed into a config.file)
-bigwigs_dir = "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
-bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
-gtf_path = "/home/gionmattia/Desktop/OAZ3/annotations/Mus_musculus.GRCm39.113.gtf"
+#bigwigs_dir = "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
+#bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
+#gtf_path = "/home/gionmattia/Desktop/OAZ3/annotations/Mus_musculus.GRCm39.113.gtf"
 
 
 # Sanity check for the transcript ID
@@ -57,7 +57,7 @@ else:
 
                 # 1 Retrieve the pyrange object
                 try:
-                    transcript_ranges = extract_tx_pyranges(gtf_path, st.session_state.txid)
+                    transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
 
                 except KeyError:
                     st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
@@ -70,7 +70,9 @@ else:
                 all_ranges, _ = regions_dataframe_formatter(transcript_ranges)
                 st.session_state.utr5_length, st.session_state.cds_length, st.session_state.utr3_length = extract_features_length(all_ranges)
                 # 3 Extract coverage from given bigwigs
-                st.session_state.all_studies_df = extract_from_multiple_bigwigs(bigwig_files, transcript_ranges, n_jobs=2)
+                st.session_state.all_studies_df = extract_from_multiple_bigwigs(st.session_state.bigwig_files,
+                                                                                transcript_ranges,
+                                                                                n_jobs=2)
 
                 # Resets the picture from above
                 img_placeholder.empty()
