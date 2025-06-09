@@ -23,13 +23,6 @@ with col1:
 with col2:
     st.image("martas/explaining_marta.png", width = 180)
 
-
-# Required Resources (should be placed into a config.file)
-#bigwigs_dir = "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
-#bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
-#gtf_path = "/home/gionmattia/Desktop/OAZ3/annotations/Mus_musculus.GRCm39.113.gtf"
-
-
 # Sanity check for the transcript ID
 txid = st.session_state.get("txid", None)
 if txid is None or txid == "":

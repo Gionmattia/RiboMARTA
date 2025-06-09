@@ -12,7 +12,8 @@ st.session_state.gtf_path = config["gtf_path"]
 # Load list of bigwigs
 bigwigs_dir = config["bigwigs_dir"]
 st.session_state.bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
-
+# Load available metadata
+st.session_state.metadata = pd.read_csv(config["metadata_path"])
 
 st.title("Welcome to RiboMARTA")
 col1, col2 = st.columns([1,4])

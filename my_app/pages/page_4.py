@@ -43,18 +43,75 @@ with st.expander("Change options"):
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
     df = df.drop(columns=["Position"])
-    st.session_state.results = run_analysis(df, coordinates,
+    st.session_state.txid_results = run_analysis(df, coordinates,
                                             ci = st.session_state.ci,
                                             N = st.session_state.N,
                                             n_jobs = st.session_state.n_jobs)
 
-    with st.expander("Show results"):
-        st.session_state.results
+    st.session_state.results_meta = integrate_metadata(st.session_state.txid_results,
+                                                       st.session_state.metadata)
+
+    st.session_state.analysis_ran = True
+
+
+if st.session_state.get("analysis_ran", None) is True:
+
+    with st.expander("Show Tabular Results"):
+
+        tab1, tab2= st.tabs(["Results", "Results with metadata"])
+
+        with tab1:
+            st.session_state.txid_results
+        with tab2:
+            st.session_state.results_meta
 
     # Add expander for boxplot
-    with st.expander("Interactive boxplot"):
-        fig2 = plot_observed_rta_interactive(st.session_state.results)
-        st.plotly_chart(fig2)
+    with st.expander("Interactive Plots"):
+
+        tab3, tab4, tab5 = st.tabs(["Box plot", "Diamond plot", "Single Transcript Plot"])
+
+        with tab3:
+            fig2 = plot_rta_boxplot(st.session_state.txid_results)
+            st.plotly_chart(fig2)
+
     # Add part for z-score plot?
+
+    # Adds plot with breakdowns by metadata
+        with tab4:
+
+            # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
+            meta_option = st.selectbox(
+                "To visualise the diamond plot, select the medatadata column to use",
+                st.session_state.results_meta.columns[:5])
+
+            d_plot = diamond_plotter(st.session_state.results_meta, meta=meta_option)
+            st.plotly_chart(d_plot, use_container_width=True)
+
+        with tab5:
+            st.write("Here you can visualise an individual Run of interest")
+
+            # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
+
+            run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+                                        st.session_state.results_meta.index)
+            ml_plot = multi_line_plot(st.session_state.all_studies_df,
+                                      st.session_state.utr5_length,
+                                      st.session_state.cds_length,
+                                      run_option)
+            st.plotly_chart(ml_plot, use_container_width=True)
+
+
+
+
+    #with st.expander("Diamond Plot"):
+        # Insert here function to merge results with metadata...
+
+        # Function to select by which metadata to plot the results...
+
+        # st.button("Select"):
+        # generate the plot
+
+else:
+    st.write("Here you will see the results once the analysis is complete")
 
 # ADD FUNCTION TO EXPORT USED RANGES?
