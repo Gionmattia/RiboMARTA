@@ -23,6 +23,24 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-ranges_selector(200, "x")
+import base64
 
-ranges_selector(200, "y")
+file_ = open("/home/gionmattia/Downloads/animated_marta2.gif", "rb")
+contents = file_.read()
+data_url = base64.b64encode(contents).decode("utf-8")
+file_.close()
+
+st.markdown(
+    f'<img src="data:image/gif;base64,{data_url}" width="150" alt="cat gif">',
+    unsafe_allow_html=True,
+)
+
+coordinates =   {"x_slice": (1,10),
+                "y_slice": (1,10),
+                "n_slice": (1,10)}
+st.write(f"""Reminder! You selected the following ranges for the analysis:
+
+- First Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
+- Second Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}
+- Noise control Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
+""")

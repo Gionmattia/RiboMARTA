@@ -30,6 +30,13 @@ if coordinates is None:
     with col2:
         st.image("martas/error_marta.png", width=127)
     st.stop()
+else:
+    st.write(f"""You selected the following ranges for the analysis:
+
+    - First Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
+    - Second Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}
+    - Noise Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
+    """)
 
 with st.expander("Change options"):
     col1, col2, col3 = st.columns([2, 2, 2])

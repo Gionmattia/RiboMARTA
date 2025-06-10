@@ -1,5 +1,15 @@
-# Welcome to the configuration file for RiboMARTA
+# Welcome to the configuration file for RiboMARTA. Requires:
 # Path to BigWigs
-bigwigs_dir: "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
 # path to annotation file
-gtf_path: "/home/gionmattia/Desktop/OAZ3/annotations/Mus_musculus.GRCm39.113.gtf"
+# Path to metadata (a .csv formatted as the ones stored for the RiboSeq Data Portal...)
+
+# Configs to run on MOUSE (used during testing and development).
+#bigwigs_dir: "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
+#gtf_path: "/home/gionmattia/Desktop/OAZ3/annotations/Mus_musculus.GRCm39.113.gtf"
+#metadata_path: ""
+
+# Configs for human
+
+bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Human_RiboMARTA"
+gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens.GRCh38.108_ensembl.gtf"
+metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"

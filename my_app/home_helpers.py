@@ -42,7 +42,7 @@ def ensembl_txid_selection():
     State variables set: txid
     State variables cleared: my_ranges, picture, genomic_slices, all_studies_df, utr5_length, cds_length, utr3_length
     """
-    st.write("Please provide a valid Ensembl stable transcript id  (*Ex. ENSMUST00000199678*): ")
+    st.write("Please provide a valid Ensembl stable transcript id  (*Ex. ENST00000380152, ENSMUST00000199678*): ")
     st.session_state.txid = st.text_input("Ensembl Transcript ID")
 
     if st.button("Next"):
