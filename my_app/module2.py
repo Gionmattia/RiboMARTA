@@ -349,11 +349,15 @@ def diamond_plotter(df, meta="TISSUE"):
     return fig
 
 # plot to have single transcript plot of the results
-def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, x=None):
+def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coordinates = None, x=None):
     """
     Plots each column of a dataframe as a line (except for x, if provided).
     Args:
         df: DataFrame (columns to plot as separate lines)
+        utr5_length: length of 5' leader
+        cds_length: length of cds
+        run_option: a list of runs to pass to be plotted
+        coordinates: the ranges adopted by the user for the analysis
         x: Optional - Series or column name to use as x-axis (otherwise use index)
         title: Plot title
     """
@@ -374,6 +378,52 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, x=No
     else:
         x_vals = df.index
         plot_cols = df.columns
+
+    # Add background colours to selected regions
+    for i, (region, (start, end)) in enumerate(coordinates.items()):
+        fig.add_shape(
+            type="rect",
+            x0=start,
+            x1=end,
+            y0=0,
+            y1=1,
+            yref='paper',  # This makes the rectangle span the full y-axis
+            fillcolor= "#FFDFA0",
+            line=dict(width=0),
+            layer="below"
+        )
+
+    # Add labels
+    fig.add_annotation(
+        x=(coordinates["x_slice"][0] + coordinates["x_slice"][1]) / 2,
+        y= 1,
+        yref="paper",
+        text="1st Region",
+        showarrow=False,
+        font=dict(size=11, color="black"),
+        bgcolor="#FFDFA0",
+        borderpad=3
+    )
+    fig.add_annotation(
+        x=(coordinates["y_slice"][0] + coordinates["y_slice"][1]) / 2,
+        y= 1,
+        yref="paper",
+        text="2nd Region",
+        showarrow=False,
+        font=dict(size=11, color="black"),
+        bgcolor="#FFDFA0",
+        borderpad=3
+    )
+    fig.add_annotation(
+        x=(coordinates["n_slice"][0] + coordinates["n_slice"][1]) / 2,
+        y= 1,
+        yref="paper",
+        text="Noise Region",
+        showarrow=False,
+        font=dict(size=11, color="black"),
+        bgcolor="#FFDFA0",
+        borderpad=3
+    )
 
     # Add a line for each column
     for i, col in enumerate(plot_cols):
@@ -396,11 +446,11 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, x=No
     x=utr5_length,
     y=1,
     yref="paper",
-    text="CDS start",
+    text="START",
     showarrow=False,
     font=dict(size=12, color="black"),
     bgcolor="#daecf1",
-    bordercolor="black",
+    #bordercolor="black",
     borderpad=4
     )
     # Add lines to mark CDS
@@ -414,11 +464,11 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, x=No
     x=utr5_length+cds_length,
     y=1,
     yref="paper",
-    text="CDS end",
+    text="STOP",
     showarrow=False,
     font=dict(size=12, color="black"),
     bgcolor="#daecf1",
-    bordercolor="black",
+    #bordercolor="black",
     borderpad=4
     )
 

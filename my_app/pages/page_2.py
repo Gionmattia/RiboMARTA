@@ -5,6 +5,7 @@ from transcriptID_mode_helpers import *
 import os
 import pandas as pd
 import numpy as np
+import time # to time process execution
 
 st.title("Transcript ID Mode")
 
@@ -36,6 +37,7 @@ if txid is None or txid == "":
 # calls the execution to extract from a single transcript.
 else:
     if st.button("Load Transcript"):
+        start_t = time.time() # record execution start
         # this sets up the page
         col1, col2, col3 = st.columns([1, 4, 1])
         with col1:
@@ -50,7 +52,9 @@ else:
 
                 # 1 Retrieve the pyrange object
                 try:
+                    start_gtf = time.time()
                     transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
+                    end_gtf = time.time()
 
                 except KeyError:
                     st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
@@ -69,6 +73,12 @@ else:
 
                 # Resets the picture from above
                 img_placeholder.empty()
+
+        end_t = time.time() # get end time
+        run_time = end_t - start_t
+        gtf_time = end_t - start_gtf
+        st.info(f"Overall time taken: {run_time:.2f} seconds.Annotation (gtf) took {gtf_time:.2f} seconds to load.")
+
 
         # Allow to save the raw data as a .csv
         csv = st.session_state.all_studies_df.to_csv(index=True).encode('utf-8')

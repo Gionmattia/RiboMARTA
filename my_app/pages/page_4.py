@@ -65,12 +65,29 @@ if st.session_state.get("analysis_ran", None) is True:
 
     with st.expander("Show Tabular Results"):
 
-        tab1, tab2= st.tabs(["Results", "Results with metadata"])
+        tab1, tab2= st.tabs(["Detailed Results", "Results with Metadata"])
 
         with tab1:
+            st.write("Here you can visualise the results of the analysis.")
             st.session_state.txid_results
         with tab2:
-            st.session_state.results_meta
+            st.write("Here you can visualise the results with relative metadata, either in a shortened or full version.")
+            col1, col2, col3 = st.columns([2.5, 2, 6])
+            verbose = False
+            with col1:
+                if st.button("Selected Metadata"):
+                    verbose = False
+            with col2:
+                if st.button("Full Metadata"):
+                    verbose = True
+
+            if not verbose:    # Display fewer metadata
+                st.dataframe(st.session_state.results_meta,
+                         column_order=("observed_rta", "padj_bh", "significant", "TISSUE", "CELL_LINE", "Info",
+                                       "BioSample"))
+            else:
+                st.session_state.results_meta
+
 
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
@@ -89,7 +106,7 @@ if st.session_state.get("analysis_ran", None) is True:
             # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
             meta_option = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
-                st.session_state.results_meta.columns[:5])
+                st.session_state.results_meta.columns[:5]) # select first 5
 
             d_plot = diamond_plotter(st.session_state.results_meta, meta=meta_option)
             st.plotly_chart(d_plot, use_container_width=True)
@@ -104,7 +121,8 @@ if st.session_state.get("analysis_ran", None) is True:
             ml_plot = multi_line_plot(st.session_state.all_studies_df,
                                       st.session_state.utr5_length,
                                       st.session_state.cds_length,
-                                      run_option)
+                                      run_option,
+                                      st.session_state.coordinates)
             st.plotly_chart(ml_plot, use_container_width=True)
 
 

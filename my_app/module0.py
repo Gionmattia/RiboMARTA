@@ -20,7 +20,37 @@ mp.set_start_method("fork", force=True)
 import plotly.graph_objects as go
 import random
 import re
+import time
 
+# # OLD VERSION - BACKUP Helper - Extracts the coverage info from a single bigwig
+# def _extract_one(bw_path, regions_df):
+#     """
+#     :param bw_path: path to a signle .bigwig file
+#     :param regions_df: dataframe with genomic regions to extract
+#     :return: tuple. Study ID and dictionary of the three regions dataframes.
+#     """
+#
+#     bw   = pyBigWig.open(bw_path)
+#     sid  = os.path.basename(bw_path).split(".")[0]
+#     out  = {}
+#
+#     # Convert the coordinates from 1-indexed inclusive to BigWig's 0-indexed end-exclusive [,)
+#     # Not necessary, pyranges already converts the coordinates system
+#     # regions_df["Start"] = regions_df["Start"] - 1
+#
+#     # iterate directly over the DataFrame
+#     for row in regions_df.itertuples(index=False):
+#         chrom, start, end, region = (
+#             row.Chromosome, int(row.Start), int(row.End), row.Region
+#         )
+#         vals = bw.values(chrom, start, end, numpy=True)
+#         out[region] = pd.DataFrame({
+#             "Position": range(start, end),
+#             sid: vals
+#         })
+#
+#     bw.close()
+#     return sid, out
 
 # Helper - Extracts the coverage info from a single bigwig
 def _extract_one(bw_path, regions_df):
@@ -30,27 +60,52 @@ def _extract_one(bw_path, regions_df):
     :return: tuple. Study ID and dictionary of the three regions dataframes.
     """
 
-    bw   = pyBigWig.open(bw_path)
     sid  = os.path.basename(bw_path).split(".")[0]
     out  = {}
 
-    # Convert the coordinates from 1-indexed inclusive to BigWig's 0-indexed end-exclusive [,)
-    # Not necessary, pyranges already converts the coordinates system
-    # regions_df["Start"] = regions_df["Start"] - 1
+    attempts = 0
+    max_attempts = 2
 
-    # iterate directly over the DataFrame
-    for row in regions_df.itertuples(index=False):
-        chrom, start, end, region = (
-            row.Chromosome, int(row.Start), int(row.End), row.Region
-        )
-        vals = bw.values(chrom, start, end, numpy=True)
-        out[region] = pd.DataFrame({
-            "Position": range(start, end),
-            sid: vals
-        })
+    while attempts < max_attempts:
+        try:
+            bw = pyBigWig.open(bw_path)
+            # iterate directly over the DataFrame
+            for row in regions_df.itertuples(index=False):
+                chrom, start, end, region = (
+                    row.Chromosome, int(row.Start), int(row.End), row.Region
+                )
+                vals = bw.values(chrom, start, end, numpy=True)
+                out[region] = pd.DataFrame({
+                    "Position": range(start, end),
+                    sid: vals
+                })
+            bw.close()
+            break  # success, so exit the loop
 
-    bw.close()
+        # Failsafe. Sometimes parallelisation cannot work if same file is opened at the same time by != forks.
+        # We introduce a random sleep time for a worker, just to resolve the issue. If that does not work, then....
+        # returns 0s instead.
+        except:
+            # Increase attempts counter
+            attempts += 1
+            if attempts < max_attempts:
+                # Wait a random time to ensure no overlap
+                wait = random.uniform(0.3, 1.5)
+                time.sleep(wait)
+            # If issue cannot be resolved by waiting, returns zeros.
+            else:
+                for row in regions_df.itertuples(index=False):
+                    chrom, start, end, region = (
+                        row.Chromosome, int(row.Start), int(row.End), row.Region
+                    )
+                    # Fill with zeros (or None if you prefer)
+                    out[region] = pd.DataFrame({
+                        "Position": range(start, end),
+                        sid: None
+                    })
+
     return sid, out
+
 
 # Function to format the regions_df in a standardised way:
 
@@ -74,7 +129,7 @@ def format_input_df(my_list):
     return pd.DataFrame(data)
 # Function to extract the coverage from all bigwigs and compile the three dataframes.
 
-def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=2):
+def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
     """
     This is the function used to extract coverage info when the user specifies the three genomic ranges manually.
 
@@ -85,6 +140,7 @@ def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=2):
     """
 
     # Extracts in parallel the coverages from each bigwig
+    # SAME AS BELOW< NEEDS TO BE FIXED. BIGWIGS SHOULD BE GIVEN IN CHUNKS TO EACH WORKER
     results = Parallel(n_jobs=n_jobs,
                        backend="multiprocessing"
                        )(
@@ -215,7 +271,7 @@ def extract_mRNA_regions_from_bigwig(all_ranges_df, bigwig_file):
 
 
 # Function to extract the single transcript from multiple bigwigs
-def extract_from_multiple_bigwigs(bigwig_files, transcript_ranges, n_jobs = 2):
+def extract_from_multiple_bigwigs(bigwig_files, transcript_ranges, n_jobs = 1):
     """
     :param bigwig_files: List of paths pointing to bigwigs to use
     :param transcript_ranges: pyranges object from the .gtf annotation file
@@ -229,6 +285,7 @@ def extract_from_multiple_bigwigs(bigwig_files, transcript_ranges, n_jobs = 2):
     context  = mp.get_context("fork")
 
     # Extracts in parallel the coverages from each bigwig
+    # NEEDS TO BE FIXED SO TO DIVIDE BIGWIGS INTO CHUNKS AND ASSIGN A CHUNK TO EACH WORKER!!
     results = Parallel(n_jobs=n_jobs,
                        backend="multiprocessing") (
         # Needs to be modified so to handle fused df...?
