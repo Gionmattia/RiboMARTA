@@ -126,7 +126,7 @@ if st.session_state.get("analysis_ran", None) is True:
             st.plotly_chart(ml_plot, use_container_width=True)
 
         with tab6:
-            st.write("Here you can visualise data aggregated, depending on the metadata available.")
+            st.write("Here you can visualise all the data aggregated (regardless of the significance of the rta), depending on the metadata available.")
 
             # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
             st.session_state.agg_meta_option = st.selectbox(

@@ -63,13 +63,15 @@ else:
                     st.stop()
                     # Is there a way to stop the spinner here?
 
-                # 2  Retrieve features (CDS, UTRs) lengths
-                all_ranges, _ = regions_dataframe_formatter(transcript_ranges)
+                # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
+                all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
+                # 3a  Retrieve features (CDS, UTRs) lengths
                 st.session_state.utr5_length, st.session_state.cds_length, st.session_state.utr3_length = extract_features_length(all_ranges)
-                # 3 Extract coverage from given bigwigs
+                # 3b Extract coverage from given bigwigs
                 st.session_state.all_studies_df = extract_from_multiple_bigwigs(st.session_state.bigwig_files,
-                                                                                transcript_ranges,
-                                                                                n_jobs=2)
+                                                                                all_ranges,
+                                                                                strandedness,
+                                                                                n_jobs=1)
 
                 # Resets the picture from above
                 img_placeholder.empty()
