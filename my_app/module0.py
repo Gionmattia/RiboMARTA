@@ -332,8 +332,9 @@ def global_aggregate(df, keep_pos = False):
     Creates a new dataframe with the "Global Aggregate" column, which is just the sum of counts per position
     '''
 
-    ga_df =  df.drop(columns="Position").copy()
-    ga_df.fillna(0, inplace=True)
+    df =  df.drop(columns="Position").copy()
+    df.fillna(0, inplace=True)
+    ga_df = df / df.sum()
     ga_df["Global Aggregate"] = ga_df.sum(axis = 1)
     if keep_pos == True:
         ga_df["Position"] = df["Position"]
@@ -341,7 +342,7 @@ def global_aggregate(df, keep_pos = False):
     return ga_df
 
 # Make plot
-def plot_global_aggregate_with_zero(df, utr5_length = 0, cds_length = 0, txid = "", title="Global Aggregate of Raw Counts for "):
+def plot_global_aggregate_with_zero(df, utr5_length = 0, cds_length = 0, txid = "", title="Global Aggregate of Counts for "):
     """
     Create an interactive plot with better control over axis ranges.
 

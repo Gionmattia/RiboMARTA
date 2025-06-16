@@ -160,7 +160,7 @@ def run_analysis(df, coordinates, ci, N = 1000, n_jobs = 3):
     # Stack the results into a single array (N, features)
     perms_array = np.vstack(results)
     # Compile results dataframe
-    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=95)
+    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci= ci)
 
     return results_df
 
@@ -175,8 +175,8 @@ def plot_rta_boxplot(results_df,
     with hover labels, custom box color, and controlled box width.
     """
     filtered = results_df.loc[results_df["significant"] == True, ["observed_rta"]].dropna()
-    if filtered.empty:
-        raise Warning("No significant RTAs were present among the results")
+    # if filtered.empty:
+        # raise Warning("No significant RTAs were present among the results")
 
     y_vals = filtered["observed_rta"].values
     labels = filtered.index.astype(str).tolist()
@@ -474,6 +474,204 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coor
 
     fig.update_layout(
         title="Raw Counts Plot",
+        xaxis_title= "Position on Transcript",
+        yaxis_title= "Raw counts",
+        plot_bgcolor="#daecf1"
+    )
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="lightgray",
+        # ...other y-axis settings...
+    )
+
+    #fig.show()
+    return fig
+
+
+# Helper
+def _extract_runs_by_meta(results_meta, agg_meta_option):
+    """
+    Internal helper, used to retrieve all runs divided by selected agg_meta_option
+
+    :param results_meta: Datafarme with runs as indexes and metadata
+    :param agg_meta_option: user-specified paramter rto group (and later plot) runs by
+    :return: dictionary where each key is a value of the agg_meta_option selected, value is the list of runs.
+    """
+    grouped_runs = {}
+
+    for group_name, group_df in results_meta.groupby(agg_meta_option):
+        grouped_runs[group_name] = group_df.index.tolist()
+
+    return grouped_runs
+
+
+# Function to generate aggregated (by metadata) profiles.
+def aggregator(input_df, results_meta, agg_meta_option):
+    """
+    Normalises the raw data and aggregates together studies based on metadata field given as input
+
+    :param input_df: The raw data
+    :param results_meta: Datafarme with runs results and metadata
+    :param agg_meta_option: the metadata field to use in the aggregation
+    :return:
+    """
+
+    grouped_runs = _extract_runs_by_meta(results_meta, agg_meta_option)
+    # normalize by total counts per run
+    df = input_df / input_df.sum()
+
+    # Set up output
+    temp_dict = {}
+
+    # Aggregate runs based on the grouped_runs dictionary
+    for meta, run_list in grouped_runs.items():
+        filtered_df_cols = df.loc[:, run_list]
+        group_sum_series = filtered_df_cols.sum(axis=1)  # summing row-wise
+
+        temp_dict[meta] = group_sum_series
+
+    # Return dataframe of global aggregates based on specified meta
+    agg_output_df = pd.DataFrame(temp_dict)
+
+    return agg_output_df
+
+# plot aggregated coverage for selected meta conditions
+def agg_line_plot(agg_output_df,  utr5_length = 0, cds_length = 0, aggregations = None, coordinates = None, x=None):
+    """
+    Plots each column of a dataframe as a line (except for x, if provided).
+    Args:
+        agg_output_df: DataFrame result of aggregator
+        utr5_length: length of 5' leader
+        cds_length: length of cds
+        aggregations: a list of metadata options for the field runs have been grouped by aggregator()
+        coordinates: the ranges adopted by the user for the analysis
+        x: Optional - Series or column name to use as x-axis (otherwise use index)
+    """
+
+    # First, normalise the data for comparability
+
+    # Second, extract (as dictionary) the studies matching aggregations. the value is the key, the value is the list of studies.
+
+    # For key in dict, aggregate the studies matching the list from df_normalised and append the result as a new column to "df"
+
+    df = agg_output_df.loc[:,aggregations].copy()
+
+    # Create a new dataframe, where we have a column for each different aggregation
+
+
+    palette = px.colors.qualitative.Plotly
+
+    fig = go.Figure()
+
+    if aggregations is not None:
+        df = df.loc[:, df.columns.isin(aggregations)]
+
+    # Decide x values
+    if x is not None:
+        if isinstance(x, str):
+            x_vals = df[x]
+        else:
+            x_vals = x
+        plot_cols = [col for col in df.columns if col != x]
+    else:
+        x_vals = df.index
+        plot_cols = df.columns
+
+    # Add background colours to selected regions
+    for i, (region, (start, end)) in enumerate(coordinates.items()):
+        fig.add_shape(
+            type="rect",
+            x0=start,
+            x1=end,
+            y0=0,
+            y1=1,
+            yref='paper',  # This makes the rectangle span the full y-axis
+            fillcolor= "#FFDFA0",
+            line=dict(width=0),
+            layer="below"
+        )
+
+    # Add labels
+    fig.add_annotation(
+        x=(coordinates["x_slice"][0] + coordinates["x_slice"][1]) / 2,
+        y= 1,
+        yref="paper",
+        text="1st Region",
+        showarrow=False,
+        font=dict(size=11, color="black"),
+        bgcolor="#FFDFA0",
+        borderpad=3
+    )
+    fig.add_annotation(
+        x=(coordinates["y_slice"][0] + coordinates["y_slice"][1]) / 2,
+        y= 1,
+        yref="paper",
+        text="2nd Region",
+        showarrow=False,
+        font=dict(size=11, color="black"),
+        bgcolor="#FFDFA0",
+        borderpad=3
+    )
+    fig.add_annotation(
+        x=(coordinates["n_slice"][0] + coordinates["n_slice"][1]) / 2,
+        y= 1,
+        yref="paper",
+        text="Noise Region",
+        showarrow=False,
+        font=dict(size=11, color="black"),
+        bgcolor="#FFDFA0",
+        borderpad=3
+    )
+
+    # Add a line for each column
+    for i, col in enumerate(plot_cols):
+        fig.add_trace(go.Bar(
+            x=x_vals,
+            y=df[col],
+            name=col,
+            marker=dict(color=palette[i % len(palette)])
+            # Optionally: hovertemplate=f"{col}: %{{y}}<extra></extra>"
+        ))
+
+    # Add lines to mark CDS
+    fig.add_vline(
+    x=utr5_length,  # your x-value
+    line_dash="dash",  # dashed line
+    line_color="black",  # or any color you want
+    line_width=2
+    )
+    fig.add_annotation(
+    x=utr5_length,
+    y=1,
+    yref="paper",
+    text="START",
+    showarrow=False,
+    font=dict(size=12, color="black"),
+    bgcolor="#daecf1",
+    #bordercolor="black",
+    borderpad=4
+    )
+    # Add lines to mark CDS
+    fig.add_vline(
+    x=utr5_length+cds_length,  # your x-value
+    line_dash="dash",
+    line_color="black",
+    line_width=2
+    )
+    fig.add_annotation(
+    x=utr5_length+cds_length,
+    y=1,
+    yref="paper",
+    text="STOP",
+    showarrow=False,
+    font=dict(size=12, color="black"),
+    bgcolor="#daecf1",
+    #bordercolor="black",
+    borderpad=4
+    )
+
+    fig.update_layout(
+        title="Aggregated Counts Plot",
         xaxis_title= "Position on Transcript",
         yaxis_title= "Raw counts",
         plot_bgcolor="#daecf1"

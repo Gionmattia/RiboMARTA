@@ -92,7 +92,7 @@ if st.session_state.get("analysis_ran", None) is True:
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
 
-        tab3, tab4, tab5 = st.tabs(["Box plot", "Diamond plot", "Single Transcript Plot"])
+        tab3, tab4, tab5, tab6 = st.tabs(["Box plot", "Diamond plot", "Single Transcript Plot", "Aggregated Plots"])
 
         with tab3:
             fig2 = plot_rta_boxplot(st.session_state.txid_results)
@@ -125,6 +125,33 @@ if st.session_state.get("analysis_ran", None) is True:
                                       st.session_state.coordinates)
             st.plotly_chart(ml_plot, use_container_width=True)
 
+        with tab6:
+            st.write("Here you can visualise data aggregated, depending on the metadata available.")
+
+            # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
+            st.session_state.agg_meta_option = st.selectbox(
+                "Select the medatadata field to use for the aggregation",
+                st.session_state.results_meta.columns[:5])
+
+            # Now to select the individual condition or conditions
+            aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
+                                        st.session_state.results_meta[st.session_state.agg_meta_option].unique())
+
+            # Button to choose whether to aggregate only significant ones or everything.
+            agg_selection = aggregator(st.session_state.all_studies_df,
+                                       st.session_state.results_meta,
+                                       st.session_state.agg_meta_option)
+
+            # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
+            agg_meta_plot = agg_line_plot(agg_selection,
+                                          st.session_state.utr5_length,
+                                          st.session_state.cds_length,
+                                          aggregations = aggregations,
+                                          coordinates = st.session_state.coordinates)
+
+            st.plotly_chart(agg_meta_plot, use_container_width=True)
+
+            # Should I use the new method (smooth criminal) here?
 
 
 
