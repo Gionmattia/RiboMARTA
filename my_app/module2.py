@@ -5,15 +5,20 @@ This module contains all the functions used in RiboMARTA, as per the refactoring
 Author: Gionmattia Carancini
 Date: 23-04-2025
 """
+import pandas
 import pandas as pd
 import numpy as np
+from narwhals import Boolean
 from statsmodels.stats.multitest import multipletests
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 
 
 # needed to remove samples where we do not have info
-def _clean_data(df, coordinates, verbose=False):
+def _clean_data(df: pd.DataFrame,
+                coordinates: dict[str, tuple[int, int]],
+                verbose: bool = False
+                ) -> pd.DataFrame:
     """
     Clean input dataframe by:
       1) Dropping columns that are all zeros.
@@ -51,7 +56,9 @@ def _clean_data(df, coordinates, verbose=False):
 
 
 # Computers the ratios
-def _compute_observed_ratios(df, coordinates):
+def _compute_observed_ratios(df: pd.DataFrame,
+                             coordinates: dict[str, tuple[int, int]]
+                             ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Extract the three regions (x, y, and n)
     Compute observed translational-activity ratios:
@@ -71,8 +78,7 @@ def _compute_observed_ratios(df, coordinates):
 
     ratios = (y_avg - n_avg) / (x_avg - n_avg)
 
-    # Stores the values intoa dataframe
-
+    # Stores the values into a dataframe
     ratios_df = pd.DataFrame({
         "x avg": x_avg,
         "y avg": y_avg,
@@ -86,10 +92,15 @@ def _compute_observed_ratios(df, coordinates):
 
 
 # Computes the permutations array
-def _permute_ratios(y_array, n_array, x_avg_array, N, random_state=None):
+def _permute_ratios(y_array: np.ndarray,
+                    n_array: np.ndarray,
+                    x_avg_array: np.ndarray,
+                    N: int,
+                    random_state: bool=None
+                    ) -> np.ndarray:
     """
     Perform N permutations by shuffling combined y+n,
-    recomputing fake TA ratios each time.
+    recomputing fake ratios each time.
     Returns an (N, n_series)-shaped array of fake ratios.
     """
 
@@ -116,7 +127,10 @@ def _permute_ratios(y_array, n_array, x_avg_array, N, random_state=None):
 
 
 # Computes the p-value and confidence boundary
-def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
+def compute_pvalues_and_ci(ratios_df: pd.DataFrame,
+                           permuted:pd.DataFrame,
+                           ci: int=95
+                           ) -> pd.DataFrame:
     """
     One-tailed p-values and upper confidence bound for each series:
       p = (count(permuted >= observed) + 1) / (N + 1)
@@ -143,7 +157,12 @@ def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
 
 
 # Function linking together the various bits to be run all together
-def run_analysis(df, coordinates, ci, N = 1000, n_jobs = 3):
+def run_analysis(df: pd.DataFrame,
+                 coordinates: dict[str, tuple[int, int]],
+                 ci: int,
+                 N: int=1000,
+                 n_jobs: int=3
+                 ) -> pd.DataFrame:
     # NEED to FORMAT (remove columns) the dataframe
 
     # Remove 0-count studies
@@ -165,7 +184,9 @@ def run_analysis(df, coordinates, ci, N = 1000, n_jobs = 3):
 
 
 # Function to integrate metadata with results
-def integrate_metadata(results, metadata):
+def integrate_metadata(results: pd.DataFrame,
+                       metadata: pd.DataFrame
+                       ) -> pd.DataFrame:
     """
     Merges the results of RiboMARTA with the available metadata, on same "Run" id.
     :param results: the results from RiboMARTA's run_analysis()
