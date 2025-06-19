@@ -28,11 +28,14 @@ except (IndexError, TypeError, AttributeError):
         st.image("martas/error_marta.png", width=130)
 
 if st.button("Extract Regions"):
+    st.session_state.regions_extracted = True
+
+if st.session_state.get("regions_extracted", False):
 
     pre_feature_x, post_feature_y, noise_n = extract_regions_from_bw_parallel(st.session_state.bigwig_files, ranges)
 
     # Create a single df and coordinates, to be used by run_analysis()
-    st.session_state.genomic_merged, st.session_state.genomic_slices = genomic_mode_formatter(pre_feature_x,
+    st.session_state.genomic_merged, st.session_state.genomic_ranges = genomic_mode_formatter(pre_feature_x,
                                                                                               post_feature_y,
                                                                                               noise_n)
 
@@ -76,3 +79,6 @@ if st.button("Extract Regions"):
             agg_df_n = global_aggregate(noise_n, True)
             # Plot
             st.line_chart(agg_df_n, x = "Position", y = "Global Aggregate")
+
+    if st.button("Next"):
+        st.switch_page("pages/page_4.py")

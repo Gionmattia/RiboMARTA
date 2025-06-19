@@ -4,38 +4,38 @@ from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
 
-st.title("Transcript Activity Analysis")
+st.title("Genomic Coodrinates Activity Analysis")
 
-st.write("In this page, you can run the analysis for a transcript of your choice, over the selected regions.")
+st.write("In this page, you can run the analysis for your selected genomic coordinates of choice.")
 
 # Check if dataframe has been loaded
-df = st.session_state.get("all_studies_df", None)
+df = st.session_state.get("genomic_merged", None)
 if df is None:
     col1, col2 = st.columns([1,  3])
     with col1:
         st.image("martas/error_marta.png", width=127)
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.warning("Please, load the transcript before moving to this page!")
+        st.warning("Please, select the genomic ranges and extract them before moving to this page!")
     st.stop()
 
 
 # There should be a part where it checks the existence of the coordinates df
-coordinates = st.session_state.get("coordinates", None)
+coordinates = st.session_state.get("genomic_ranges", None)
 if coordinates is None:
     col1, col2 = st.columns([3,  1])
     with col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.warning("Please, select ranges of transcript to compare before proceeding!")
+        st.warning("Error. Genomic ranges still not generated!")
     with col2:
         st.image("martas/error_marta.png", width=127)
-    st.stop()
+    #st.stop()
 else:
-    st.write(f"""You selected the following ranges for the analysis:
+    st.write(f"""You selected the following genomic coordinates for the analysis:
 
-    - First Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
-    - Second Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}
-    - Noise Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
+    - First Region - {st.session_state.my_ranges[0]}
+    - Second Region - {st.session_state.my_ranges[1]}
+    - Noise Region - {st.session_state.my_ranges[2]}
     """)
 
 with st.expander("Change options"):
@@ -114,16 +114,16 @@ if st.session_state.get("analysis_ran", None) is True:
         with tab5:
             st.write("Here you can visualise an individual Run of interest")
 
-            # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
+            # This should be remade so to work with the three ranges
 
-            run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-                                        st.session_state.results_meta.index)
-            ml_plot = multi_line_plot(st.session_state.all_studies_df,
-                                      st.session_state.utr5_length,
-                                      st.session_state.cds_length,
-                                      run_option,
-                                      st.session_state.coordinates)
-            st.plotly_chart(ml_plot, use_container_width=True)
+            # run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+            #                             st.session_state.results_meta.index)
+            # ml_plot = multi_line_plot(st.session_state.all_studies_df,
+            #                           st.session_state.utr5_length,
+            #                           st.session_state.cds_length,
+            #                           run_option,
+            #                           st.session_state.coordinates)
+            # st.plotly_chart(ml_plot, use_container_width=True)
 
         with tab6:
             st.write("Here you can visualise all the data aggregated (regardless of the significance of the rta), depending on the metadata available.")
@@ -133,23 +133,24 @@ if st.session_state.get("analysis_ran", None) is True:
                 "Select the medatadata field to use for the aggregation",
                 st.session_state.results_meta.columns[:5])
 
-            # Now to select the individual condition or conditions
-            aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
-                                        st.session_state.results_meta[st.session_state.agg_meta_option].unique())
-
-            # Button to choose whether to aggregate only significant ones or everything.
-            agg_selection = aggregator(st.session_state.all_studies_df,
-                                       st.session_state.results_meta,
-                                       st.session_state.agg_meta_option)
-
-            # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
-            agg_meta_plot = agg_line_plot(agg_selection,
-                                          st.session_state.utr5_length,
-                                          st.session_state.cds_length,
-                                          aggregations = aggregations,
-                                          coordinates = st.session_state.coordinates)
-
-            st.plotly_chart(agg_meta_plot, use_container_width=True)
+            # SAME AS ABOVE< THIS SHOULD BE MADE TO WORK WITH THREE DFS, NOT JUST ONE!
+            # # Now to select the individual condition or conditions
+            # aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
+            #                             st.session_state.results_meta[st.session_state.agg_meta_option].unique())
+            #
+            # # Button to choose whether to aggregate only significant ones or everything.
+            # agg_selection = aggregator(st.session_state.all_studies_df,
+            #                            st.session_state.results_meta,
+            #                            st.session_state.agg_meta_option)
+            #
+            # # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
+            # agg_meta_plot = agg_line_plot(agg_selection,
+            #                               st.session_state.utr5_length,
+            #                               st.session_state.cds_length,
+            #                               aggregations = aggregations,
+            #                               coordinates = st.session_state.coordinates)
+            #
+            # st.plotly_chart(agg_meta_plot, use_container_width=True)
 
             # Should I use the new method (smooth criminal) here?
 
