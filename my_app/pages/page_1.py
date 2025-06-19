@@ -30,7 +30,12 @@ except (IndexError, TypeError, AttributeError):
 if st.button("Extract Regions"):
 
     pre_feature_x, post_feature_y, noise_n = extract_regions_from_bw_parallel(st.session_state.bigwig_files, ranges)
-    st.session_state.genomic_slices = {"pre_feature": pre_feature_x, "post_feature": post_feature_y, "noise": noise_n}
+
+    # Create a single df and coordinates, to be used by run_analysis()
+    st.session_state.genomic_merged, st.session_state.genomic_slices = genomic_mode_formatter(pre_feature_x,
+                                                                                              post_feature_y,
+                                                                                              noise_n)
+
 
     with st.expander("Show raw count data per region"):
         st.write("""In this tab, you can explore the raw data that has been extracted for your genomic intervals of choice.
@@ -56,19 +61,18 @@ if st.button("Extract Regions"):
         col1, col2, col3 = st.columns(3)
         with col1:
             st.write("First Region")
-            # aggregate
             agg_df_x = global_aggregate(pre_feature_x, True)
-            # Display
+            # Plot
             st.line_chart(agg_df_x, x = "Position", y = "Global Aggregate")
 
         with col2:
             st.write("Second Region")
             agg_df_y = global_aggregate(post_feature_y, True)
-            # Display
+            # Plot
             st.line_chart(agg_df_y, x = "Position", y = "Global Aggregate")
 
         with col3:
             st.write("Noise control Region")
             agg_df_n = global_aggregate(noise_n, True)
-            # Display
+            # Plot
             st.line_chart(agg_df_n, x = "Position", y = "Global Aggregate")

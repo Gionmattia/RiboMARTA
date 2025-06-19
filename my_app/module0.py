@@ -166,17 +166,58 @@ def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
 
 
 # General-use Helper
-def global_aggregate(df, keep_pos = False):
+def global_aggregate(input_df: pd.DataFrame,
+                     keep_pos: bool= False
+                     ) -> pd.DataFrame:
     '''
+    Args:
+        input_df: dataframe with coverage info per position. Rows are positions, columns are SRR Runs.
+        keep_pos: whether to keep position numbers (genomic coordinate numbers) or not.
+
+    Returns:
+        pd.DataFrame with aggregated coverage per position
+
     Creates a new dataframe with the "Global Aggregate" column, which is just the sum of counts per position
     '''
 
-    df =  df.drop(columns="Position").copy()
+    df =  input_df.copy()
+    df.drop(columns="Position", inplace=True)
     df.fillna(0, inplace=True)
     ga_df = df / df.sum()
     ga_df["Global Aggregate"] = ga_df.sum(axis = 1)
     if keep_pos == True:
-        ga_df["Position"] = df["Position"]
+        ga_df["Position"] = input_df["Position"]
 
     return ga_df
 
+def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
+                           post_feature_y:pd.DataFrame,
+                           noise_n:pd.DataFrame
+                           ) -> tuple[pd.DataFrame, dict[str, tuple[int, int]]]:
+    '''
+    Args:
+        pre_feature_x: pd.DataFrame with coverages from genomic coordinates (rows are positions, columns are SRR Runs)
+        post_feature_y: pd.DataFrame with coverages from genomic coordinates (rows are positions, columns are SRR Runs)
+        noise_n: pd.DataFrame with coverages from genomic coordinates
+        used as noise control (rows are positions, columns are SRR Runs)
+
+    Returns:
+        genomic_merged: pd.DataFrame, the three inputs, concatenated on top of each other.
+        genomic_slices: dictionary, the coordinates to re-extract the original three DataFrames.
+    '''
+
+    # Create a single df for run_analysis()
+    genomic_merged = pd.concat([pre_feature_x, post_feature_y, noise_n],
+                               axis=0,
+                               ignore_index=True)
+
+    length_x = len(pre_feature_x)
+    length_y = len(post_feature_y)
+    length_n = len(noise_n)
+
+    # Set up the dictionary of coordinates for run_analysis()
+    genomic_slices = {"x_slice": (0, length_x),
+                      "y_slice": (length_x,length_x + length_y),
+                      "n_slice": (length_x + length_y, length_x + length_y + length_n)}
+
+    return genomic_merged, genomic_slices
