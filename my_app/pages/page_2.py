@@ -8,6 +8,8 @@ import numpy as np
 import time # to time process execution
 
 st.title("Transcript ID Mode")
+st.session_state.extract_coverage = False
+#st.session_state.cov_extracted = False
 
 col1, col2 = st.columns([4,1])
 with col1:
@@ -37,44 +39,46 @@ if txid is None or txid == "":
 # calls the execution to extract from a single transcript.
 else:
     if st.button("Load Transcript"):
-        start_t = time.time() # record execution start
-        # this sets up the page
-        col1, col2, col3 = st.columns([1, 4, 1])
-        with col1:
-            # Create a placeholder for the image (yes Anmol, I want a picture while results load)
-            struggling_image = "martas/struggling_marta.png"
-            img_placeholder = st.empty()
-            img_placeholder.image(struggling_image, width=100)
-        with col2:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            with st.spinner("I am retrieving the coverage data..."):
-                #st.image("struggling_marta.png", width=100)
+        st.session_state.extract_coverage = True
 
-                # 1 Retrieve the pyrange object
-                try:
-                    start_gtf = time.time()
-                    transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
-                    end_gtf = time.time()
+if st.session_state.extract_coverage == True:
+    start_t = time.time() # record execution start
+    # this sets up the page
+    col1, col2, col3 = st.columns([1, 4, 1])
+    with col1:
+        # Create a placeholder for the image (yes Anmol, I want a picture while results load)
+        struggling_image = "martas/struggling_marta.png"
+        img_placeholder = st.empty()
+        img_placeholder.image(struggling_image, width=100)
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        with st.spinner("I am retrieving the coverage data..."):
+            try:
+                start_gtf = time.time()
+                transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
+                end_gtf = time.time()
 
-                except KeyError:
-                    st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
+            except KeyError:
+                st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
                              "Please, restart from the Home page.")
-                    img_placeholder.image("martas/ko_marta.png", width = 100)
-                    st.stop()
-                    # Is there a way to stop the spinner here?
+                img_placeholder.image("martas/ko_marta.png", width = 100)
+                st.stop()
+                # Is there a way to stop the spinner here?
 
-                # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
-                all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
-                # 3a  Retrieve features (CDS, UTRs) lengths
-                st.session_state.utr5_length, st.session_state.cds_length, st.session_state.utr3_length = extract_features_length(all_ranges)
-                # 3b Extract coverage from given bigwigs
-                st.session_state.all_studies_df = extract_from_multiple_bigwigs(st.session_state.bigwig_files,
-                                                                                all_ranges,
-                                                                                strandedness,
-                                                                                n_jobs=1)
+            # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
+            all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
+            # 3a  Retrieve features (CDS, UTRs) lengths
+            st.session_state.utr5_length, st.session_state.cds_length, st.session_state.utr3_length = extract_features_length(all_ranges)
+            # 3b Extract coverage from given bigwigs
+            st.session_state.all_studies_df = extract_from_multiple_bigwigs(st.session_state.bigwig_files,
+                                                                            all_ranges,
+                                                                            strandedness,
+                                                                            n_jobs=1)
 
                 # Resets the picture from above
-                img_placeholder.empty()
+            img_placeholder.empty()
+            st.session_state.extract_coverage = False
+            st.session_state.cov_extracted = True
 
         end_t = time.time() # get end time
         run_time = end_t - start_t
@@ -82,15 +86,27 @@ else:
         st.info(f"Overall time taken: {run_time:.2f} seconds.Annotation (gtf) took {gtf_time:.2f} seconds to load.")
 
 
-        # Allow to save the raw data as a .csv
-        csv = st.session_state.all_studies_df.to_csv(index=True).encode('utf-8')
+        # # Allow to save the raw data as a .csv
+        # csv = st.session_state.all_studies_df.to_csv(index=True).encode('utf-8')
+        #
+        # st.download_button(
+        #     label="Download data as CSV",
+        #     data=csv,
+        #     file_name= f'{st.session_state.txid}_raw_counts.csv',
+        #     mime='text/csv'
+        # )
 
-        st.download_button(
-            label="Download data as CSV",
-            data=csv,
-            file_name= f'{st.session_state.txid}_raw_counts.csv',
-            mime='text/csv'
-        )
+if st.session_state.cov_extracted == True:
+
+    # Allow to save the raw data as a .csv
+    csv = st.session_state.all_studies_df.to_csv(index=True).encode('utf-8')
+
+    st.download_button(
+        label="Download data as CSV",
+        data=csv,
+        file_name=f'{st.session_state.txid}_raw_counts.csv',
+        mime='text/csv'
+    )
 
     if 'picture' not in st.session_state:
         # computes global aggregate

@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import yaml
+from module0 import genomic_mode_formatter
 
 # Import config file with paths to files used by RiboMARTA
 @st.cache_resource
@@ -17,13 +18,31 @@ def genomic_coordinates_selection():
     State variables cleared: txid, picture, genomic_slices, all_studies_df, utr5_length,
         cds_length, utr3_length
     """
+    # Add a small explaination
+    with st.expander("Show Genomic Mode Explaination"):
+        st.write("""
+        
+        In this analysis mode, you are required to select three genomic intervals. 
+        - The first one acts as your ***baseline***, to which you compare your... 
+        - ...second one (usually a region you are interested in assessing its translational activity).
+        - The third range should be a region closer to the second, but with ***no translational activity*** 
+        (such as within a 3'trailer), that will be used as 'negative control' by the analysis.
+        
+        The resulting "RTA" (Ratio of Translational Activity) is a measure of how footprints densities is for the second range,
+        compared to the baseline.
+        
+        ***NB1.*** As a general rule of thumb, try to select ranges of approximatively the same size and between 100bp - 2-3kb.
+        
+        ***NB2.*** This analysis mode is conceived to compare specific small genomic intervals. If you are interested
+        in evaluating the translational activity for a transcript, please use the apposite mode.""")
+
     st.write("Please provide genomic ranges for the regions you want to compare: ")
 
     col1, _, _ = st.columns([3,2,1])
     with col1:
-        genomic_range_1 = st.text_input("(Region 1 - Ex: *chr1:75,440,360-75,440,569*)")
-        genomic_range_2 = st.text_input("(Region 2 - Ex: *chr1:75,441,465-75,441,626*)")
-        genomic_range_n = st.text_input("(Noise Region - Ex: *chr1:75,441,846-75,442,036*)")
+        genomic_range_1 = st.text_input("(Region 1 - Ex: *chr19:2,269,606-2,269,738*)")
+        genomic_range_2 = st.text_input("(Region 2 - Ex: *chr19:2,271,786-2,271,949*)")
+        genomic_range_n = st.text_input("(Noise Region - Ex: *chr19:2,273,160-2,273,406*)")
         st.session_state.my_ranges = [genomic_range_1, genomic_range_2, genomic_range_n]
 
     if st.button("Next"):
@@ -47,8 +66,8 @@ def ensembl_txid_selection():
 
     if st.button("Next"):
         # session_state clean-up
-        keys_to_reset = ["my_ranges", "picture", "genomic_slices", "all_studies_df", "utr5_length",
-         "cds_length", "utr3_length"]
+        keys_to_reset = ["my_ranges", "picture", "genomic_slices","genomic_merged", "genomic_ranges", "all_studies_df", "utr5_length",
+         "cds_length", "utr3_length", "tx_upload", "genomic_upload"]
 
         reset_session_state(keys_to_reset)
         # Proceed to next page of the analysis
@@ -85,8 +104,13 @@ def upload_selection():
         pre_feature_x = st.file_uploader("Upload the .csv for the first region")
         post_feature_y = st.file_uploader("Upload the .csv for the second region")
         noise_n = st.file_uploader("Upload the .csv for the noise region")
-        # puts them into a single data-structure.
-        st.session_state.genomic_slices = {"pre_feature": pre_feature_x, "post_feature": post_feature_y, "noise": noise_n}
+        # Create a single df and coordinates, to be used by run_analysis()
+
+        # Patchy, but it works for now
+        if all(dfs is not None for dfs in (pre_feature_x, post_feature_y, noise_n)):
+            st.session_state.genomic_merged, st.session_state.genomic_ranges = genomic_mode_formatter(pre_feature_x,
+                                                                                                  post_feature_y,
+                                                                                                  noise_n)
 
     if st.session_state.tx_upload:
         # Allows to load the transcript dataframe
@@ -95,6 +119,8 @@ def upload_selection():
             st.session_state.all_studies_df = pd.read_csv(uploaded_file, index_col=0)
         except ValueError:
             st.stop()
+
+        st.session_state.txid = st.text_input("Please name your Ensembl Transcript ID")
 
         # Allows to store the length of the three transcript regions
         st.session_state.utr5_length = st.number_input("Please, provide length of the 5' leader for selected transcript",
@@ -117,11 +143,14 @@ def upload_selection():
                              "cds_length", "utr3_length"]
             reset_session_state(keys_to_reset)
 
+            st.switch_page("pages/page_4.py")
+
         if st.session_state.tx_upload == True:
-            keys_to_reset = ["my_ranges", "txid", "picture", "genomic_slices"]
+            keys_to_reset = ["my_ranges", "picture", "genomic_merged", "genomic_ranges"]
             #Need to store transcript df and three lengths as a single unit
             reset_session_state(keys_to_reset)
-        st.switch_page("pages/page_3.py")
+            st.session_state.cov_extracted = True
+            st.switch_page("pages/page_2.py")
 
 # Helper - resets streamlit state variables
 def reset_session_state(keys):

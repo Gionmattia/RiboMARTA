@@ -71,4 +71,4 @@ elif option == 'Ensembl Transcript ID':
             st.session_state.coordinates = {"x_slice": st.session_state.x_slice,
                                             "y_slice": st.session_state.y_slice,
                                             "n_slice": st.session_state.n_slice}
-            st.switch_page("pages/page_4.py")
+            st.switch_page("pages/page_5.py")

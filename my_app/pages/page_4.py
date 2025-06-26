@@ -3,6 +3,7 @@ import streamlit as st
 from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
+from genomic_mode_helpers import *
 
 st.title("Genomic Coodrinates Activity Analysis")
 
@@ -50,12 +51,12 @@ with st.expander("Change options"):
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
     df = df.drop(columns=["Position"])
-    st.session_state.txid_results = run_analysis(df, coordinates,
+    st.session_state.genco_results = run_analysis(df, coordinates,  # DOUBLE CHECK THIS
                                             ci = st.session_state.ci,
                                             N = st.session_state.N,
                                             n_jobs = st.session_state.n_jobs)
 
-    st.session_state.results_meta = integrate_metadata(st.session_state.txid_results,
+    st.session_state.results_meta = integrate_metadata(st.session_state.genco_results, # DOUBLE CHECK THIS
                                                        st.session_state.metadata)
 
     st.session_state.analysis_ran = True
@@ -69,7 +70,7 @@ if st.session_state.get("analysis_ran", None) is True:
 
         with tab1:
             st.write("Here you can visualise the results of the analysis.")
-            st.session_state.txid_results
+            st.session_state.genco_results
         with tab2:
             st.write("Here you can visualise the results with relative metadata, either in a shortened or full version.")
             col1, col2, col3 = st.columns([2.5, 2, 6])
@@ -95,7 +96,7 @@ if st.session_state.get("analysis_ran", None) is True:
         tab3, tab4, tab5, tab6 = st.tabs(["Box plot", "Diamond plot", "Single Transcript Plot", "Aggregated Plots"])
 
         with tab3:
-            fig2 = plot_rta_boxplot(st.session_state.txid_results)
+            fig2 = plot_rta_boxplot(st.session_state.genco_results)
             st.plotly_chart(fig2)
 
     # Add part for z-score plot?
@@ -114,16 +115,13 @@ if st.session_state.get("analysis_ran", None) is True:
         with tab5:
             st.write("Here you can visualise an individual Run of interest")
 
-            # This should be remade so to work with the three ranges
+            run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+                                        st.session_state.results_meta.index)
 
-            # run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-            #                             st.session_state.results_meta.index)
-            # ml_plot = multi_line_plot(st.session_state.all_studies_df,
-            #                           st.session_state.utr5_length,
-            #                           st.session_state.cds_length,
-            #                           run_option,
-            #                           st.session_state.coordinates)
-            # st.plotly_chart(ml_plot, use_container_width=True)
+            ml_plot = multi_line_plot_genomic(st.session_state.genomic_merged,
+                                      run_option,
+                                      coordinates)
+            st.plotly_chart(ml_plot, use_container_width=True)
 
         with tab6:
             st.write("Here you can visualise all the data aggregated (regardless of the significance of the rta), depending on the metadata available.")
@@ -135,22 +133,20 @@ if st.session_state.get("analysis_ran", None) is True:
 
             # SAME AS ABOVE< THIS SHOULD BE MADE TO WORK WITH THREE DFS, NOT JUST ONE!
             # # Now to select the individual condition or conditions
-            # aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
-            #                             st.session_state.results_meta[st.session_state.agg_meta_option].unique())
-            #
-            # # Button to choose whether to aggregate only significant ones or everything.
-            # agg_selection = aggregator(st.session_state.all_studies_df,
-            #                            st.session_state.results_meta,
-            #                            st.session_state.agg_meta_option)
-            #
-            # # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
-            # agg_meta_plot = agg_line_plot(agg_selection,
-            #                               st.session_state.utr5_length,
-            #                               st.session_state.cds_length,
-            #                               aggregations = aggregations,
-            #                               coordinates = st.session_state.coordinates)
-            #
-            # st.plotly_chart(agg_meta_plot, use_container_width=True)
+            aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
+                                         st.session_state.results_meta[st.session_state.agg_meta_option].unique())
+
+            # Button to choose whether to aggregate only significant ones or everything.
+            agg_selection = aggregator(df,
+                                        st.session_state.results_meta,
+                                        st.session_state.agg_meta_option)
+
+             # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
+            genom_agg_meta_plot = genom_agg_line_plot(agg_selection,
+                                          aggregations = aggregations,
+                                          coordinates = coordinates)
+
+            st.plotly_chart(genom_agg_meta_plot, use_container_width=True)
 
             # Should I use the new method (smooth criminal) here?
 

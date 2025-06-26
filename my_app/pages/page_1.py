@@ -8,11 +8,6 @@ st.title("Genomic Coordinates Mode")
 st.write("Welcome to Genomic Coordinates Analysis Page. Before proceeding, "
          "please take another look at your ranges below before starting.")
 
-# Load resources (should use a params.config file)
-# Required Resources (should be placed into a config.file)
-#bigwigs_dir = "/home/gionmattia/Desktop/OAZ3/bed_and_bigwigs/m_musculus/a_shifted_mus_musculus/a_shifted"
-#bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
-
 try:
     # Add new function to format regions_df here.
     ranges = format_input_df(st.session_state.my_ranges)
