@@ -31,6 +31,9 @@ if coordinates is None:
     with col2:
         st.image("martas/error_marta.png", width=127)
     #st.stop()
+elif st.session_state.genomic_upload == True:
+    st.write("You are currently in: Genomic Coordinates - File Upload mode")
+
 else:
     st.write(f"""You selected the following genomic coordinates for the analysis:
 
@@ -137,7 +140,7 @@ if st.session_state.get("analysis_ran", None) is True:
                                          st.session_state.results_meta[st.session_state.agg_meta_option].unique())
 
             # Button to choose whether to aggregate only significant ones or everything.
-            agg_selection = aggregator(df,
+            agg_selection = aggregator(st.session_state.genomic_merged,
                                         st.session_state.results_meta,
                                         st.session_state.agg_meta_option)
 

@@ -50,6 +50,8 @@ def genomic_coordinates_selection():
         keys_to_reset = ["txid", "picture", "genomic_slices", "all_studies_df", "utr5_length",
         "cds_length", "utr3_length"]
         reset_session_state(keys_to_reset)
+        # Reset regions_extracted (used to display page_1 breakdowns)
+        st.session_state.regions_extracted = False
         # Proceed to next page of the analysis
         st.switch_page("pages/page_1.py")
 
@@ -101,10 +103,15 @@ def upload_selection():
 
     if st.session_state.genomic_upload:
         # Allows to load three dataframes
-        pre_feature_x = st.file_uploader("Upload the .csv for the first region")
-        post_feature_y = st.file_uploader("Upload the .csv for the second region")
-        noise_n = st.file_uploader("Upload the .csv for the noise region")
+        pre_feature_x_file  = st.file_uploader("Upload the .csv for the first region")
+        post_feature_y_file = st.file_uploader("Upload the .csv for the second region")
+        noise_n_file = st.file_uploader("Upload the .csv for the noise region")
+        # Convert to dataframes
+        pre_feature_x = pd.read_csv(pre_feature_x_file, index_col=0)
+        post_feature_y = pd.read_csv(post_feature_y_file, index_col=0)
+        noise_n = pd.read_csv(noise_n_file, index_col=0)
         # Create a single df and coordinates, to be used by run_analysis()
+
 
         # Patchy, but it works for now
         if all(dfs is not None for dfs in (pre_feature_x, post_feature_y, noise_n)):
