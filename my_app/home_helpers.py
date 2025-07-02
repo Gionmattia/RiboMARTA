@@ -69,8 +69,7 @@ def ensembl_txid_selection():
     if st.button("Next"):
         # session_state clean-up
         keys_to_reset = ["my_ranges", "picture", "genomic_slices","genomic_merged", "genomic_ranges", "all_studies_df", "utr5_length",
-         "cds_length", "utr3_length", "tx_upload", "genomic_upload"]
-
+         "cds_length", "utr3_length", "tx_upload", "genomic_upload", "cov_extracted"]
         reset_session_state(keys_to_reset)
         # Proceed to next page of the analysis
         st.switch_page("pages/page_2.py")

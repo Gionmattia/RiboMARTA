@@ -10,8 +10,24 @@ mp.set_start_method("fork", force=True)
 import plotly.graph_objects as go
 import random
 from module0 import _extract_one
+import time # to time process execution
 
+# Function to load the gtf file. Separated so to cache the gtf and speed-up re-executions.
+@st.cache_data
+def read_gtf_annotation(gtf_path):
+    """
+    This function loads a .gtf annotation file as a pyRanges object.
+    Created so that data is cached and execution is faster on subsequent runs.
 
+    :param gtf_path: path to annotation file
+    :return: pyRanges object
+    """
+    start_gtf = time.time()
+    gr = pr.read_gtf(gtf_path)
+    end_t = time.time()
+    gtf_time = end_t - start_gtf
+    st.info(f".gtf took: {gtf_time:.2f} to load.")
+    return gr
 
 # Function to load the ranges
 def extract_tx_pyranges(gtf_path, txid):
@@ -23,7 +39,7 @@ def extract_tx_pyranges(gtf_path, txid):
     :return: a dataframe with ranges for each feature of txid
     """
     # Read the gtf file
-    gr = pr.read_gtf(gtf_path)
+    gr = read_gtf_annotation(gtf_path)
     transcript_ranges = gr[gr.transcript_id == txid]
     if len(transcript_ranges) == 0:
         raise KeyError(f"transcript id {txid} was not found in the annotation file.")

@@ -54,9 +54,7 @@ if st.session_state.extract_coverage == True:
         st.markdown("<br><br>", unsafe_allow_html=True)
         with st.spinner("I am retrieving the coverage data..."):
             try:
-                start_gtf = time.time()
                 transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
-                end_gtf = time.time()
 
             except KeyError:
                 st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
@@ -82,8 +80,8 @@ if st.session_state.extract_coverage == True:
 
         end_t = time.time() # get end time
         run_time = end_t - start_t
-        gtf_time = end_t - start_gtf
-        st.info(f"Overall time taken: {run_time:.2f} seconds.Annotation (gtf) took {gtf_time:.2f} seconds to load.")
+
+        st.info(f"Extraction time taken: {run_time:.2f} seconds.")
 
 
         # # Allow to save the raw data as a .csv
@@ -96,7 +94,8 @@ if st.session_state.extract_coverage == True:
         #     mime='text/csv'
         # )
 
-if st.session_state.cov_extracted == True:
+# Checks whether the coverage has been extracted, before offering other UI options
+if st.session_state.get("cov_extracted") is True:
 
     # Allow to save the raw data as a .csv
     csv = st.session_state.all_studies_df.to_csv(index=True).encode('utf-8')
