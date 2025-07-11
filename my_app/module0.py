@@ -183,7 +183,10 @@ def global_aggregate(input_df: pd.DataFrame,
     df =  input_df.copy()
     df.drop(columns="Position", inplace=True)
     df.fillna(0, inplace=True)
-    ga_df = df / df.sum()
+
+    col_sums = df.sum()
+    # Replace 0 with 1s, so to not get NaN when diving by 0
+    ga_df = df / col_sums.replace(0, 1)
     ga_df["Global Aggregate"] = ga_df.sum(axis = 1)
     if keep_pos == True:
         ga_df["Position"] = input_df["Position"]

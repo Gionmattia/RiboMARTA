@@ -16,14 +16,14 @@ def plot_rta_boxplot(results_df,
                      box_width=0.2,
                      jitter=0.5):
     """
-    Interactive box+points plot of “observed_rta” (where “significant” == True),
+    Interactive box+points plot of “RTA” (where “significant” == True),
     with hover labels, custom box color, and controlled box width.
     """
-    filtered = results_df.loc[results_df["significant"] == True, ["observed_rta"]].dropna()
+    filtered = results_df.loc[results_df["significant"] == True, ["RTA"]].dropna()
     # if filtered.empty:
         # raise Warning("No significant RTAs were present among the results")
 
-    y_vals = filtered["observed_rta"].values
+    y_vals = filtered["RTA"].values
     labels = filtered.index.astype(str).tolist()
     x_vals = [1] * len(y_vals)
 
@@ -98,7 +98,7 @@ def diamond_plotter(df, meta="TISSUE"):
         df_t = df[mask_circle & (df[meta] == tissue)]
         fig.add_trace(go.Scatter(
             x=df_t[meta],
-            y=df_t['observed_rta'],
+            y=df_t['RTA'],
             mode='markers',
             marker=dict(
                 symbol='circle',
@@ -117,7 +117,7 @@ def diamond_plotter(df, meta="TISSUE"):
         df_t = df[mask_diamond & (df[meta] == tissue)]
         fig.add_trace(go.Scatter(
             x=df_t[meta],
-            y=df_t['observed_rta'],
+            y=df_t['RTA'],
             mode='markers',
             marker=dict(
                 symbol='diamond',
