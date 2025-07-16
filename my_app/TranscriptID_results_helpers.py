@@ -19,10 +19,8 @@ def plot_rta_boxplot(results_df,
     Interactive box+points plot of “RTA” (where “significant” == True),
     with hover labels, custom box color, and controlled box width.
     """
-    filtered = results_df.loc[results_df["significant"] == True, ["RTA"]].dropna()
-    # if filtered.empty:
-        # raise Warning("No significant RTAs were present among the results")
 
+    filtered = results_df["RTA"].dropna()
     y_vals = filtered["RTA"].values
     labels = filtered.index.astype(str).tolist()
     x_vals = [1] * len(y_vals)
