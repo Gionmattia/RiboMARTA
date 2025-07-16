@@ -11,6 +11,7 @@ config = load_config("config.yaml")
 st.session_state.gtf_path = config["gtf_path"]
 st.session_state.metadata = pd.read_csv(config["metadata_path"])
 bigwigs_dir = config["bigwigs_dir"]
+st.session_state.fasta_path = config["fasta_path"]
 st.session_state.bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
 
 

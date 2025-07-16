@@ -13,3 +13,4 @@
 bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Human_RiboMARTA"
 gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens.GRCh38.108_ensembl.gtf"
 metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens.GRCh38.dna.primary_assembly.fa"

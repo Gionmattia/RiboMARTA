@@ -2,10 +2,11 @@
 import streamlit as st
 from module0 import *
 from transcriptID_mode_helpers import *
-import os
-import pandas as pd
-import numpy as np
 import time # to time process execution
+from bokeh.models import FactorRange
+from bokeh.embed import file_html
+from bokeh.resources import CDN
+from bokeh.layouts import column
 
 st.title("Transcript ID Mode")
 st.session_state.extract_coverage = False
@@ -55,6 +56,8 @@ if st.session_state.extract_coverage == True:
         with st.spinner("I am retrieving the coverage data..."):
             try:
                 transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
+                # Reading FASTA file to retrieve sequence info
+                fasta = read_fasta(st.session_state.fasta_path)
 
             except KeyError:
                 st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
@@ -84,16 +87,6 @@ if st.session_state.extract_coverage == True:
         st.info(f"Extraction time taken: {run_time:.2f} seconds.")
 
 
-        # # Allow to save the raw data as a .csv
-        # csv = st.session_state.all_studies_df.to_csv(index=True).encode('utf-8')
-        #
-        # st.download_button(
-        #     label="Download data as CSV",
-        #     data=csv,
-        #     file_name= f'{st.session_state.txid}_raw_counts.csv',
-        #     mime='text/csv'
-        # )
-
 # Checks whether the coverage has been extracted, before offering other UI options
 if st.session_state.get("cov_extracted") is True:
 
@@ -111,15 +104,69 @@ if st.session_state.get("cov_extracted") is True:
         # computes global aggregate
         if st.session_state.get("all_studies_df") is None:
             st.stop()
-        ga_df = global_aggregate(st.session_state.all_studies_df)
+        ga_df = global_aggregate(st.session_state.all_studies_df) # SRR[...i] | "Global Aggregate"
+
+        # Calculates frame and smoothes data (smoothing ny window size k)
+        smoothed_ga_df, k = smoother(ga_df)
+
+        # Defines x-axis as FactorRange object (allows for multiple plots to share X)
+        positions = smoothed_ga_df['X'].astype(str).tolist()
+        x_range = FactorRange(*positions)
+        # --- Plotting Functions --- #
         # creates single transcript plot
         st.session_state.picture = plot_global_aggregate_with_zero(ga_df,
                                                                    st.session_state.utr5_length,
                                                                    st.session_state.cds_length,
                                                                    st.session_state.txid)
-    # if picture already exists, renders it
-    if st.session_state.get("picture") is not None:
-        st.plotly_chart(st.session_state['picture'], use_container_width=True)
+
+        # creates single transcript plot with frame info
+        picture2_transcript_plot = subplot_single_transcript_plot(smoothed_ga_df,
+                                                                  'Global_Aggregate_smoothed',
+                                                                  x_range,
+                                                                  k,
+                                                                  start=st.session_state.utr5_length,
+                                                                  stop=st.session_state.cds_length,
+                                                                  txid = st.session_state.txid)
+
+        picture2_transcript_plot.height = 400  # or whatever height you need
+        picture2_transcript_plot.sizing_mode = 'stretch_width'
+
+        # Code to retrieve sequence and codon positions
+        sequence = get_sequence(fasta, all_ranges, strandedness)
+        orf_info = compute_codons_by_frame(sequence)
+        # Code to create the ORF plots and the combined plot.
+        orfplot_f1 = ORF_plotter(orf_info, 1, x_range)
+        orfplot_f1.height = 100
+        orfplot_f1.sizing_mode = 'stretch_width'
+        orfplot_f2 = ORF_plotter(orf_info, 2, x_range)
+        orfplot_f2.height = 100
+        orfplot_f2.sizing_mode = 'stretch_width'
+        orfplot_f3 = ORF_plotter(orf_info, 3, x_range)
+        orfplot_f3.height = 100
+        orfplot_f3.sizing_mode = 'stretch_width'
+        st.session_state.picture2 = column(picture2_transcript_plot, orfplot_f1, orfplot_f2, orfplot_f3, sizing_mode='stretch_width')
+
+
+
+    # # if picture already exists, renders it
+    with st.expander("Global Aggregate Plots"):
+        tab1, tab2 = st.tabs(["Simple Plot", "Periodicity Plot"])
+        with tab1:
+            st.write("Below you can see a Global aggregate for your data, normalised by transcript counts."
+                     "This plot is a simplified visualisation. Easy on the eyes, but less informative.")
+            if st.session_state.get("picture") is not None:
+                st.plotly_chart(st.session_state['picture'], use_container_width=True)
+        with tab2:
+            st.write("Below you can see data for your transcript coloured by frame."
+                     "To help the detection of patterns, data has been smoothed by a window of size k."
+                     "This visualisation is less intuitive, but more informative.")
+            if st.session_state.get("picture2") is not None:
+                # Saving as html, since blokeh v.3+ is not directly compatible with streamlit...
+                # Patchy, maybe I can comeup with something better... but does it job for now.
+                html = file_html(st.session_state.picture2, CDN, "Transcript_plot_with_ORF")
+                st.components.v1.html(html, height=700, width=1600)
+
+
 
     # It would be best if the plotly also had an ORF plot beneath...maybe later on.
 

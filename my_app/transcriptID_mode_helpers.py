@@ -11,6 +11,12 @@ import plotly.graph_objects as go
 import random
 from module0 import _extract_one
 import time # to time process execution
+from pyfaidx import Fasta
+from Bio.Seq import Seq
+from bokeh.models import Span, Label
+from bokeh.plotting import figure, ColumnDataSource
+from bokeh.models import HoverTool
+from bokeh.models import PanTool
 
 # Function to load the gtf file. Separated so to cache the gtf and speed-up re-executions.
 @st.cache_data
@@ -28,6 +34,11 @@ def read_gtf_annotation(gtf_path):
     gtf_time = end_t - start_gtf
     st.info(f".gtf took: {gtf_time:.2f} to load.")
     return gr
+
+@st.cache_resource
+def read_fasta(fasta_path):
+    fasta = Fasta(fasta_path)
+    return fasta
 
 # Function to load the ranges
 def extract_tx_pyranges(gtf_path, txid):
@@ -191,6 +202,323 @@ def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs
     all_studies_df.fillna(0, inplace=True)
 
     return all_studies_df
+
+
+# Introducing smoothing function:
+def smoother(df, k=3):
+    """
+    Calculates the frame over the global aggregate, then smoothes by it.
+    Also adds column "X" used by plotting function "subplot_single_transcript_plot"
+
+    :param df: pandas.DataFrame
+        DataFrame containing a 'Global Aggregate' column
+    :param k: k-mer size to smooth the data. Default is 3.
+            If the transcript is > 5000nt, increases smoothing window proportionally
+    :return df: pandas.DataFrame
+        DataFrame with the smoothed Global Aggregate
+    """
+    # Copies the position to column "X". Used to calculate Frame and for visualisation later
+    df["X"] = df.index
+    # Assign frame to each position
+    df["Frame"] = (df["X"] % 3) + 1
+
+    # Code to smooth cov by frame
+    transcript_len = len(df.index)
+    if transcript_len < 3500:
+        k = 3
+    elif transcript_len < 6000:
+        k = 5
+    elif transcript_len < 10000:
+        k = 9
+    else:
+        k = 13
+
+    k2 = k * 3
+    for i in range(0, len(df), k2):
+        # Select the slice of 9 rows using iloc
+        chunk = df.iloc[i:i + k2]
+        # out of those, groupby Frame, calculate the mean
+        chunk_averages = chunk.groupby('Frame')['Global Aggregate'].transform("mean")
+        # store the new values as a new column
+        df.loc[chunk.index, "Global_Aggregate_smoothed"] = chunk_averages
+
+    return df, k
+
+# Helper. Adds a vertical line to a plot, with a label on top.
+def _add_vline_and_label(p, x, max_y, text):
+    """
+    Helper function. Adds a vertical line and a label to the given Bokeh plot.
+    Used to mark start/stop codons on single transcript plots
+
+    :param p: bokeh.plotting.Figure
+    :param x : int/float - x position for the line and label
+    :param y_position : int/float - y position for the label
+    :param text : str - label for the line
+
+    """
+    vline = Span(
+        location=x,
+        dimension="height",
+        line_color="black",
+        line_width=2,
+        line_dash="dashed"
+    )
+    label = Label(
+        x=x,
+        y= max_y + max_y * 0.5,
+        text=text,
+        text_font_size="11pt",
+        text_color="black",
+        text_align="center",
+        x_offset=0,
+        y_offset= -20,
+        y_units = "data",
+        background_fill_color="white",
+        background_fill_alpha=1.0
+    )
+    p.add_layout(vline)
+    p.add_layout(label)
+
+
+# New function to make Single transcript plot. Shows also frame info.
+def subplot_single_transcript_plot(df, y_axis, x_range, k, start=0, stop=0, txid = ""):
+    """
+    Creates the single transcript plot, each frame coloured differently.
+
+    :param df: -> input dataframe. Must have columns "Frame", "X" (position over transcript).
+    :param y_axis: -> str, the name of the column with the data to be plotted on y axis
+    :param x_range: -> x values, a factorRange object from Blokeh (to put different plots on same X together).
+    :param start: -> int, position of START codon.
+    :param stop: -> int, position of STOP codon.
+
+    """
+    # Ensure 'frame' is str for color mapping and legend
+    df['Frame'] = df['Frame'].astype(str)
+
+    # Color map to match R code
+    frame_color_map = {
+        "1": "#48cf4b",
+        "2": "#68ace3",
+        "3": "#e66343"
+    }
+
+    max_y = df[y_axis].max()
+
+    p = figure(
+        x_range=x_range,
+        y_range = ( -1* df[y_axis].quantile(0.10), max_y * 1.5),
+        sizing_mode="stretch_both",
+        background_fill_color="white",
+        x_axis_label="Position on the transcript (nt)",
+        y_axis_label="Normalised Aggregate Counts",
+        title= f"Global Aggregate for {txid}, smoothed by k = {k}"
+    )
+
+    # Remove gridlines and set white background (like theme_minimal + tweaks)
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+    p.outline_line_color = None
+
+    # Plot each frame as an area (overlay, not stacked)
+    for frame, group in df.groupby('Frame'):
+        group_sorted = group.sort_values('X')
+        source = ColumnDataSource(group_sorted)
+        p.varea(
+            x="X", y1=0, y2=y_axis,
+            source=source,
+            fill_color=frame_color_map.get(frame, "#cccccc"),
+            fill_alpha=0.6,
+            legend_label=f"Frame {frame}",
+        )
+
+        p.vbar(
+            x="X",
+            top=y_axis,
+            bottom=0,
+            width=1,
+            source=source,
+            fill_color=frame_color_map.get(frame, "#cccccc"),
+            fill_alpha=0,  # invisible until hover
+            hover_fill_color=frame_color_map.get(frame, "#cccccc"),
+            hover_fill_alpha=0.4,  # semi-transparent on hover
+            line_color=None
+        )
+
+    # Style axes text (like axis.text.y = element_text(size=13))
+    p.yaxis.axis_label_text_font_size = "13pt"
+    p.xaxis.axis_label_text_font_size = "13pt"
+    p.yaxis.major_label_text_font_size = "13pt"
+    p.xaxis.major_label_text_font_size = "13pt"
+
+    # Set legend title and placement
+    p.legend.title = "Frame"
+    p.legend.location = "top_center"
+    p.legend.orientation = "horizontal"
+    p.legend.click_policy = "hide"
+
+    hover = HoverTool(
+        tooltips=[
+            ("Position", "@X"),
+            ("Frame", "@Frame"),
+            ("Value", f"@{y_axis}"),
+        ],
+        # Use 'vline' to snap tooltip to the nearest x-value (optional)
+        mode='vline'
+    )
+    p.add_tools(hover)
+    p.xaxis.major_label_text_font_size = '0pt'
+    p.xaxis.major_tick_line_color = None
+    p.xaxis.minor_tick_line_color = None
+
+    # Define ranges to limit plot pan
+    p.y_range.bounds = ( -1* df[y_axis].quantile(0.10), max_y*1.5)
+    max_x = max(map(int, x_range.factors)) * 1.5
+    min_x = min(map(int, x_range.factors)) - max_x * 0.2
+    p.x_range.bounds = (min_x, max_x)
+
+    # Add lines to highlight Start/Stop codons
+    _add_vline_and_label(p, start, df[y_axis].max() ,"Start")
+    _add_vline_and_label(p, stop, df[y_axis].max()  ,"Stop")
+
+    return p
+
+# Helper - Functions to create ORFplot
+def get_sequence(fasta, df, strandedness):
+    full_seq = ""
+
+    for row in df.itertuples():
+        chrom = row.Chromosome
+        start = row.Start
+        end = row.End
+        seq = fasta[chrom][start:end].seq
+        full_seq = full_seq + seq
+
+    if strandedness == "+":
+        return full_seq
+
+    elif strandedness == "-":
+        full_seq = str(Seq(full_seq).reverse_complement())
+        return full_seq
+
+# Helper - Map codons
+def _map_type(codon):
+    if codon == "ATG":
+        return "ATG"
+    elif codon in ["CTG", "GTG", "TTG"] : #, "GTG", "TTG"]:
+        return "CTG"
+    elif codon in ["TGA", "TAA", "TAG"]:
+        return "stop codon"
+    else:
+        return None
+
+# Helper - finds codon in a given frame
+def _find_codons(seq, frame, codons):
+    rows = []
+    for i in range(frame - 1, len(seq) - 2, 3):
+        codon = str(seq[i:i + 3])
+        # if codon in codons:  # This way everything is mapped, regardless of given list
+        rows.append({
+            "codon": codon,
+            "position": i,
+            "Frame": int(frame),
+            "type": _map_type(codon)
+        })
+    locations = pd.DataFrame(rows)
+
+    return locations
+
+
+def compute_codons_by_frame(sequence):
+    codons = ["ATG", "CTG", "GTG", "TTG", "TGA", "TAA", "TAG"]
+    frame_1 = _find_codons(sequence, 1, codons)
+    frame_2 = _find_codons(sequence, 2, codons)
+    frame_3 = _find_codons(sequence, 3, codons)
+
+    temp = pd.concat([frame_1, frame_2, frame_3], ignore_index=True)
+    all_reading_frames = temp.sort_values(by="position", ascending = True).reset_index(drop = True)
+
+    return all_reading_frames
+
+# Function to make one ORFplot for a given frame
+def ORF_plotter(df, frame, x_range=None):
+    # Masking as in your code
+    plot_df = df.copy()
+
+    mask = plot_df['Frame'] != frame
+    plot_df.loc[mask, 'type'] = None
+
+    # Convert to strings for categorical axes
+    plot_df['type'] = plot_df['type'].astype(str)
+    plot_df['position'] = plot_df['position'].astype(str)
+    if x_range is None:
+        x_range = plot_df['position'].tolist()
+
+    frame_color_map = {
+        1: "#48cf4b",
+        2: "#68ace3",
+        3: "#e66343"
+    }
+
+    bg_colour = frame_color_map[frame]
+
+    # Bokeh requires a color list for the bars, so we map colors
+    codon_color_map = {
+        "ATG": "white",
+        "stop codon": "black",
+        "CTG": "#e3e3e3",
+        "None": bg_colour,
+        "nan": bg_colour,  # in case you get 'nan' from None/NaN conversion
+    }
+    # Fill bar colors accordingly
+    plot_df['color'] = plot_df['type'].map(lambda x: codon_color_map.get(x, bg_colour))
+
+    # Set up ColumnDataSource
+    source = ColumnDataSource(plot_df)
+
+    # Figure setup
+    p = figure(
+        x_range=x_range,
+        y_range=(0, 1),
+        height=75, width=700, title=f"Frame {frame}",
+        toolbar_location="right",
+        tools="wheel_zoom, reset"
+    )
+    bars = p.vbar(
+        x='position',
+        top=1,
+        width=0.9,
+        color='color',
+        source=source,
+        name="bars"
+    )
+
+    # Add interactive hover tooltip
+    hover = HoverTool(
+        tooltips=[
+            ("Position", "@position"),
+            ("Codon Type", "@type"),
+            # Add other fields as you want, e.g. ("Value", "@value")
+        ],
+        renderers=[bars]
+    )
+    pan = PanTool(dimensions="width")
+    p.add_tools(pan)
+    p.toolbar.active_drag = pan
+    p.add_tools(hover)
+
+    p.y_range.bounds = (0, 1)
+
+    # Hide y-axis
+    p.yaxis.visible = False
+    p.xaxis.visible = False
+    p.yaxis.major_label_text_font_size = '0pt'
+    p.yaxis.minor_tick_line_color = None
+    p.yaxis.major_tick_line_color = None
+
+    # Hide grid lines if desired
+    p.ygrid.grid_line_color = None
+
+    return p
 
 
 # Make global aggregate plot (used in TranscriptID mode)
