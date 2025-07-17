@@ -21,7 +21,7 @@ def plot_rta_boxplot(results_df,
     """
 
     filtered = results_df["RTA"].dropna()
-    y_vals = filtered["RTA"].values
+    y_vals = filtered.values
     labels = filtered.index.astype(str).tolist()
     x_vals = [1] * len(y_vals)
 
@@ -503,7 +503,7 @@ def agg_line_plot(agg_output_df,  utr5_length = 0, cds_length = 0, aggregations 
     fig.update_layout(
         title="Aggregated Counts Plot",
         xaxis_title= "Position on Transcript",
-        yaxis_title= "Raw counts",
+        yaxis_title= "Normalised counts (aggregated by tissue)",
         plot_bgcolor="#daecf1"
     )
     fig.update_yaxes(

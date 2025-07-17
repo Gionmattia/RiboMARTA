@@ -245,7 +245,7 @@ def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
         f'ci_lower_{ci}%': lower,
         f'ci_upper_{ci}%': upper,
         'padj_bh': pvals_bh,
-        'reject' : reject,
+        'significant' : reject,
     }, index=observed.index)
 
 
