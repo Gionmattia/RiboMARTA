@@ -9,8 +9,14 @@
 #metadata_path: ""
 
 # Configs for human
+Homo_sapiens_GRCh38:
+  bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/inflated_bigwigs"
+  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.108_ensembl.gtf"
+  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 
-bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/inflated_bigwigs"
-gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens.GRCh38.108_ensembl.gtf"
-metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
-fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+Mus_musculus_GRCm39:
+  bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/inflated_bigwigs"
+  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.113.gtf"
+  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.dna.primary_assembly.fa"

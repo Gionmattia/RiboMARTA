@@ -41,16 +41,15 @@ def read_fasta(fasta_path):
     return fasta
 
 # Function to load the ranges
-def extract_tx_pyranges(gtf_path, txid):
+def extract_tx_pyranges(gr, txid):
     """
     Function to load the gtf annotation and extract the ranges for selected transcript
 
-    :param gtf_path: path to the annotation file in use
+    :param gr: loaded gtf, as pyranges object
     :param txid: the stable (ensebml) transcript id
     :return: a dataframe with ranges for each feature of txid
     """
     # Read the gtf file
-    gr = read_gtf_annotation(gtf_path)
     transcript_ranges = gr[gr.transcript_id == txid]
     if len(transcript_ranges) == 0:
         raise KeyError(f"transcript id {txid} was not found in the annotation file.")

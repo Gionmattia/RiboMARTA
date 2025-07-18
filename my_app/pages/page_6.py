@@ -1,5 +1,6 @@
 import streamlit as st
 from transcriptID_mode_helpers import *
+import yaml
 
 st.title("Try out colors!")
 
@@ -35,19 +36,17 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.write("""RiboMARTA - Roadmap for reference.
-- IDEAS: introduce the X-squared breakdowns.
-- IDEAS: introudce the effieniency method (after testing).
-- Introduce a "select organism" function that loads organisms. Load one, cache, forget about it.
-- ADD ORF PLOTS (so load and reconstruct sequence from FASTA)
-- Implement auto-noise selection (picks a range of low z-scores from transcript).
-- Option to run test in a different way, if 3'UTR not present or too small (was it wilcoxon?).
-- Implement triplet periodicity in the visualisations (that would be important...)?
-- At the present time, I consider the stop codon as "part of the CDS"..that's wrong. Need to fix it.
-""")
+st.write("## Please, select the organism to work with")
+with open("config.yaml") as f:
+    configs = yaml.safe_load(f)
 
-st.write(
-    f"utr5 {st.session_state.utr5_length}, "
-    f"cds {st.session_state.cds_length}, "
-    f"utr3 {st.session_state.utr3_length}"""
-)
+st.write(list(configs.keys()))
+
+
+# st.write("""RiboMARTA - Roadmap for reference.
+# - IDEAS: introduce the X-squared breakdowns.
+# - IDEAS: introudce the effieniency method (after testing).
+# - Introduce a "select organism" function that loads organisms. Load one, cache, forget about it.
+# - Implement auto-noise selection (picks a range of low z-scores from transcript).
+# - Option to run test in a different way, if 3'UTR not present or too small (was it wilcoxon?).
+# """)

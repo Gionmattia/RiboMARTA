@@ -55,9 +55,9 @@ if st.session_state.extract_coverage == True:
         st.markdown("<br><br>", unsafe_allow_html=True)
         with st.spinner("I am retrieving the coverage data..."):
             try:
-                transcript_ranges = extract_tx_pyranges(st.session_state.gtf_path, st.session_state.txid)
-                # Reading FASTA file to retrieve sequence info
-                fasta = read_fasta(st.session_state.fasta_path)
+                transcript_ranges = extract_tx_pyranges(st.session_state.gr, st.session_state.txid)
+                # OLD BIT. Used to load fasta here, now I am assigning it to a temp variable (if it works, I will remove)
+                fasta = st.session_state.fasta
 
             except KeyError:
                 st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
@@ -132,7 +132,7 @@ if st.session_state.get("cov_extracted") is True:
         picture2_transcript_plot.sizing_mode = 'stretch_width'
 
         # Code to retrieve sequence and codon positions
-        sequence = get_sequence(fasta, all_ranges, strandedness)
+        sequence = get_sequence(fasta, all_ranges, strandedness) # if it works, change with st.session_state.fasta
         orf_info = compute_codons_by_frame(sequence)
         # Code to create the ORF plots and the combined plot.
         orfplot_f1 = ORF_plotter(orf_info, 1, x_range)

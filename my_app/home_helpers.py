@@ -3,12 +3,33 @@ import streamlit as st
 import pandas as pd
 import yaml
 from module0 import genomic_mode_formatter
+from pyfaidx import Fasta
+import pyranges as pr
 
 # Import config file with paths to files used by RiboMARTA
 @st.cache_resource
 def load_config(path_to_yaml):
     with open(path_to_yaml, 'r') as f:
         return yaml.safe_load(f)
+
+@st.cache_resource
+def read_fasta(fasta_path):
+    fasta = Fasta(fasta_path)
+    return fasta
+
+# Function to load the gtf file. Separated so to cache the gtf and speed-up re-executions.
+@st.cache_data
+def read_gtf_annotation(gtf_path):
+    """
+    This function loads a .gtf annotation file as a pyRanges object.
+    Created so that data is cached and execution is faster on subsequent runs.
+
+    :param gtf_path: path to annotation file
+    :return: pyRanges object
+    """
+    gr = pr.read_gtf(gtf_path)
+    #st.info(f".gtf took: {gtf_time:.2f} to load.")
+    return gr
 
 def genomic_coordinates_selection():
     """

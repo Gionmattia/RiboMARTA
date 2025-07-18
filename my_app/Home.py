@@ -5,14 +5,12 @@ import pandas as pd
 from home_helpers import *
 import os
 
-# Load configuratuion file
-config = load_config("config.yaml")
-# Load path to annotation file, metadata, and the bigwigs in the app
-st.session_state.gtf_path = config["gtf_path"]
-st.session_state.metadata = pd.read_csv(config["metadata_path"])
-bigwigs_dir = config["bigwigs_dir"]
-st.session_state.fasta_path = config["fasta_path"]
-st.session_state.bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
+
+# st.session_state.gtf_path = config["gtf_path"]
+# st.session_state.metadata = pd.read_csv(config["metadata_path"])
+# bigwigs_dir = config["bigwigs_dir"]
+# st.session_state.fasta_path = config["fasta_path"]
+# st.session_state.bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
 
 
 st.title("Welcome to RiboMARTA")
@@ -28,6 +26,30 @@ with col2:
     st.write("""You are currently in the Home page of the analysis. In here you can decide whether to extract regions using
     genomic coordinates, an ensembl transcript ID, or use raw data from a previous run fo RiboMARTA. Once you are settled, press
     'Next'.""")
+
+# Load configuration file
+config = load_config("config.yaml")
+# Load path to annotation file, metadata, and the bigwigs in the app
+organisms_available = list(config.keys())
+
+st.write("xx Configure Organism for the analysis:")
+st.session_state.selected_organism = st.selectbox("Choose an organism:", organisms_available)
+if st.button("Load this organism config"):
+    config = config[st.session_state.selected_organism]
+    st.session_state.gtf_path = config["gtf_path"]
+    st.session_state.metadata = pd.read_csv(config["metadata_path"])
+    bigwigs_dir = config["bigwigs_dir"]
+    st.session_state.fasta_path = config["fasta_path"]
+    st.session_state.bigwig_files = [
+        os.path.abspath(os.path.join(bigwigs_dir, f))
+        for f in os.listdir(bigwigs_dir)
+        if os.path.isfile(os.path.join(bigwigs_dir, f))
+    ]
+
+    st.session_state.fasta = read_fasta(st.session_state.fasta_path)
+    st.session_state.gr = read_gtf_annotation(st.session_state.gtf_path)
+    st.session_state.config_loaded = True
+    st.success(f"Loaded config for {st.session_state.selected_organism}!")
 
 # Sets up possible choices for analysis
 df = pd.DataFrame({
