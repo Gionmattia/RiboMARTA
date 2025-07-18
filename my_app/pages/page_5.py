@@ -83,7 +83,7 @@ if st.session_state.get("analysis_ran", None) is True:
 
             if not verbose:    # Display fewer metadata
                 st.dataframe(st.session_state.results_meta,
-                         column_order=("observed_rta", "padj_bh", "significant", "TISSUE", "CELL_LINE", "Info",
+                         column_order=("RTA", "padj_bh", "significant", "TISSUE", "CELL_LINE", "Info",
                                        "BioSample"))
             else:
                 st.session_state.results_meta
@@ -137,7 +137,7 @@ if st.session_state.get("analysis_ran", None) is True:
             aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
                                         st.session_state.results_meta[st.session_state.agg_meta_option].unique())
 
-            # Button to choose whether to aggregate only significant ones or everything.
+            # Button to choose whether to aggregate only significant ones or everything?
             agg_selection = aggregator(st.session_state.all_studies_df,
                                        st.session_state.results_meta,
                                        st.session_state.agg_meta_option)

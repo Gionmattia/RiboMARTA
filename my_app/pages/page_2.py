@@ -124,8 +124,8 @@ if st.session_state.get("cov_extracted") is True:
                                                                   'Global_Aggregate_smoothed',
                                                                   x_range,
                                                                   k,
-                                                                  start=st.session_state.utr5_length,
-                                                                  stop=st.session_state.cds_length,
+                                                                  start=st.session_state.utr5_length, # NEED TO FIX THIS
+                                                                  stop=st.session_state.cds_length + st.session_state.utr5_length,
                                                                   txid = st.session_state.txid)
 
         picture2_transcript_plot.height = 400  # or whatever height you need
