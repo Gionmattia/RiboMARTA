@@ -27,6 +27,8 @@ with col2:
     genomic coordinates, an ensembl transcript ID, or use raw data from a previous run fo RiboMARTA. Once you are settled, press
     'Next'.""")
 
+
+## THIS COULD BE WRAPPED UP IN A SINGLE FUNCTION WITHIN HOME_HELPERS!!
 # Load configuration file
 config = load_config("config.yaml")
 # Load path to annotation file, metadata, and the bigwigs in the app
