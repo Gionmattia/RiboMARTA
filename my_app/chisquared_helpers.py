@@ -89,3 +89,31 @@ def get_breakdowns_slices(all_studies_df, txid_results, coordinates):
     df = breakdown.drop("Run", axis=1)
 
     return df
+
+def get_breakdowns_percent(all_studies_df, txid_results, utr_5, cds):
+    good_runs = txid_results.index.to_list()
+    df = all_studies_df[good_runs].copy()
+    # Divide each row-column by column total
+    df = df / df.sum(axis=0)
+
+    # Compute the three totals by region...
+    leader_totals = df.iloc[:utr_5].sum(axis=0)
+    leader_totals = leader_totals * 100
+    leader_totals.name = "UTR_5"
+
+    cds_totals = df.iloc[utr_5:utr_5 + cds].sum(axis=0)
+    cds_totals = cds_totals * 100
+    cds_totals.name = "CDS"
+
+    trailer_totals = df.iloc[utr_5 + cds:].sum(axis=0)
+    trailer_totals = trailer_totals * 100
+    trailer_totals.name = "UTR_3"
+
+    breakdown = pd.concat([leader_totals, cds_totals, trailer_totals], axis=1)
+
+    breakdown["Run"] = breakdown.index
+
+    df = breakdown.drop("Run", axis=1)
+
+    return df
+

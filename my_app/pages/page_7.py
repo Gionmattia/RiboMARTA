@@ -14,7 +14,7 @@ If that's the case, look at the heatmap to see which runs/regions contributed th
 the greater the standard deviation and hence the contribution""")
 
 
-df = get_breakdowns(st.session_state.all_studies_df,
+df = get_breakdowns_percent(st.session_state.all_studies_df,
                     st.session_state.txid_results,
                     st.session_state.utr5_length,
                     st.session_state.cds_length)
@@ -85,6 +85,20 @@ It will also show in which specific cell I am observing this difference, if I lo
 Problem is, it is too sensitive. Too many false positives, due to the high number of counts.
 
 It's could be a filtering. But again, it has TOO MUCH sensitivity -> type I error (reject Null Hypothesis).
+
+
+I resorted to use the "percentage of translational activity" (so the sum of counts per area, in percentage) as a measure.
+This seems to work a bit better. Homogenity works fine...
+ 
+Though I wonder if I could also do a pairwise, where I compare each individual one to the normalised global aggregate, converted to percentage.
+That way I could have a "average of everything" profile, to which I compare each individual one, looking for striking differences.
+
+It's interesting, but that also ponders the question...could I make a heatmap like the one I saw before then, showing the differences
+from the average in term of proportions?
+
+Would the test be statistically significant because it's too sensitive, or will it work properly now?
+
+- what if every case is too different from the average -> everything is signficant... that would eb a nightmare
 """)
 
 
