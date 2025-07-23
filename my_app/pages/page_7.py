@@ -101,8 +101,36 @@ Would the test be statistically significant because it's too sensitive, or will 
 - what if every case is too different from the average -> everything is signficant... that would eb a nightmare
 """)
 
+st.write("## NEW IDEA")
+st.write("This table shows how the total translational activity is subdivided between utrs and CDs, as percentages."
+         "It is an easy way to skim through the data, to check if there's any Run where it significantly diverges from the average"
+         "for this transcript."
+         "Basically, it's a quick way to see if there's a Run were you have greater translation from a UTR,"
+         "than the '''norm'''."
+         "It's a tool to inspect data."
+         "In the future, I might rework it so to work also with the user-defined SLICES (coordinates) so to be able to check the "
+         "regions subjected to analysis. The UTR/CDS breakdown is still interesting as a first step. ")
 
-st.write("This table is useful to see what regions/Runs differed the most. Useful if cramer's V above 0.1. ")
+# Another type of breakdown
+df = get_breakdowns_percent_with_GA(st.session_state.all_studies_df,
+                                    st.session_state.txid_results,
+                                    st.session_state.utr5_length,
+                                    st.session_state.cds_length)
+
+# do Chi-squared pairwise and adjust for multiple testing
+results_df = perform_pairwise_chi(df, baseline_idx = "Global Aggregate")
+
+# plot the p-values as a result
+fig3 = pairwise_comparison_plotter(results_df)
+st.plotly_chart(fig3, use_container_width=True)
+
+res = results_df.set_index('row')
+merged_df = pd.merge(res, df, left_index=True, right_index=True, how='inner')
+
+
+fig4 = better_plotter(merged_df)
+st.plotly_chart(fig4, use_container_width=True)
+merged_df
 # st.write("""RiboMARTA - Roadmap for reference.
 # - IDEAS: introduce the X-squared breakdowns. [alpha done]
 # - IDEAS: introudce the effieniency method (after testing).
