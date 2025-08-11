@@ -127,7 +127,6 @@ class AnalysisStatus:
     ensembl_transcript_id: bool = False
     uploaded_file: bool = False
 
-
     ## --- Variables and Flags for Genomic Coordinates Mode ---
     # --- User Inputs for Genomic Mode ---
     genomic_range_1: str = ""
@@ -135,25 +134,21 @@ class AnalysisStatus:
     genomic_range_n: str = ""
     genomic_ranges: list = None
     formatted_genomic_ranges: pd.DataFrame = None
-
     # --- Raw counts for Genomic Mode ---
     genomic_slices: list = None
     genomic_merged: pd.DataFrame = None
     genomic_merged_ranges: dict = None
-
     # --- Flags 2 - Extraction of regions ---
     regions_extracted: bool = False
-
     # --- Parameters for the analysis ---
     ci: int = None
     N: int = None
     n_jobs: int = None
-
     # --- Results Genomic Coordinates Mode ---
     genco_results: pd.DataFrame = None
     results_meta: pd.DataFrame = None
-
     # --- Flag 3 - Analysis Ran for Genomic Coordinates mode ---
-    genco_analysis_ran: bool = False
+    genco_analysis_done: bool = False
+    ### IMPORTANT: SO FAR, WE ARE NOT STORING RESULTS!! MAYBE THIS COULD BE CHANGED LATER ON...
 
-
+    ## --- Variables and Flags for Ensembl Transcript ID Mode ---
