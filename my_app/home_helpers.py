@@ -46,13 +46,6 @@ def genomic_coordinates_selection():
         # Generate ID for current run
         st.session_state.quirky_id = generate_quirky_id()
         # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
-        # new_run = AnalysisStatus(quirky_id = st.session_state.quirky_id,
-        #                         organism = st.session_state.selected_organism,
-        #                         genomic_coordinates = True,
-        #                         genomic_range_1 = genomic_range_1,
-        #                         genomic_range_2=genomic_range_2,
-        #                         genomic_range_n=genomic_range_n)
-        # Store the class in the runs dictionary
         st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id = st.session_state.quirky_id,
                                                             organism = st.session_state.selected_organism,
                                                             genomic_coordinates = True,
@@ -79,9 +72,15 @@ def ensembl_txid_selection():
     State variables cleared: my_ranges, picture, genomic_slices, all_studies_df, utr5_length, cds_length, utr3_length
     """
     st.write("Please provide a valid Ensembl stable transcript id  (*Ex. ENST00000602676, ENSMUST00000199678*): ")
-    st.session_state.txid = st.text_input("Ensembl Transcript ID")
+    txid = st.text_input("Ensembl Transcript ID")
 
     if st.button("Next"):
+        st.session_state.quirky_id = generate_quirky_id()
+        # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
+        st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id = st.session_state.quirky_id,
+                                                            organism = st.session_state.selected_organism,
+                                                            ensembl_transcript_id = True,
+                                                            txid = txid)
         # session_state clean-up
         keys_to_reset = ["my_ranges", "picture", "genomic_slices","genomic_merged", "genomic_ranges", "all_studies_df", "utr5_length",
          "cds_length", "utr3_length", "tx_upload", "genomic_upload", "cov_extracted"]

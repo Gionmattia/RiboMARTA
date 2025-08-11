@@ -15,10 +15,12 @@ from typing import List, Dict, Any
 import yaml
 from pyfaidx import Fasta
 import pyranges as pr
+import plotly.graph_objects as go
+import plotly.express as px
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
 ADJECTIVES = [
-     "bicurious", "clever", "sleepy", "stressed", "caffeinated", "cozy", "furious", "quirky", "cheeky",
+     "bicurious", "clever", "sleepy", "stressed", "caffeinated", "cozy", "furious", "quirky", "cheeky", "flirty", "questioning"
     # "accurate", "active", "adamant", "closeted", "curious",
     # "calm", "eager", "fancy", "festive", "jolly", "kind", "lively", "silly", "zany", "brave",
 ]
@@ -122,6 +124,11 @@ class AnalysisStatus:
     quirky_id: str = None # to check with runs dictionary
     organism: str = ""
 
+    # --- Parameters for the analysis (shared across modes) ---
+    ci: int = None
+    N: int = None
+    n_jobs: int = None
+
     # --- Flags 1 - Analysis Mode ---
     genomic_coordinates: bool = False
     ensembl_transcript_id: bool = False
@@ -140,10 +147,7 @@ class AnalysisStatus:
     genomic_merged_ranges: dict = None
     # --- Flags 2 - Extraction of regions ---
     regions_extracted: bool = False
-    # --- Parameters for the analysis ---
-    ci: int = None
-    N: int = None
-    n_jobs: int = None
+
     # --- Results Genomic Coordinates Mode ---
     genco_results: pd.DataFrame = None
     results_meta: pd.DataFrame = None
@@ -152,3 +156,29 @@ class AnalysisStatus:
     ### IMPORTANT: SO FAR, WE ARE NOT STORING RESULTS!! MAYBE THIS COULD BE CHANGED LATER ON...
 
     ## --- Variables and Flags for Ensembl Transcript ID Mode ---
+    txid: str = ""
+
+    # --- Flags 3 - Tixd Mode ---
+    loading_tx_cov: bool = False
+    tx_cov_extracted: bool = False
+
+    # --- Txid mode variables and parameters ---
+    utr5_length: int = None
+    cds_length: int = None
+    utr3_length: int = None
+    all_studies_df: pd.DataFrame = None
+    transcript_sequence: str = ""
+    tx_ga_plot: go.Figure = None
+    triplet_ga_plot: go.Figure = None
+    # User-selected slices to compare in the analysis
+    x_slice: tuple = None
+    y_slice: tuple = None
+    n_slice: tuple = None
+    txid_ranges: dict = None
+
+    # --- Txid mode results ---
+    txid_results: pd.DataFrame = None
+    txid_results_meta: pd.DataFrame = None
+
+    # --- Flag 4 - Analysis Ran for Txid mode ---
+    txid_analysis_done: bool = False

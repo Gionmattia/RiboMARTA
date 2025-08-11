@@ -9,13 +9,7 @@ current_run = st.session_state.runs[st.session_state.quirky_id]
 assert st.session_state.quirky_id == current_run.quirky_id
 
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
-# st.write("This uses the default dataclass representation:")
-# st.write(st.session_state.runs[st.session_state.quirky_id])
-#
-# available_runs = st.session_state.runs.keys()
-# st.write(st.session_state.runs.keys())
 st.title("Genomic Coordinates Mode")
-
 st.write("Welcome to Genomic Coordinates Analysis Page. Before proceeding, "
          "please take another look at your ranges below before starting.")
 
@@ -25,19 +19,19 @@ if current_run.regions_extracted == True:
 
 if current_run.regions_extracted == False:
     # Formats the ranges to use for the extraction
-    current_run.formatted_genomic_ranges = format_input_df(current_run.genomic_ranges)
-    current_run.formatted_genomic_ranges
+    try:
+        current_run.formatted_genomic_ranges = format_input_df(current_run.genomic_ranges)
+        current_run.formatted_genomic_ranges
 
-    # Not the best error-handling, but will do for now
-    # except (IndexError, TypeError, AttributeError):
-    #     col1, col2 = st.columns([3, 1])
-    #     with col1:
-    #         st.markdown("<br><br>", unsafe_allow_html=True)
-    #         st.warning("Please provide valid Genomic Ranges before moving to this page!")
-    #     with col2:
-    #         st.image("martas/error_marta.png", width=130)
-    #     st.stop()
-
+    # Not the best error-handling, but will do for now...
+    except (IndexError, TypeError, AttributeError):
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.warning("Please provide valid Genomic Ranges before moving to this page!")
+        with col2:
+            st.image("martas/error_marta.png", width=130)
+        st.stop()
 
     if st.button("Extract Regions"):
 
@@ -50,7 +44,6 @@ if current_run.regions_extracted == False:
                                                                                                   post_feature_y,
                                                                                                   noise_n)
         current_run.regions_extracted = True
-
 
 if current_run.regions_extracted == True:
     # Show Raw data

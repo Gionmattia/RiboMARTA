@@ -69,10 +69,10 @@ if st.button("Run Analysis"):
     current_run.results_meta = integrate_metadata(current_run.genco_results, # DOUBLE CHECK THIS
                                                     st.session_state.metadata)
 
-    current_run.genco_analysis_ran = True
+    current_run.genco_analysis_done = True
 
 
-if current_run.genco_analysis_ran == True:
+if current_run.genco_analysis_done == True:
 
     with st.expander("Show Tabular Results"):
 

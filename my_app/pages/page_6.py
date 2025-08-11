@@ -42,11 +42,14 @@ with open("config.yaml") as f:
 
 st.write(list(configs.keys()))
 
+current_run = st.session_state.runs[st.session_state.quirky_id]
+st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
+st.write(st.session_state.runs.keys())
+
 
 # st.write("""RiboMARTA - Roadmap for reference.
 # - IDEAS: introduce the X-squared breakdowns.
 # - IDEAS: introudce the effieniency method (after testing).
-# - Introduce a "select organism" function that loads organisms. Load one, cache, forget about it.
 # - Implement auto-noise selection (picks a range of low z-scores from transcript).
 # - Option to run test in a different way, if 3'UTR not present or too small (was it wilcoxon?).
 # """)
