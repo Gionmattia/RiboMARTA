@@ -162,6 +162,11 @@ def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
     post_feature_y = final["Second Region"]
     noise_n = final["Noise Region"]
 
+    # Replace na with 0s instead
+    pre_feature_x.fillna(0, inplace=True)
+    post_feature_y.fillna(0, inplace=True)
+    noise_n.fillna(0, inplace=True)
+
     return pre_feature_x, post_feature_y, noise_n
 
 

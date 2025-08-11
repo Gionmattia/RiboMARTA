@@ -241,6 +241,7 @@ def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
         "y avg": ratios_df["y avg"],
         "n avg": ratios_df["n avg"],
         'RTA': ratios_df["RTA"],
+        'log2RTA': np.log2(ratios_df["RTA"]),
         'p-value': pvals,
         f'ci_lower_{ci}%': lower,
         f'ci_upper_{ci}%': upper,

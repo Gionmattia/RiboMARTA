@@ -92,13 +92,23 @@ if st.session_state.get("analysis_ran", None) is True:
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
 
-        tab3, tab4, tab5, tab6 = st.tabs(["Box plot", "Diamond plot", "Single Transcript Plot", "Aggregated Plots"])
+        tab3, tab3_log, tab4, tab4_log,tab5, tab6 = st.tabs(
+            ["Box plot (RTAs)", "Box plot (logs)",
+             "Diamond plot (RTA)", "Diamond plot (logs)",
+             "Single Transcript Plot", "Aggregated Plots"])
 
         with tab3:
-            fig2 = plot_rta_boxplot(st.session_state.txid_results)
+            fig2 = plot_rta_boxplot(results_df = st.session_state.txid_results)
             st.plotly_chart(fig2)
 
-    # Add part for z-score plot?
+        with tab3_log:
+            # plot the results
+            fig2_bis = plot_rta_boxplot(results_df = st.session_state.txid_results,
+                                        logs =  True,
+                                        box_fill = "#c44601")
+
+            st.plotly_chart(fig2_bis,
+                            key = "figure_2_bis")
 
     # Adds plot with breakdowns by metadata
         with tab4:
@@ -108,8 +118,25 @@ if st.session_state.get("analysis_ran", None) is True:
                 "To visualise the diamond plot, select the medatadata column to use",
                 st.session_state.results_meta.columns[:5]) # select first 5
 
-            d_plot = diamond_plotter(st.session_state.results_meta, meta=meta_option)
+            d_plot = diamond_plotter(st.session_state.results_meta,
+                                     meta=meta_option,
+                                     logs = False)
             st.plotly_chart(d_plot, use_container_width=True)
+
+        with tab4_log:
+
+            # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
+            meta_option_bis = st.selectbox(
+                "To visualise the diamond plot, select the medatadata column to use",
+                st.session_state.results_meta.columns[:5],
+                key = "meta_dplot_bis") # select first 5
+
+            d_plot_bis = diamond_plotter(st.session_state.results_meta,
+                                     meta=meta_option_bis,
+                                     logs = True)
+            st.plotly_chart(d_plot_bis,
+                            use_container_width=True,
+                            key = "figure_d_bis")
 
         with tab5:
             st.write("Here you can visualise an individual Run of interest")

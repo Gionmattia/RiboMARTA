@@ -1,35 +1,9 @@
 # collection of helpers to render home page of RiboMARTA
 import streamlit as st
 import pandas as pd
-import yaml
 from module0 import genomic_mode_formatter
-from pyfaidx import Fasta
-import pyranges as pr
-
-# Import config file with paths to files used by RiboMARTA
-@st.cache_resource
-def load_config(path_to_yaml):
-    with open(path_to_yaml, 'r') as f:
-        return yaml.safe_load(f)
-
-@st.cache_resource
-def read_fasta(fasta_path):
-    fasta = Fasta(fasta_path)
-    return fasta
-
-# Function to load the gtf file. Separated so to cache the gtf and speed-up re-executions.
-@st.cache_data
-def read_gtf_annotation(gtf_path):
-    """
-    This function loads a .gtf annotation file as a pyRanges object.
-    Created so that data is cached and execution is faster on subsequent runs.
-
-    :param gtf_path: path to annotation file
-    :return: pyRanges object
-    """
-    gr = pr.read_gtf(gtf_path)
-    #st.info(f".gtf took: {gtf_time:.2f} to load.")
-    return gr
+from app_helpers import generate_quirky_id
+from app_helpers import AnalysisStatus
 
 def genomic_coordinates_selection():
     """
@@ -64,9 +38,29 @@ def genomic_coordinates_selection():
         genomic_range_1 = st.text_input("(Region 1 - Ex: *chr19:2,269,606-2,269,738*)")
         genomic_range_2 = st.text_input("(Region 2 - Ex: *chr19:2,271,786-2,271,949*)")
         genomic_range_n = st.text_input("(Noise Region - Ex: *chr19:2,273,160-2,273,406*)")
-        st.session_state.my_ranges = [genomic_range_1, genomic_range_2, genomic_range_n]
+        # Save three ranges as a list
+        genomic_ranges = [genomic_range_1, genomic_range_2, genomic_range_n]
 
     if st.button("Next"):
+        #### THIS IS WHERE WE IMPLEMENT THE NEW ANALYSIS FLOW CONTROL...
+        # Generate ID for current run
+        st.session_state.quirky_id = generate_quirky_id()
+        # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
+        # new_run = AnalysisStatus(quirky_id = st.session_state.quirky_id,
+        #                         organism = st.session_state.selected_organism,
+        #                         genomic_coordinates = True,
+        #                         genomic_range_1 = genomic_range_1,
+        #                         genomic_range_2=genomic_range_2,
+        #                         genomic_range_n=genomic_range_n)
+        # Store the class in the runs dictionary
+        st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id = st.session_state.quirky_id,
+                                                            organism = st.session_state.selected_organism,
+                                                            genomic_coordinates = True,
+                                                            genomic_range_1 = genomic_range_1,
+                                                            genomic_range_2=genomic_range_2,
+                                                            genomic_range_n=genomic_range_n,
+                                                            genomic_ranges = genomic_ranges)
+
         # session_state clean-up
         keys_to_reset = ["txid", "picture", "genomic_slices", "all_studies_df", "utr5_length",
         "cds_length", "utr3_length"]

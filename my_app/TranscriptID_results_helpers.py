@@ -8,19 +8,31 @@ Date: 16-06-2025
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+import numpy as np
 
 # Function to make the boxplot of RTAs
 def plot_rta_boxplot(results_df,
-                     box_fill="gray",
-                     box_line_color="black",
+                     logs=False,
+                     box_fill="#00bf7d",
+                     box_line_color="gray",
                      box_width=0.2,
                      jitter=0.5):
     """
     Interactive box+points plot of “RTA” (where “significant” == True),
     with hover labels, custom box color, and controlled box width.
     """
+    #
+    if logs == True:
+        y_column = "log2RTA"
+        plot_title = "Boxplot of log2 RTAs across datasets"
+        min_y_range, max_y_range = results_df[y_column].min() - 0.25, results_df[y_column].max() + 0.25
 
-    filtered = results_df["RTA"].dropna()
+    else:
+        y_column = "RTA"
+        plot_title = "Boxplot of observed RTAs across datasets"
+        min_y_range, max_y_range = 0, 1
+
+    filtered = results_df[y_column].dropna()
     y_vals = filtered.values
     labels = filtered.index.astype(str).tolist()
     x_vals = [1] * len(y_vals)
@@ -29,7 +41,20 @@ def plot_rta_boxplot(results_df,
     max_val = y_vals.max() if len(y_vals) else 1
     ticks2 = max_val*2
     ticks2_int = int(ticks2) + (ticks2 > int(ticks2))
-    top_tick = ticks2_int/2
+    # top_tick = ticks2_int/2
+
+    # Calculate descriptive statistics and text
+    median_val = np.median(y_vals) if len(y_vals) else np.nan
+    mean_val = np.mean(y_vals) if len(y_vals) else np.nan
+    n_val = len(y_vals)
+    iqr = np.percentile(y_vals, 75) - np.percentile(y_vals, 25)
+    stats_text = (
+        f"<b>Descriptive Stats</b><br>"
+        f"n = {n_val}<br>"
+        f"Mean = {mean_val:.2f}<br>"
+        f"Median = {median_val:.2f}<br>"
+        f"IQR = {iqr:.2f}"
+    )
 
     box = go.Box(
         x=x_vals,
@@ -40,7 +65,7 @@ def plot_rta_boxplot(results_df,
         width=box_width,
         fillcolor= box_fill,
         line=dict(color=box_line_color),
-        marker=dict(color="darkblue", opacity=0.6),
+        marker=dict(color="black", opacity=0.5),
         text=labels,
         hoverinfo="text+y",
         name="",
@@ -49,7 +74,7 @@ def plot_rta_boxplot(results_df,
 
     layout = go.Layout(
         title=dict(
-            text="Boxplot of Observed RTAs across studies",
+            text= plot_title,
             font=dict(color="black")
         ),
         xaxis=dict(
@@ -62,16 +87,34 @@ def plot_rta_boxplot(results_df,
             domain=[0.1, 0.9]
         ),
         yaxis=dict(
-            title=dict(text="Observed RTA", font=dict(color="black")),
-            range=[0, top_tick],
+            title=dict(text=y_column, font=dict(color="black")),
+            range=[min_y_range, max_y_range],
             dtick = 0.5,
             tick0= 0,
             tickfont=dict(color="black"),
             gridcolor="lightgray",
             linecolor="black"
         ),
-        plot_bgcolor="#daecf1",
-        paper_bgcolor="whitesmoke"
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        annotations=[
+            # Code for median label
+            dict(
+                x=0.90, y=0.97,
+                xref="paper",
+                yref="paper",
+                text=stats_text,
+                showarrow=False,
+                align = "left",
+                #ax=40,
+                #ay=-30,
+                font=dict(color="black", size=12),
+                bgcolor="white",
+                bordercolor="black",
+                borderpad=6,
+
+            )
+        ]
     )
 
     fig = go.Figure(data=[box], layout=layout)
@@ -79,7 +122,7 @@ def plot_rta_boxplot(results_df,
 
 
 # Function to make diamond plot my selected metadata field (defo is TISSUE)
-def diamond_plotter(df, meta="TISSUE"):
+def diamond_plotter(df, meta="TISSUE", logs = False):
     """
     Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
     Significant values are diamonds, while non-significant are circles.
@@ -87,6 +130,17 @@ def diamond_plotter(df, meta="TISSUE"):
     tissues = df[meta].unique()
     pastel_colors = px.colors.qualitative.Pastel
     tissue_color_map = {t: pastel_colors[i % len(pastel_colors)] for i, t in enumerate(tissues)}
+
+    if logs == True:
+        y_column = "log2RTA"
+        plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
+        #min_y_range, max_y_range = results_df[y_column].min() - 0.25, results_df[y_column].max() + 0.25
+
+    else:
+        y_column = "RTA"
+        plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
+        #min_y_range, max_y_range = 0, 1
+
 
     fig = go.Figure()
 
@@ -96,7 +150,7 @@ def diamond_plotter(df, meta="TISSUE"):
         df_t = df[mask_circle & (df[meta] == tissue)]
         fig.add_trace(go.Scatter(
             x=df_t[meta],
-            y=df_t['RTA'],
+            y=df_t[y_column],
             mode='markers',
             marker=dict(
                 symbol='circle',
@@ -115,7 +169,7 @@ def diamond_plotter(df, meta="TISSUE"):
         df_t = df[mask_diamond & (df[meta] == tissue)]
         fig.add_trace(go.Scatter(
             x=df_t[meta],
-            y=df_t['RTA'],
+            y=df_t[y_column],
             mode='markers',
             marker=dict(
                 symbol='diamond',
@@ -135,7 +189,7 @@ def diamond_plotter(df, meta="TISSUE"):
         marker=dict(symbol='diamond', color='gray', size=13, line=dict(width=1, color='gray')),
         legendgroup='sig',
         showlegend=True,
-        name='s. (diamond)'
+        name='s.'
     ))
     fig.add_trace(go.Scatter(
         x=[None], y=[None],
@@ -143,7 +197,7 @@ def diamond_plotter(df, meta="TISSUE"):
         marker=dict(symbol='circle', color='gray', size=8, line=dict(width=1, color='gray')),
         legendgroup='nonsig',
         showlegend=True,
-        name='n.s. (circle)'
+        name='n.s.'
     ))
 
     # Background, grid, and reference lines
@@ -151,7 +205,7 @@ def diamond_plotter(df, meta="TISSUE"):
         margin = dict(b=70),
         plot_bgcolor='#daecf1',
         paper_bgcolor='white',
-        title=dict(text = f'Distribution of RTA by {meta}', font = dict(color="black")),
+        title=dict(text = plot_title, font = dict(color="black")),
         legend_title_text='Significance:',
         legend = dict(font = dict(color = "black"), title_font = dict(color="black"))
     )
@@ -159,14 +213,14 @@ def diamond_plotter(df, meta="TISSUE"):
     # axis-level updates:
     fig.update_xaxes(
         automargin=False,
-        title_text=meta,
+        title_text=meta.lower(),
         title_font=dict(color='black'),
         tickfont=dict(color='black'),
         showgrid=True, gridcolor='white',
         tickangle=45
     )
     fig.update_yaxes(
-        title_text='Observed RTA',
+        title_text= y_column,
         title_font=dict(color='black'),
         tickfont=dict(color='black'),
         showgrid=True, gridcolor='white'

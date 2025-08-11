@@ -1,17 +1,14 @@
 # Home.py
 
-import streamlit as st
-import pandas as pd
+# import streamlit as st
+# import pandas as pd
 from home_helpers import *
-import os
+from app_helpers import *
+# import os
 
-
-# st.session_state.gtf_path = config["gtf_path"]
-# st.session_state.metadata = pd.read_csv(config["metadata_path"])
-# bigwigs_dir = config["bigwigs_dir"]
-# st.session_state.fasta_path = config["fasta_path"]
-# st.session_state.bigwig_files = files = [os.path.abspath(os.path.join(bigwigs_dir, f)) for f in os.listdir(bigwigs_dir) if os.path.isfile(os.path.join(bigwigs_dir, f))]
-
+# Initialise runs dictionary, to store multiple runs. Each run is a AnalysisStatus class, with inputs, outputs, and logical flags.
+if "runs" not in st.session_state:
+    st.session_state.runs ={}
 
 st.title("Welcome to RiboMARTA")
 col1, col2 = st.columns([1,4])
@@ -27,37 +24,20 @@ with col2:
     genomic coordinates, an ensembl transcript ID, or use raw data from a previous run fo RiboMARTA. Once you are settled, press
     'Next'.""")
 
+# st.session_state.quirky_id = generate_quirky_id()
+# st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 
-## THIS COULD BE WRAPPED UP IN A SINGLE FUNCTION WITHIN HOME_HELPERS!!
-# Load configuration file
-config = load_config("config.yaml")
-# Load path to annotation file, metadata, and the bigwigs in the app
-organisms_available = list(config.keys())
-
-st.write("xx Configure Organism for the analysis:")
-st.session_state.selected_organism = st.selectbox("Choose an organism:", organisms_available)
-if st.button("Load this organism config"):
-    config = config[st.session_state.selected_organism]
-    st.session_state.gtf_path = config["gtf_path"]
-    st.session_state.metadata = pd.read_csv(config["metadata_path"])
-    bigwigs_dir = config["bigwigs_dir"]
-    st.session_state.fasta_path = config["fasta_path"]
-    st.session_state.bigwig_files = [
-        os.path.abspath(os.path.join(bigwigs_dir, f))
-        for f in os.listdir(bigwigs_dir)
-        if os.path.isfile(os.path.join(bigwigs_dir, f))
-    ]
-
-    st.session_state.fasta = read_fasta(st.session_state.fasta_path)
-    st.session_state.gr = read_gtf_annotation(st.session_state.gtf_path)
-    st.session_state.config_loaded = True
-    st.success(f"Loaded config for {st.session_state.selected_organism}!")
+## Organism Loader (wrapped up as a function)
+st.write("###  Select Organism 🦠")
+st.write("To run the analysis, you need to first decide which organism (and version of their references) to use.")
+organism_loader_interface()
 
 # Sets up possible choices for analysis
 df = pd.DataFrame({
   'Analysis_options': ["None Selected", "Genomic Coordinates", "Ensembl Transcript ID", "File Upload"]
 })
 
+st.write("Now, choose the analysis mode you are interested in:")
 option = st.selectbox(
     'Select the Analysis Mode',
      df['Analysis_options'])
