@@ -3,7 +3,6 @@ import streamlit as st
 from app_helpers import *
 from module0 import *
 from transcriptID_mode_helpers import *
-import time # to time process execution
 from bokeh.models import FactorRange
 from bokeh.embed import file_html
 from bokeh.resources import CDN
