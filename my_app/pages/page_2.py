@@ -11,6 +11,7 @@ from bokeh.layouts import column
 
 # We are retrieving the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
 current_run = st.session_state.runs[st.session_state.quirky_id]
+fasta = st.session_state.fasta
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 st.title("Transcript ID Mode")
 
@@ -55,7 +56,6 @@ if current_run.loading_tx_cov == True:
         with st.spinner("I am retrieving the coverage data..."):
             try:
                 transcript_ranges = extract_tx_pyranges(st.session_state.gr, current_run.txid)
-                fasta = st.session_state.fasta
 
             except KeyError:
                 st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
@@ -80,14 +80,29 @@ if current_run.loading_tx_cov == True:
 # Checks whether the coverage has been extracted, before offering other UI options
 if current_run.tx_cov_extracted == True:
 
-    # Allow to save the raw data as a .csv
-    csv = current_run.all_studies_df.to_csv(index=True).encode('utf-8')
-    st.download_button(
-        label="Download data as CSV",
-        data=csv,
-        file_name=f'{current_run.txid}_raw_counts.csv',
-        mime='text/csv'
-    )
+    # Store sequence as index of the dataframe with coverage....
+    if current_run.transcript_sequence == "" and current_run.tx_upload == False:
+        # Retrieve sequence
+        current_run.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
+        # copy the current working dataframe
+        export_dataframe = current_run.all_studies_df.copy()
+        # Add the sequence to the copy, and allow for download.
+        export_dataframe.insert(0, 'Sequence', list(current_run.transcript_sequence))
+        # Allow to save the raw data as a .csv
+        csv = export_dataframe.to_csv(index=True).encode('utf-8')
+        st.download_button(
+            label="Download data as CSV",
+            data=csv,
+            file_name=f'{current_run.txid}_raw_counts.csv',
+            mime='text/csv'
+        )
+
+    if current_run.transcript_sequence == "" and current_run.tx_upload == True:
+        st.write("You are currently in: Ensembl Transcript ID - File Upload mode")
+        # Retrieve transcript sequence from the index of the dataframe.
+        current_run.transcript_sequence = ''.join(current_run.all_studies_df['Sequence'])
+        # Remove the column, so it will not mess up the plots downstream
+        current_run.all_studies_df.drop(columns='Sequence', inplace=True)
 
     # computes global aggregate
     ga_df = global_aggregate(current_run.all_studies_df) # SRR[...i] | "Global Aggregate"

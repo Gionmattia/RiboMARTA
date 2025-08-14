@@ -183,3 +183,8 @@ class AnalysisStatus:
 
     # --- Flag 4 - Analysis Ran for Txid mode ---
     txid_analysis_done: bool = False
+
+    # --- Variables and Flags for Update Mode ---
+    # Nb. This mode has not many flags. Theoretically, we want to converge the analysis into genomic or txid modes.
+    genomic_upload: bool = False
+    tx_upload: bool = False

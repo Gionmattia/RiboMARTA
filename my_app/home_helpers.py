@@ -77,7 +77,8 @@ def ensembl_txid_selection():
     if st.button("Next"):
         st.session_state.quirky_id = generate_quirky_id()
         # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
-        st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id = st.session_state.quirky_id,
+        st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(
+                                                            quirky_id = st.session_state.quirky_id,
                                                             organism = st.session_state.selected_organism,
                                                             ensembl_transcript_id = True,
                                                             txid = txid)
@@ -99,77 +100,84 @@ def upload_selection():
                                                     utr5_length, cds_length, utr3_length
     State variables cleared (for tx_upload): my_ranges, txid, picture, genomic_slices
     """
-    # Initialise the state variables
-    if "genomic_upload" not in st.session_state:
-        st.session_state.genomic_upload = False
-    if "tx_upload" not in st.session_state:
-        st.session_state.tx_upload = False
 
     st.write("Please select the type of input you want to load: ")
-
     if st.button("Genomic Coordinates"):
-        st.session_state.genomic_upload = True
         st.session_state.tx_upload = False
+        st.session_state.genomic_upload = True
     if st.button("Ensembl Transcript ID"):
-        st.session_state.genomic_upload = False
         st.session_state.tx_upload = True
+        st.session_state.genomic_upload = False
 
-    if st.session_state.genomic_upload:
-        # Allows to load three dataframes
+    # put a st.stop here if variables are not initialised
+    if st.session_state.get("genomic_upload", False) is True:
+        # Upload the three .csv files
         pre_feature_x_file  = st.file_uploader("Upload the .csv for the first region")
         post_feature_y_file = st.file_uploader("Upload the .csv for the second region")
         noise_n_file = st.file_uploader("Upload the .csv for the noise region")
         # Convert to dataframes
-        pre_feature_x = pd.read_csv(pre_feature_x_file, index_col=0)
-        post_feature_y = pd.read_csv(post_feature_y_file, index_col=0)
-        noise_n = pd.read_csv(noise_n_file, index_col=0)
-        # Create a single df and coordinates, to be used by run_analysis()
-
-
-        # Patchy, but it works for now
-        if all(dfs is not None for dfs in (pre_feature_x, post_feature_y, noise_n)):
-            st.session_state.genomic_merged, st.session_state.genomic_ranges = genomic_mode_formatter(pre_feature_x,
-                                                                                                  post_feature_y,
-                                                                                                  noise_n)
-
-    if st.session_state.tx_upload:
-        # Allows to load the transcript dataframe
-        uploaded_file = st.file_uploader("Upload the .csv with your transcript", type = "csv")
         try:
-            st.session_state.all_studies_df = pd.read_csv(uploaded_file, index_col=0)
+            pre_feature_x = pd.read_csv(pre_feature_x_file, index_col=0)
+            post_feature_y = pd.read_csv(post_feature_y_file, index_col=0)
+            noise_n = pd.read_csv(noise_n_file, index_col=0)
         except ValueError:
             st.stop()
+        # Merge them into a single dataframe
+        if all(dfs is not None for dfs in (pre_feature_x,
+                                           post_feature_y,
+                                           noise_n)):
+            genomic_merged, genomic_merged_ranges = genomic_mode_formatter(pre_feature_x,
+                                                                    post_feature_y,
+                                                                    noise_n)
 
-        st.session_state.txid = st.text_input("Please name your Ensembl Transcript ID")
-
-        # Allows to store the length of the three transcript regions
-        st.session_state.utr5_length = st.number_input("Please, provide length of the 5' leader for selected transcript",
-                        min_value=0,
-                        step=1
-                        )
-        st.session_state.cds_length = st.number_input("Please, provide length of the main CDS for selected transcript",
-                        min_value=0,
-                        step=1
-                        )
-        st.session_state.utr3_length = st.number_input("Please, provide length of the 3' trailer for selected transcript",
-                        min_value=0,
-                        step=1
-                        )
-
-    if st.button("Next"):
-        # session_state clean-up
-        if st.session_state.genomic_upload == True:
-            keys_to_reset = ["my_ranges", "txid", "picture" , "all_studies_df", "utr5_length",
-                             "cds_length", "utr3_length"]
-            reset_session_state(keys_to_reset)
-
+        if st.button("Next"):
+            # Generate ID for current run
+            st.session_state.quirky_id = generate_quirky_id()
+            st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id=st.session_state.quirky_id,
+                                                                               organism=st.session_state.selected_organism,
+                                                                               genomic_upload=st.session_state.genomic_upload,
+                                                                               tx_upload=st.session_state.tx_upload,
+                                                                               genomic_merged=genomic_merged,
+                                                                               genomic_merged_ranges=genomic_merged_ranges)
+            # clean the keys
             st.switch_page("pages/page_4.py")
 
-        if st.session_state.tx_upload == True:
-            keys_to_reset = ["my_ranges", "picture", "genomic_merged", "genomic_ranges"]
-            #Need to store transcript df and three lengths as a single unit
-            reset_session_state(keys_to_reset)
-            st.session_state.cov_extracted = True
+
+    if st.session_state.get("tx_upload", False) is True:
+        uploaded_file = st.file_uploader("Upload the .csv with your transcript", type = "csv")
+        try:
+            all_studies_df = pd.read_csv(uploaded_file, index_col=0)
+        except ValueError:
+            st.stop()
+        txid = st.text_input("Please name your Ensembl Transcript ID")
+        # Allows to store the length of the three transcript regions
+        utr5_length = st.number_input("Please, provide length of the 5' leader for selected transcript",
+                        min_value=0,
+                        step=1
+                        )
+        cds_length = st.number_input("Please, provide length of the main CDS for selected transcript",
+                        min_value=0,
+                        step=1
+                        )
+        utr3_length = st.number_input("Please, provide length of the 3' trailer for selected transcript",
+                        min_value=0,
+                        step=1
+                        )
+        tx_cov_extracted = True
+
+        if st.button("Next"):
+            # Generate ID for current run
+            st.session_state.quirky_id = generate_quirky_id()
+            st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id=st.session_state.quirky_id,
+                                                                               organism=st.session_state.selected_organism,
+                                                                               genomic_upload=st.session_state.genomic_upload,
+                                                                               tx_upload=st.session_state.tx_upload,
+                                                                               all_studies_df=all_studies_df,
+                                                                               txid=txid,
+                                                                               utr5_length=utr5_length,
+                                                                               cds_length=cds_length,
+                                                                               utr3_length=utr3_length,
+                                                                               tx_cov_extracted=tx_cov_extracted)
             st.switch_page("pages/page_2.py")
 
 # Helper - resets streamlit state variables

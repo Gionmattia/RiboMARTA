@@ -14,7 +14,7 @@ st.write("In this page, you can run the analysis for your selected genomic coord
 
 # Check if dataframe has been loaded
 df = current_run.genomic_merged
-genomic_upload = st.session_state.get("genomic_upload", None) # Need to convert to flag when reworking upload mode
+genomic_upload = current_run.genomic_upload
 if df is None:
     col1, col2 = st.columns([1,  3])
     with col1:
@@ -34,7 +34,6 @@ if coordinates is None:
         st.warning("Error. Genomic ranges still not generated!")
     with col2:
         st.image("martas/error_marta.png", width=127)
-    #st.stop()
 elif genomic_upload == True:
     st.write("You are currently in: Genomic Coordinates - File Upload mode")
 
