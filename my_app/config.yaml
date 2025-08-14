@@ -20,3 +20,9 @@ Mus_musculus_GRCm39:
   gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.113.gtf"
   metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
   fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.dna.primary_assembly.fa"
+  
+Saccharomyces_cerevisiae_R64-1-1:
+  bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/s_cerevisiae/inflated_bigwigs"
+  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/s_cerevisiae/Saccharomyces_cerevisiae_corrected.R64-1-1.108_ensembl.gtf"
+  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/s_cerevisiae/Saccharomyces_cerevisiae_corrected.R64-1-1.dna.toplevel.fa"  

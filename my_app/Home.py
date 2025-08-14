@@ -1,10 +1,7 @@
 # Home.py
 
-# import streamlit as st
-# import pandas as pd
 from home_helpers import *
 from app_helpers import *
-# import os
 
 # Initialise runs dictionary, to store multiple runs. Each run is a AnalysisStatus class, with inputs, outputs, and logical flags.
 if "runs" not in st.session_state:
@@ -23,9 +20,6 @@ with col2:
     st.write("""You are currently in the Home page of the analysis. In here you can decide whether to extract regions using
     genomic coordinates, an ensembl transcript ID, or use raw data from a previous run fo RiboMARTA. Once you are settled, press
     'Next'.""")
-
-# st.session_state.quirky_id = generate_quirky_id()
-# st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 
 ## Organism Loader (wrapped up as a function)
 st.write("###  Select Organism 🦠")
@@ -55,9 +49,9 @@ elif option ==  "File Upload":
 elif option ==  "None Selected":
     st.write("Please select the analysis mode you desire.")
     # session_state clean-up (in this case, removes everything)
-    keys_to_reset = ["my_ranges", "picture", "txid", "genomic_slices", "all_studies_df", "utr5_length",
-                             "cds_length", "utr3_length"]
-    reset_session_state(keys_to_reset)
+    # keys_to_reset = ["my_ranges", "picture", "txid", "genomic_slices", "all_studies_df", "utr5_length",
+    #                          "cds_length", "utr3_length"]
+    # reset_session_state(keys_to_reset)
 
 
 

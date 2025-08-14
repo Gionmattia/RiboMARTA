@@ -3,18 +3,41 @@ from scipy.stats import chi2_contingency
 import numpy as np
 import plotly.graph_objects as go
 from statsmodels.stats.multitest import multipletests
+import plotly.graph_objects as go
+import plotly.express as px
+
+def get_metrics(all_studies_df, txid_results):
+    good_runs = txid_results.index.to_list()
+    df = all_studies_df[good_runs].copy()
+
+    # Code to calculate the % covered
+    df2 = all_studies_df[good_runs].copy()
+    df2 = (df2 != 0).astype(int)
+
+    totals = df.sum(axis=0)
+    totals.name = "tot_counts"
+    total_percentage = df2.sum(axis=0)/df2.shape[0]
+    total_percentage.name = "%_covered"
+
+    metrics_df = pd.concat([totals, total_percentage], axis=1)
+    metrics_df["Run"] = metrics_df.index
+    new_order = ["Run", "tot_counts","%_covered"]  # your desired order
+    metrics_df = metrics_df[new_order]
+
+    return metrics_df
+
 
 # Does the breakdown (across UTRs and CDS) from the raw counts. Selects only runs that made through the RiboMARTA analysis
 def get_breakdowns(all_studies_df, txid_results, utr_5, cds):
     good_runs = txid_results.index.to_list()
     df = all_studies_df[good_runs].copy()
+    # Compute global aggregate
+    df["Global Aggregate"] = df.sum(axis=1)
     # Compute the three totals by region...
     leader_totals = df.iloc[:utr_5].sum(axis=0)
     leader_totals.name = "UTR_5"
-
     cds_totals = df.iloc[utr_5:utr_5 + cds].sum(axis=0)
     cds_totals.name = "CDS"
-
     trailer_totals = df.iloc[utr_5 + cds:].sum(axis=0)
     trailer_totals.name = "UTR_3"
 
@@ -22,9 +45,7 @@ def get_breakdowns(all_studies_df, txid_results, utr_5, cds):
 
     breakdown["Run"] = breakdown.index
 
-    df = breakdown.drop("Run", axis=1)
-
-    return df
+    return breakdown
 
 # Does Chi-squared
 def execute_chi_squared(contingency_table):
@@ -144,9 +165,7 @@ def get_breakdowns_percent_with_GA(all_studies_df, txid_results, utr_5, cds):
 
     breakdown["Run"] = breakdown.index
 
-    df = breakdown.drop("Run", axis=1)
-
-    return df
+    return breakdown
 
 
 def perform_pairwise_chi(df2, baseline_idx):
@@ -163,11 +182,15 @@ def perform_pairwise_chi(df2, baseline_idx):
             continue
         table = pd.DataFrame([df2_num.loc[baseline_idx], row])
         chi2, p, dof, expected = chi2_contingency(table)
+        n = table.to_numpy().sum()
+        r, k = table.shape
+        cramers_v = np.sqrt(chi2 / (n * (min(k - 1, r - 1))))
         results.append({
-            "row": idx,
+            "Run": idx,
             "chi2": chi2,
             "p-value": p,
-            "dof": dof
+            "dof": dof,
+            "cramers_v": cramers_v
         })
 
     results_df = pd.DataFrame(results)
@@ -185,7 +208,7 @@ def perform_pairwise_chi(df2, baseline_idx):
 
 def pairwise_comparison_plotter(results_df):
     # Make sure 'row' is string for the axis
-    x_labels = results_df['row'].astype(str).values
+    x_labels = results_df['Run'].astype(str).values
     y_labels = ['bonferroni_p']  # Only one row, since it's a 1D heatmap
     z_values = [results_df['bonferroni_p'].values]  # 2D array: 1 x N
 
@@ -222,19 +245,15 @@ def pairwise_comparison_plotter(results_df):
 def better_plotter(df):
     region_cols = ['UTR_5', 'CDS', 'UTR_3']
     x_labels = region_cols
-    y_labels = df.index.astype(str)
+    y_labels = df["Run"].astype(str)
     z = df[region_cols].values  # n_rows x 3
 
     # Hover text: include both region value and p-value for the row
     hovertext = np.array([
-        [f"{row}<br>{col}: {val:.2f}% of Translational Activity <br>Adjusted (Bonf) p-value: {pval:.3g}"
+        [f"{row}<br>{col}: {val:.2f}% of Translational Activity <br>Adjusted (Bonf) p-value: {pval:.3g}, Total counts: {tot_counts}"
          for col, val in zip(region_cols, row_vals)]
-        for row, row_vals, pval in zip(y_labels, z, df['bonferroni_p'])
+        for row, row_vals, pval, tot_counts in zip(y_labels, z, df['bonferroni_p'], df['tot_counts'])
     ])
-
-    # Find significant rows (star marker)
-    star_rows = df.index[df['bonferroni_p'] < 0.05].tolist()
-    star_y = [y_labels.tolist().index(str(idx)) for idx in star_rows]
 
     fig = go.Figure()
 
@@ -254,22 +273,33 @@ def better_plotter(df):
             len = 0.1,
             y = 0.9)
     ))
+    # === Cramér’s V text "column" on the right ===
+    if 'cramers_v' in df.columns:
+        v_text = [f"V={v:.2f}" if pd.notna(v) else "V=NA" for v in df['cramers_v']]
+        v_hover = [f"{run}<br>Cramér’s V: {v:.3f}" if pd.notna(v) else f"{run}<br>Cramér’s V: NA"
+                   for run, v in zip(y_labels, df['cramers_v'])]
 
-    # Stars for significant p-values
-    if star_y:
         fig.add_trace(go.Scatter(
-            x=[x_labels[-1]]*len(star_y),  # Place at rightmost column
-            y=[y_labels[i] for i in star_y],
+            x=['cramers_v'] * len(df),          # new categorical column to the right
+            y=y_labels,
             mode='text',
-            text=['⭐']*len(star_y),
-            textfont=dict(color='red', size=20),
-            showlegend=False,
-            hoverinfo='skip'
+            text=v_text,
+            hoverinfo='text',
+            hovertext=v_hover,
+            textfont=dict(size=12),
+            showlegend=False
         ))
 
+        # Ensure the x-axis shows columns in desired order
+        fig.update_xaxes(categoryorder='array',
+                         categoryarray=x_labels + ['cramers_v'])
+
+
+
+
     fig.update_layout(
-        title="Heatmap of Regional Translational Acitivity (%)<br>",
-        xaxis_title="Regional activity",
+        title="Heatmap of Regional Translational Acitivity (%)<br> <br>",
+        xaxis_title="",
         yaxis_title="Run",
         width=420,
         height=30 * len(df),
@@ -278,4 +308,98 @@ def better_plotter(df):
 
     fig.update_xaxes(side='top')
 
+    return fig
+
+
+# New version, plots region without showing the selection... it's less confusing.
+# plot to have single transcript plot of the original raw data
+def multi_line_plot_simple(df, utr5_length = 0, cds_length = 0, run_option = None,  x=None):
+    """
+    Plots each column of a dataframe as a line (except for x, if provided).
+    Args:
+        df: DataFrame (columns to plot as separate lines)
+        utr5_length: length of 5' leader
+        cds_length: length of cds
+        run_option: a list of runs to pass to be plotted
+        x: Optional - Series or column name to use as x-axis (otherwise use index)
+        title: Plot title
+    """
+    palette = px.colors.qualitative.Plotly
+
+    fig = go.Figure()
+
+    if run_option is not None:
+        df = df.loc[:, df.columns.isin(run_option)]
+
+    # Decide x values
+    if x is not None:
+        if isinstance(x, str):
+            x_vals = df[x]
+        else:
+            x_vals = x
+        plot_cols = [col for col in df.columns if col != x]
+    else:
+        x_vals = df.index
+        plot_cols = df.columns
+
+    # Add a line for each column
+    for i, col in enumerate(plot_cols):
+        fig.add_trace(go.Bar(
+            x=x_vals,
+            y=df[col],
+            name=col,
+            marker=dict(color=palette[i % len(palette)])
+            # Optionally: hovertemplate=f"{col}: %{{y}}<extra></extra>"
+        ))
+
+    # Add lines to mark CDS
+    fig.add_vline(
+    x=utr5_length,  # your x-value
+    line_dash="dash",  # dashed line
+    line_color="black",  # or any color you want
+    line_width=2
+    )
+    fig.add_annotation(
+    x=utr5_length,
+    y=1,
+    yref="paper",
+    text="START",
+    showarrow=False,
+    font=dict(size=12, color="black"),
+    bgcolor="#daecf1",
+    #bordercolor="black",
+    borderpad=4
+    )
+    # Add lines to mark CDS
+    fig.add_vline(
+    x=utr5_length+cds_length,  # your x-value
+    line_dash="dash",
+    line_color="black",
+    line_width=2
+    )
+    fig.add_annotation(
+    x=utr5_length+cds_length,
+    y=1,
+    yref="paper",
+    text="STOP",
+    showarrow=False,
+    font=dict(size=12, color="black"),
+    bgcolor="#daecf1",
+    #bordercolor="black",
+    borderpad=4
+    )
+
+    fig.update_layout(
+        title="Raw Counts Plot",
+        xaxis_title= "Position on Transcript",
+        yaxis_title= "Raw counts",
+        plot_bgcolor="#daecf1"
+    )
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="lightgray",
+        # ...other y-axis settings...
+    )
+
+    #fig.show()
     return fig
