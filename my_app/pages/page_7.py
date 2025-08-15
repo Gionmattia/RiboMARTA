@@ -2,7 +2,7 @@ import streamlit as st
 from chisquared_helpers import *
 from TranscriptID_results_helpers import *
 import pandas as pd
-
+from breakdown_helpers import *
 
 st.title("Chi Squared Tests (v.0.3)")
 
@@ -20,6 +20,21 @@ st.write("In this case, we are actually taking into accounts Total counts, and a
          "overall, we can argue that datasets with High total counts, and with a high percentage in at least one region are the best ones."
          "If the tot counts is high, but the percentage is poor, then they are not really reliable.")
 
+raw_counts_breakdowns, totals_and_percents_breakdowns = get_breakdowns_slices(current_run.all_studies_df,
+                           current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
+                           current_run.txid_results)
+
+raw_counts_breakdowns
+totals_and_percents_breakdowns
+
+a, b =get_breakdowns_full_tx(current_run.all_studies_df,
+                       current_run.utr5_length,
+                       current_run.cds_length,
+                       current_run.txid_results)
+
+a
+b
+st.stop()
 # Does the breakdowns (leader, cds, trailer) for every run and the Global Aggregate
 df3 = get_breakdowns(current_run.all_studies_df,
                      current_run.txid_results,
