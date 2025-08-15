@@ -138,7 +138,12 @@ def get_breakdowns_slices(all_studies_df: pd.DataFrame,
     totals_and_percents_breakdowns = breakdown[cols_for_plots].copy()
     totals_and_percents_breakdowns["Run"] = totals_and_percents_breakdowns.index
 
-    return raw_counts_breakdowns, totals_and_percents_breakdowns
+    # Extract global aggregate
+    global_aggregate = breakdown.loc[["Global Aggregate"]].copy()
+    global_aggregate =  global_aggregate.drop(columns=["First Region", "Second Region", "Noise Region"])
+    global_aggregate["Run"] = "Global Aggregate"
+
+    return raw_counts_breakdowns, totals_and_percents_breakdowns, global_aggregate
 
 
 # Function to perform the pair-wise X-squared test, with also Cramer's V, Bonferroni and BH Corrections.
@@ -180,4 +185,93 @@ def perform_pairwise_chi(df2, baseline_idx):
 
     return results_df
 
+# Function to prepare results for plotter
+def prepare_chisquared_results(results_df, percent_breakdowns, global_aggregate_values, correction = "bonferroni_p"):
+    # Merge dataframes
+    df = pd.merge(results_df, percent_breakdowns, on="Run")
+    # Remove n.s. results
+    cleaned_df = df[df[correction] < 0.05].copy()
+
+    # Reintroduce the Global Aggregate
+    global_aggregate_values["cramers_v"] = 0
+    global_aggregate_values[correction] = 1
+
+    # Concatenate to reintroduce the Global Aggregate after the analysis is done
+    df = pd.concat([cleaned_df, global_aggregate_values], ignore_index=True)
+    df = df.where(pd.notnull(df), None)
+
+    # Order by tot_counts
+    df = df.sort_values(by="tot_counts", ascending=True)
+
+    return df
+
+
+# Function to make plots
+
+def better_plotter(df: pd.DataFrame, region_cols):
+    x_labels = region_cols
+    y_labels = df["Run"].astype(str)
+    z = df[region_cols].values  # n_rows x 3
+
+    # Hover text: include both region value and p-value for the row
+    hovertext = np.array([
+        [f"{row}<br>{col}: {val:.2f}% of Translational Activity <br>Adjusted (Bonf) p-value: {pval:.3g}, Total counts: {tot_counts}"
+         for col, val in zip(region_cols, row_vals)]
+        for row, row_vals, pval, tot_counts in zip(y_labels, z, df['bonferroni_p'], df['tot_counts'])
+    ])
+
+    fig = go.Figure()
+
+    # Heatmap
+    fig.add_trace(go.Heatmap(
+        z=z,
+        x=x_labels,
+        y=y_labels,
+        colorscale='Viridis',
+        zmin=0, zmax=1,
+        hoverinfo='text',
+        text=hovertext,
+        showscale=True,
+        colorbar=dict(
+            title='% Region',
+            thickness = 12,
+            len = 0.1,
+            y = 0.9)
+    ))
+    # === Cramér’s V text "column" on the right ===
+    if 'cramers_v' in df.columns:
+        v_text = [f"V={v:.2f}" if pd.notna(v) else "V=NA" for v in df['cramers_v']]
+        v_hover = [f"{run}<br>Cramér’s V: {v:.3f}" if pd.notna(v) else f"{run}<br>Cramér’s V: NA"
+                   for run, v in zip(y_labels, df['cramers_v'])]
+
+        fig.add_trace(go.Scatter(
+            x=['cramers_v'] * len(df),          # new categorical column to the right
+            y=y_labels,
+            mode='text',
+            text=v_text,
+            hoverinfo='text',
+            hovertext=v_hover,
+            textfont=dict(size=12),
+            showlegend=False
+        ))
+
+        # Ensure the x-axis shows columns in desired order
+        fig.update_xaxes(categoryorder='array',
+                         categoryarray=x_labels + ['cramers_v'])
+
+
+
+
+    fig.update_layout(
+        title="Heatmap of Regional Translational Acitivity (%)<br> <br>",
+        xaxis_title="",
+        yaxis_title="Run",
+        width=420,
+        height=30 * len(df),
+        margin=dict(l=60, r=40, t=60, b=40)
+    )
+
+    fig.update_xaxes(side='top')
+
+    return fig
 

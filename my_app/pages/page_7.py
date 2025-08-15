@@ -4,44 +4,39 @@ from TranscriptID_results_helpers import *
 import pandas as pd
 from breakdown_helpers import *
 
-st.title("Chi Squared Tests (v.0.3)")
+st.title("Chi Squared Tests  and breakdowns")
 
 current_run = st.session_state.runs[st.session_state.quirky_id]
 
 # Function to calculate the two metrics in a single dataframe.
-st.write("## NEW IDEA 2")
-st.write("In this case, we are actually taking into accounts Total counts, and a score which represents the percentage."
-         "We unit-step transform our data, so it's either 0 (no footprint) or 1 (footprint)."
-         "This allows us to compute a percentage for each region, that tells us 'what percentage of positions have at last one count?'"
-         "now, with this breakdown, we can stratify our data. Datasets where all three regions are less than 0.05 are to be considered poor."
-         "or, generally speaking, unreliable for the breakdown calculations."
-         "(this should apply generally well, unless transcript have a very small ORF compared to the overall length)"
-         " Datasets where we are between 0.05 and 0.1 are so and so... above they start to be good."
-         "overall, we can argue that datasets with High total counts, and with a high percentage in at least one region are the best ones."
-         "If the tot counts is high, but the percentage is poor, then they are not really reliable.")
+st.write("Please, send help.")
 
-raw_counts_breakdowns, totals_and_percents_breakdowns = get_breakdowns_slices(current_run.all_studies_df,
-                           current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
-                           current_run.txid_results)
+raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_slices(current_run.all_studies_df,
+                                                                                  current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
+                                                                                  current_run.txid_results)
 
-raw_counts_breakdowns
-totals_and_percents_breakdowns
+results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx = "Global Aggregate")
 
-a, b =get_breakdowns_full_tx(current_run.all_studies_df,
-                       current_run.utr5_length,
-                       current_run.cds_length,
-                       current_run.txid_results)
+df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
 
-a
-b
+
+fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
+st.plotly_chart(fig4, use_container_width=True)
+
+# Manual inspection of datasets
+run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+                            current_run.txid_results_meta.index)
+
+st.write("Manually check the RUN here")
+ml_plot = multi_line_plot(current_run.all_studies_df,
+                          current_run.utr5_length,
+                          current_run.cds_length,
+                          run_option,
+                          current_run.txid_ranges)
+st.plotly_chart(ml_plot, use_container_width=True)
+
+
 st.stop()
-# Does the breakdowns (leader, cds, trailer) for every run and the Global Aggregate
-df3 = get_breakdowns(current_run.all_studies_df,
-                     current_run.txid_results,
-                     current_run.utr5_length,
-                     current_run.cds_length)
-
-
 # Chi squared, done pairwise and using the breakdowns obtained from raw counts.
 results_df_raw = perform_pairwise_chi(df3, baseline_idx = "Global Aggregate")
 
