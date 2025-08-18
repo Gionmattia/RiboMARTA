@@ -15,8 +15,14 @@ col1, col2, col3 = st.columns([3,1,2])
 with col1:
     st.write("This page is currently under development. Here you can see an early preview."
              "Future updates include:"
+             ""
              "- Improvements to the analysis flow control"
-             "- Introduction of a 'frame aware' analysis mode")
+             
+             "- Introduction of a 'frame-aware' analysis mode (for nested ORFs)"
+             
+             "- Codon usage analysis, between selected regions (and possible correction if there's usage bias)."
+             
+             "- Big Beautiful 'Download ALL' Button")
 with col3:
     st.image("martas/WIP_marta.png", width = 200)
 
