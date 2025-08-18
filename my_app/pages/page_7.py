@@ -5,12 +5,30 @@ import pandas as pd
 from breakdown_helpers import *
 from genomic_mode_helpers import multi_line_plot_genomic
 
+current_run = st.session_state.runs[st.session_state.quirky_id]
+st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
+
 st.title("Chi Squared Tests  and breakdowns")
 
-current_run = st.session_state.runs[st.session_state.quirky_id]
+st.write("##Work in progress! 🚧")
+col1, col2, col3 = st.columns([3,1,2])
+with col1:
+    st.write("This page is currently under development. Here you can see an early preview."
+             "Future updates include:"
+             "- Improvements to the analysis flow control"
+             "- Introduction of a 'frame aware' analysis mode")
+with col3:
+    st.image("martas/WIP_marta.png", width = 200)
 
-# Function to calculate the two metrics in a single dataframe.
-st.write("Please, send help.")
+
+
+st.write("In this page you can see if there's a difference in counts proportions across the three regions of interest."
+         "All the results below are already significant (so there IS a difference) between each individual run and the"
+         "Global Aggregate, if we look at proportions. The cramer's v will give you an idea on the effect size. Values below "
+         "0.2 are to be considered irrelevant: the effect size is neglegible"
+         "Studies are represented in the heatmap in descending order of total counts, with the first row representing"
+         "the proportions for the Global Aggregate. A study with a high cramer's v at the top is to be considered more"
+         "reliable than one at the bottom, where counts might too sparse to back up any hypothesis.")
 
 # NEED TO USE FLAGS BETTER, THIS IS REALLY PROVISIONARY
 if current_run.genomic_coordinates == True and current_run.regions_extracted == True:
@@ -27,19 +45,49 @@ if current_run.genomic_coordinates == True and current_run.regions_extracted == 
     fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
     st.plotly_chart(fig4, use_container_width=True, key = "genco_breakdowns")
 
-elif current_run.ensembl_transcript_id == True and txid_analysis_done == True:
+elif current_run.ensembl_transcript_id == True and current_run.txid_analysis_done == True:
+    st.write( "In this page you can see if there's a difference in counts proportions across the three regions of interest."
+        "Please, select if you are interested in observing the breakdowns over the selected transcript ranges,"
+        "or if you want to see across 5' leader, CDS, and 3' trailer")
 
-    raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_slices(current_run.all_studies_df,
-                                                                                      current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
-                                                                                      current_run.txid_results)
+    col1, col2, col3 = st.columns([1, 1, 4])
+    with col1:
+        if st.button("Transcript Regions"):
+            current_run.tx_regions = True
+            current_run.tx_ranges = False
+    with col2:
+        if st.button("Transcript Ranges"):
+            current_run.tx_regions = False
+            current_run.tx_ranges = True
 
-    results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx = "Global Aggregate")
+    if current_run.tx_ranges == True:
 
-    df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
+        raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_slices(current_run.all_studies_df,
+                                                                                          current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
+                                                                                          current_run.txid_results)
+
+        results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx = "Global Aggregate")
+
+        df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
 
 
-    fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
-    st.plotly_chart(fig4, use_container_width=True)
+        fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
+        st.plotly_chart(fig4, use_container_width=True, key = "breakdowns_txid_ranges")
+
+    elif current_run.tx_regions == True:
+
+        raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_full_tx(current_run.all_studies_df,
+                                                                                           current_run.utr5_length,
+                                                                                           current_run.cds_length,
+                                                                                           current_run.txid_results)
+
+
+        results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx="Global Aggregate")
+
+        df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
+
+        fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
+        st.plotly_chart(fig4, use_container_width=True, key="breakdowns_txid_ranges")
 
 else:
     st.stop()
@@ -57,7 +105,7 @@ with st.expander("Single study visualiser"):
                                           current_run.genomic_merged_ranges)
         st.plotly_chart(ml_plot, use_container_width=True, key = "genco_single_run_plot")
 
-    elif current_run.ensembl_transcript_id == True and txid_analysis_done == True:
+    elif current_run.ensembl_transcript_id == True and current_run.txid_analysis_done == True:
 
         st.write("Manually check the RUN here")
         run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
@@ -68,6 +116,8 @@ with st.expander("Single study visualiser"):
                                   run_option,
                                   current_run.txid_ranges)
         st.plotly_chart(ml_plot, use_container_width=True, key = "txid_single_run_plot")
+
+
 
 
 st.stop()

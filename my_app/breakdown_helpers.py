@@ -83,7 +83,11 @@ def get_breakdowns_full_tx(all_studies_df: pd.DataFrame,
     cols_to_keep = ["Run", "tot_counts", "%_UTR_5", "%_CDS", "%_UTR_3" ]
     totals_and_percents_breakdown = breakdown[cols_to_keep].copy()
 
-    return raw_counts_breakdown, totals_and_percents_breakdown
+    # Extract global aggregate
+    global_aggregate = breakdown.loc[["Global Aggregate"]].copy()
+    global_aggregate["Run"] = "Global Aggregate"
+
+    return raw_counts_breakdown, totals_and_percents_breakdown, global_aggregate
 
 
 # Function to do breakdowns across (user-selected) regions from the raw counts.
