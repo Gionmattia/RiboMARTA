@@ -12,13 +12,16 @@ col1, col2 = st.columns([1,4])
 with col1:
     st.image("martas/marta.png", width = 200)
 with col2:
-    st.write("""Welcome to the first draft of RiboMARTA. My name is Marta, and I am here to guide you
-    through the steps of the analysis.""")
+    st.write("""Welcome to the first prototype for RiboMARTA. My name is Marta, and I am here to guide you
+    through the app and the analysis steps.""")
     
     st.write("""If Pasha likes me, I will be allowed to live.""")
     
-    st.write("""You are currently in the Home page of the analysis. In here you can decide whether to extract regions using
-    genomic coordinates, an ensembl transcript ID, or use raw data from a previous run fo RiboMARTA. Once you are settled, press
+    st.write("""You are currently in the Home pag. First thing first, you need to decide which organism to use,
+    among the ones currently available.
+    You can then proceed to compare translation across regions, which can be extracted from their 
+    genomic coordinates, an ensembl transcript ID, or by uploading raw data from a previous run fo RiboMARTA.
+     Once you are settled, press
     'Next'.""")
 
 ## Organism Loader (wrapped up as a function)
@@ -31,9 +34,10 @@ df = pd.DataFrame({
   'Analysis_options': ["None Selected", "Genomic Coordinates", "Ensembl Transcript ID", "File Upload"]
 })
 
+st.write("###  Select Analysis Mode 🔬")
 st.write("Now, choose the analysis mode you are interested in:")
 option = st.selectbox(
-    'Select the Analysis Mode',
+    'Select from list',
      df['Analysis_options'])
 
 # Renders the different options
@@ -47,11 +51,8 @@ elif option ==  "File Upload":
     upload_selection()
 
 elif option ==  "None Selected":
-    st.write("Please select the analysis mode you desire.")
-    # session_state clean-up (in this case, removes everything)
-    # keys_to_reset = ["my_ranges", "picture", "txid", "genomic_slices", "all_studies_df", "utr5_length",
-    #                          "cds_length", "utr3_length"]
-    # reset_session_state(keys_to_reset)
+    st.write("To move forward, please select the analysis mode you desire.")
+
 
 
 

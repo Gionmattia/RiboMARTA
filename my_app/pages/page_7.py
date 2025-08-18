@@ -3,6 +3,7 @@ from chisquared_helpers import *
 from TranscriptID_results_helpers import *
 import pandas as pd
 from breakdown_helpers import *
+from genomic_mode_helpers import multi_line_plot_genomic
 
 st.title("Chi Squared Tests  and breakdowns")
 
@@ -11,29 +12,62 @@ current_run = st.session_state.runs[st.session_state.quirky_id]
 # Function to calculate the two metrics in a single dataframe.
 st.write("Please, send help.")
 
-raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_slices(current_run.all_studies_df,
-                                                                                  current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
-                                                                                  current_run.txid_results)
+# NEED TO USE FLAGS BETTER, THIS IS REALLY PROVISIONARY
+if current_run.genomic_coordinates == True and current_run.regions_extracted == True:
 
-results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx = "Global Aggregate")
+# Code to visualise breakdowns from genomic coord mode:
+    raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_slices(current_run.genomic_merged,
+                                                                                     current_run.genomic_merged_ranges,
+                                                                                     current_run.genco_results)
 
-df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
+    results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx = "Global Aggregate")
+
+    df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
+
+    fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
+    st.plotly_chart(fig4, use_container_width=True, key = "genco_breakdowns")
+
+elif current_run.ensembl_transcript_id == True and txid_analysis_done == True:
+
+    raw_counts_breakdowns, totals_and_percents_breakdowns, ga = get_breakdowns_slices(current_run.all_studies_df,
+                                                                                      current_run.txid_ranges, # could also use current_run.genomic_merged_ranges
+                                                                                      current_run.txid_results)
+
+    results_df_raw = perform_pairwise_chi(raw_counts_breakdowns, baseline_idx = "Global Aggregate")
+
+    df = prepare_chisquared_results(results_df_raw, totals_and_percents_breakdowns, ga)
 
 
-fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
-st.plotly_chart(fig4, use_container_width=True)
+    fig4 = better_plotter(df, ["% First Region", "% Second Region", "% Noise Region"])
+    st.plotly_chart(fig4, use_container_width=True)
 
-# Manual inspection of datasets
-run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-                            current_run.txid_results_meta.index)
+else:
+    st.stop()
 
-st.write("Manually check the RUN here")
-ml_plot = multi_line_plot(current_run.all_studies_df,
-                          current_run.utr5_length,
-                          current_run.cds_length,
-                          run_option,
-                          current_run.txid_ranges)
-st.plotly_chart(ml_plot, use_container_width=True)
+with st.expander("Single study visualiser"):
+    st.write("Here you can manually check the footprints for a study that picks your interest.")
+    # Manual inspection of datasets
+
+
+    if current_run.genomic_coordinates == True and current_run.regions_extracted == True:
+        st.write("Manually check the RUN here")
+        run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",  current_run.results_meta.index)
+        ml_plot = multi_line_plot_genomic(current_run.genomic_merged,
+                                          run_option,
+                                          current_run.genomic_merged_ranges)
+        st.plotly_chart(ml_plot, use_container_width=True, key = "genco_single_run_plot")
+
+    elif current_run.ensembl_transcript_id == True and txid_analysis_done == True:
+
+        st.write("Manually check the RUN here")
+        run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+                                    current_run.txid_results_meta.index)
+        ml_plot = multi_line_plot(current_run.all_studies_df,
+                                  current_run.utr5_length,
+                                  current_run.cds_length,
+                                  run_option,
+                                  current_run.txid_ranges)
+        st.plotly_chart(ml_plot, use_container_width=True, key = "txid_single_run_plot")
 
 
 st.stop()
