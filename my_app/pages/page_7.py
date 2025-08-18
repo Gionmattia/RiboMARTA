@@ -8,21 +8,18 @@ from genomic_mode_helpers import multi_line_plot_genomic
 current_run = st.session_state.runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 
-st.title("Chi Squared Tests  and breakdowns")
+st.title("Regions density breakdown")
 
-st.write("##Work in progress! 🚧")
+st.write("## Careful, works ahead! 🚧 \n"
+         "You are currently visiting a page in active development!")
 col1, col2, col3 = st.columns([3,1,2])
 with col1:
-    st.write("This page is currently under development. Here you can see an early preview."
-             "Future updates include:"
-             ""
-             "- Improvements to the analysis flow control"
-             
-             "- Introduction of a 'frame-aware' analysis mode (for nested ORFs)"
-             
-             "- Codon usage analysis, between selected regions (and possible correction if there's usage bias)."
-             
+    st.write("This page is currently under development. Here you can see an early preview. Future updates include: \n"
+             "- Improvements to the analysis flow control \n"
+             "- Introduction of a 'frame-aware' analysis mode (for nested ORFs) \n"
+             "- Codon usage analysis, between selected regions (and possible correction if there's usage bias). \n"
              "- Big Beautiful 'Download ALL' Button")
+
 with col3:
     st.image("martas/WIP_marta.png", width = 200)
 
