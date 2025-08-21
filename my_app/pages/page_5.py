@@ -1,4 +1,4 @@
-# page_4.py
+# page_5.py
 import streamlit as st
 from module2 import *
 import pandas as pd
@@ -7,7 +7,8 @@ from TranscriptID_results_helpers import *
 current_run = st.session_state.runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 st.title("Transcript Activity Analysis")
-st.write("In this page, you can run the analysis for a transcript of your choice, over the selected regions.")
+st.write("In this page, you can run the analysis for a transcript of your choice, over the selected regions."
+         "\n Please, refer to the 'Help me' expander for information on the options available.")
 
 # Check if dataframe has been loaded
 df = current_run.all_studies_df
@@ -19,7 +20,6 @@ if df is None:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.warning("Please, load the transcript before moving to this page!")
     st.stop()
-
 
 # There should be a part where it checks the existence of the coordinates df
 coordinates = current_run.txid_ranges
@@ -39,12 +39,23 @@ else:
     - Noise Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
     """)
 
+# WRAP ME INTO A SINGLE FUNCTION!
+with st.expander("Help me"):
+    st.write(" ***CI***: The confidence interval. Default is 95%.")
+    st.write(" ***Number of permutations***: The number of permutations performed by the internal statistical tests."
+             "A higher number of permutations allows for detection of smaller changes, but requires more time."
+             "Default is 10000, while max value allowed is 100000.")
+    st.write(" ***Workers to allocate***: The number of workers used by the permutation test. The greater the number, "
+             "the faster the analysis. Roughly translated to cores available. Not sure if it's internally used, or"
+             "if I just placed it there with the intention of implementing it later on.")
+
+
 with st.expander("Change options"):
     col1, col2, col3 = st.columns([2, 2, 2])
     with col1:
         current_run.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
     with col2:
-        current_run.N = st.number_input("Choose number permutations", min_value=10, max_value=100000, value=10000)
+        current_run.N = st.number_input("Choose number of permutations", min_value=10, max_value=100000, value=10000)
     with col3:
         current_run.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
 
@@ -61,6 +72,18 @@ if st.button("Run Analysis"):
 
     current_run.txid_analysis_done = True
 
+    # Frame-Aware mode (now we have RTA for each frame...)
+    # Also, noise is still multi-frame. We are considering noise from ALL frames in the noise region.
+    # Y1/X1, Y1/X2, Y1/X3
+    # Y2/X1, Y2/X2, Y2/X3
+    # Y3/X1, Y3/X2, Y3/X3
+
+    # I think this is the best approach... Users MIGHT know frame beforehand... but I think it's best to allow
+    # to see everything...
+    # Then again, some will be significant, some will be not. So I expect some cells of a heatmap to be emtpy (white)
+    # If a frame is dominant, then the row/column should be coloured... (maybe use a bivariate heatmap?)
+
+    # From the heatmap, we have 9 times the results. Maybe best to fit in another page?
 
 if current_run.txid_analysis_done is True:
 
@@ -180,7 +203,6 @@ if current_run.txid_analysis_done is True:
             st.plotly_chart(agg_meta_plot, use_container_width=True)
 
             # Should I use the new method (smooth criminal) here?
-
 
 
     #with st.expander("Diamond Plot"):

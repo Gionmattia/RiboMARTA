@@ -22,35 +22,6 @@ import random
 import re
 import time
 
-# # OLD VERSION - BACKUP Helper - Extracts the coverage info from a single bigwig
-# def _extract_one(bw_path, regions_df):
-#     """
-#     :param bw_path: path to a signle .bigwig file
-#     :param regions_df: dataframe with genomic regions to extract
-#     :return: tuple. Study ID and dictionary of the three regions dataframes.
-#     """
-#
-#     bw   = pyBigWig.open(bw_path)
-#     sid  = os.path.basename(bw_path).split(".")[0]
-#     out  = {}
-#
-#     # Convert the coordinates from 1-indexed inclusive to BigWig's 0-indexed end-exclusive [,)
-#     # Not necessary, pyranges already converts the coordinates system
-#     # regions_df["Start"] = regions_df["Start"] - 1
-#
-#     # iterate directly over the DataFrame
-#     for row in regions_df.itertuples(index=False):
-#         chrom, start, end, region = (
-#             row.Chromosome, int(row.Start), int(row.End), row.Region
-#         )
-#         vals = bw.values(chrom, start, end, numpy=True)
-#         out[region] = pd.DataFrame({
-#             "Position": range(start, end),
-#             sid: vals
-#         })
-#
-#     bw.close()
-#     return sid, out
 
 # Helper - Extracts the coverage info from a single bigwig. Used in both Genomic Coordinates and TranscriptID modes
 def _extract_one(bw_path, regions_df):

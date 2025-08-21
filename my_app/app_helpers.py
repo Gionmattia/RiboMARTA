@@ -192,3 +192,6 @@ class AnalysisStatus:
     # --- Flags for breakdowns ---#
     tx_ranges = False
     tx_regions = False
+
+    # --- Frame-aware Analysis Flags --- #
+    frame_aware: bool = False # If activated, will perform the RTA calculation while also comparing all possible Frames.

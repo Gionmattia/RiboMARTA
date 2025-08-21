@@ -181,44 +181,49 @@ def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs
 
 
 # Introducing smoothing function:
-def smoother(df, k=3):
+def smoother(df: pd.DataFrame, smoothing:bool = True):
     """
     Calculates the frame over the global aggregate, then smoothes by it.
     Also adds column "X" used by plotting function "subplot_single_transcript_plot"
 
     :param df: pandas.DataFrame
         DataFrame containing a 'Global Aggregate' column
-    :param k: k-mer size to smooth the data. Default is 3.
-            If the transcript is > 5000nt, increases smoothing window proportionally
+    :param smoothing: logical. Default is true. If false, data is not smoothed.
     :return df: pandas.DataFrame
         DataFrame with the smoothed Global Aggregate
+    :return k: int. The k-mer value (k) applied to smooth peaks, if smoothing == True.
     """
     # Copies the position to column "X". Used to calculate Frame and for visualisation later
     df["X"] = df.index
     # Assign frame to each position
     df["Frame"] = (df["X"] % 3) + 1
 
-    # Code to smooth cov by frame
-    transcript_len = len(df.index)
-    if transcript_len < 3500:
-        k = 3
-    elif transcript_len < 6000:
-        k = 5
-    elif transcript_len < 10000:
-        k = 9
-    else:
-        k = 13
+    if smoothing == True:
+        # Code to smooth cov by frame. Adjust based on transcript length
+        transcript_len = len(df.index)
+        if transcript_len < 3500:
+            k = 3
+        elif transcript_len < 6000:
+            k = 5
+        elif transcript_len < 10000:
+            k = 9
+        else:
+            k = 13
 
-    k2 = k * 3
-    for i in range(0, len(df), k2):
-        # Select the slice of 9 rows using iloc
-        chunk = df.iloc[i:i + k2]
-        # out of those, groupby Frame, calculate the mean
-        chunk_averages = chunk.groupby('Frame')['Global Aggregate'].transform("mean")
-        # store the new values as a new column
-        df.loc[chunk.index, "Global_Aggregate_smoothed"] = chunk_averages
+        k2 = k * 3
+        for i in range(0, len(df), k2):
+            # Select the slice of 9 rows using iloc
+            chunk = df.iloc[i:i + k2]
+            # out of those, groupby Frame, calculate the mean
+            chunk_averages = chunk.groupby('Frame')['Global Aggregate'].transform("mean")
+            # store the new values as a new column
+            df.loc[chunk.index, "Global_Aggregate_smoothed"] = chunk_averages
 
-    return df, k
+        return df, k
+
+    elif smoothing == False:
+
+        return df
 
 # Helper. Adds a vertical line to a plot, with a label on top.
 def _add_vline_and_label(p, x, max_y, text):
