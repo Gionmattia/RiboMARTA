@@ -115,8 +115,8 @@ def test_x_region(diffs_df, perms_array, ci=95):
     pvals = (greater + 0.5) / (N + 1)
 
     alpha = 100 - ci
-    lower = np.percentile(perms_array, alpha/2, axis = 0)
-    upper = np.percentile(perms_array, 100 - (alpha/2), axis=0)
+    #lower = np.percentile(perms_array, alpha/2, axis = 0)
+    #upper = np.percentile(perms_array, 100 - (alpha/2), axis=0)
     reject, pvals_bh, _, _ = multipletests(pvals, alpha= 1 - (ci/100), method='fdr_bh')
 
     return pd.DataFrame({

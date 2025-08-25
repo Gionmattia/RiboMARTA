@@ -8,7 +8,11 @@ current_run = st.session_state.runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 st.title("Frame-Aware Transcript Activity Analysis")
 st.write("In this page, you can run the analysis for a transcript of your choice in a frame-aware fashion."
-         "Signal might not be too strong. WORK IN PROGRESS")
+         "Signal might not be too strong. WORK IN PROGRESS 🚧")
+
+# Selection of dominant frame for the baseline (only one option)
+
+#
 
 # Check if dataframe has been loaded
 df = current_run.all_studies_df

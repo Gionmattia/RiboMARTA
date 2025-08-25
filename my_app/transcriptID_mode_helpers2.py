@@ -134,7 +134,7 @@ def make_triplet_ga_plot(current_run, ga_df):
     current_run.triplet_ga_plot = column(picture2_transcript_plot, orfplot_f1, orfplot_f2, orfplot_f3,
                                          sizing_mode='stretch_width')
 
-def ga_plots_rendered(current_run):
+def ga_plots_UI_render(current_run):
     """
     Renders the plots stored (tx_ga_plot and triplet_ga_plot) as a st.expander.
     Also adds some info text.

@@ -4,10 +4,6 @@ from app_helpers import *
 from module0 import *
 from transcriptID_mode_helpers import *
 from transcriptID_mode_helpers2 import *
-from bokeh.models import FactorRange
-from bokeh.embed import file_html
-from bokeh.resources import CDN
-from bokeh.layouts import column
 
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
@@ -25,13 +21,13 @@ txid_mode_intro()
 txid_start_checkpoint(current_run)
 
 # Extract coverage info and transcript sequence. Includes loader.
-if current_run.loading_tx_cov == True:
+if current_run.loading_tx_cov:
     all_ranges, strandedness = txid_data_extraction(current_run, st.session_state.gr)
     current_run.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
 
 # Checks whether the coverage has been extracted, before proceeding
-if current_run.tx_cov_extracted == True:
+if current_run.tx_cov_extracted:
 
     # Format the coverage data as a table for download
     if current_run.transcript_sequence != "" and current_run.tx_upload == False:
@@ -63,13 +59,13 @@ if current_run.tx_cov_extracted == True and current_run.transcript_sequence != "
         make_triplet_ga_plot(current_run, ga_df)
 
     # Expanders to render the plots, if present
-    ga_plots_rendered(current_run)
+    ga_plots_UI_render(current_run)
 
     if st.button("Select Ranges"):
         current_run.show_ranges_selectors = True
 
-    if current_run.show_ranges_selectors == True:
-        col1, col2, col3 = st.columns([5, 5, 5]) # originally [5, 1, 5]
+    if current_run.show_ranges_selectors:
+        col1, col2, col3 = st.columns([5, 5, 5])
         full_mRNA_length = current_run.utr5_length + current_run.cds_length + current_run.utr3_length
 
         with col1:
@@ -94,21 +90,22 @@ if current_run.tx_cov_extracted == True and current_run.transcript_sequence != "
         current_run.frame_aware = st.toggle("Perform Frame-Aware Analysis", key = "frame_aware_selector")
     with col2:
         # Add a Marta with a baloon specifying the analysis selected!
-        if current_run.frame_aware == True:
+        if current_run.frame_aware:
             st.write("Frame-Aware Analysis Activated!")
-        elif current_run.frame_aware == False:
+        elif not current_run.frame_aware:
             st.write("Classic Analysis Selected!")
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     if st.button("Next"):
-        if current_run.frame_aware == False:
+
+        if not current_run.frame_aware:
             current_run.txid_ranges = {"x_slice": current_run.x_slice,
                                        "y_slice": current_run.y_slice,
                                        "n_slice": current_run.n_slice}
             st.switch_page("pages/page_5.py")
 
-        elif current_run.frame_aware == True:
+        elif current_run.frame_aware:
             current_run.txid_ranges = {"x_slice": current_run.x_slice,
                                        "y_slice": current_run.y_slice,
                                        "n_slice": current_run.n_slice}
