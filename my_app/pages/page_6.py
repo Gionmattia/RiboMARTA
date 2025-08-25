@@ -55,8 +55,20 @@ with st.expander("Change Run Options"):
 
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
-    # Need to pack this as two modules. One runs the analysis classically, the other one does the analysis frame-aware
-    df = df.drop(columns=["Position"])
+    # Add frame information to the dataframe, removes unnecessary cols
+    df["X"] = df.index
+    df["Frame"] = (df["X"] % 3) + 1
+    df = df.drop(columns=["Position", "X"])
+
+    #### --- NOTES ---
+    # I need to divide by ranges.... but also SUBDIVIDE somehow... I need three shorter DFs, with reads from a frame only of y.
+    # I COOULD use nan + mean() but that works only for the values, not for the permutation test...
+    # Better to just do with the "STURDY" option... which could also mean to add a new function to manage the dataframes...
+
+# It's going to be a pain, but surely is the best for now.
+    # NEED TO REWRITE IT. IT NEEDS TO BE ABLE TO GENERATE ARRAYS FROM FRAME... OTHERWISE it's a mess.
+
+
     current_run.txid_results = run_analysis(df, coordinates,
                                             ci = current_run.ci,
                                             N = current_run.N,
