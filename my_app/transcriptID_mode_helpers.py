@@ -180,6 +180,44 @@ def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs
     return all_studies_df
 
 
+# Comment - Functionally speaking, does a bit too much... but not sure if I have time/will to unpack it.
+def txid_data_extraction(current_run, gr):
+    """
+    It packs the spinner that runs while data is being extracted.
+    Also packs within some functions that extract transcript info and saves them to currrent_run
+    :param current_run:
+    :return: all_ranges, strandedness
+    """
+
+    with st.spinner("I am retrieving the coverage data..."):
+
+        # Internal Check. Stops execution if the txid is not found for any reason.
+        try:
+            # 1 Retrieve transcript ranges
+            transcript_ranges = extract_tx_pyranges(gr, current_run.txid)
+        except KeyError:
+            st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
+                     "Please, restart from the Home page.")
+            img_placeholder.image("martas/ko_marta.png", width=100)
+            st.stop()
+
+        # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
+        all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
+        # 3  Retrieve features (CDS, UTRs) lengths
+        current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
+            all_ranges)
+        # 4 Extract coverage from given bigwigs
+        current_run.all_studies_df = extract_from_multiple_bigwigs(st.session_state.bigwig_files,
+                                                                   all_ranges,
+                                                                   strandedness,
+                                                                   n_jobs=1)
+        # Updates logic flags within current_run
+        current_run.loading_tx_cov = False
+        current_run.tx_cov_extracted = True
+
+    return all_ranges, strandedness
+
+
 # Introducing smoothing function:
 def smoother(df: pd.DataFrame, smoothing:bool = True):
     """
@@ -419,6 +457,7 @@ def compute_codons_by_frame(sequence):
     all_reading_frames = temp.sort_values(by="position", ascending = True).reset_index(drop = True)
 
     return all_reading_frames
+
 
 # Function to make one ORFplot for a given frame
 def ORF_plotter(df, frame, x_range=None):

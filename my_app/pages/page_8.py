@@ -61,7 +61,7 @@ if st.button("Plese, report!"):
 
 
 
-    # Your multi-line text, e.g., a report of parameters
+    # Your multi-line text, e.g., a report of parametes
     report_text = """
     Report Date: August 21, 2025
     -----------------------------

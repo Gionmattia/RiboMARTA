@@ -16,7 +16,6 @@ import yaml
 from pyfaidx import Fasta
 import pyranges as pr
 import plotly.graph_objects as go
-import plotly.express as px
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
 ADJECTIVES = [
@@ -61,54 +60,6 @@ def read_gtf_annotation(gtf_path):
     gr = pr.read_gtf(gtf_path)
     #st.info(f".gtf took: {gtf_time:.2f} to load.")
     return gr
-
-# Organism Loader - Provides interface and code to load organism.
-def organism_loader_interface():
-    """
-    Displays the Streamlit UI for selecting and loading an organism's data.
-
-    This function creates a select box and a button. When the user clicks the
-    button, it loads all necessary configuration and data files (metadata, paths, etc.)
-    into st.session_state.
-
-    Side Effects:
-        - Populates st.session_state with data like 'gtf_path', 'metadata', 'fasta', etc.
-        - Sets st.session_state.config_loaded = True upon successful loading.
-    """
-
-
-    # Load configuration file
-    config = load_config("config.yaml")
-    # Load path to annotation file, metadata, and the bigwigs in the app
-    organisms_available = list(config.keys())
-
-    # The selectbox determines which organism will be loaded
-    selected_key = st.selectbox("Select from list", organisms_available)
-
-    if st.button(f"Load {selected_key}"):
-        # 1. Update session state with the selected organism and its specific config
-        st.session_state.selected_organism = selected_key
-        organism_config = config[st.session_state.selected_organism]
-
-        # 2. Load all paths and data into session state
-        with st.spinner(f"Loading data for {st.session_state.selected_organism}..."):
-            st.session_state.gtf_path = organism_config["gtf_path"]
-            st.session_state.metadata = pd.read_csv(organism_config["metadata_path"])
-            bigwigs_dir = organism_config["bigwigs_dir"]
-            st.session_state.fasta_path = organism_config["fasta_path"]
-            st.session_state.bigwig_files = [
-                os.path.abspath(os.path.join(bigwigs_dir, f))
-                for f in os.listdir(bigwigs_dir)
-                if os.path.isfile(os.path.join(bigwigs_dir, f))
-            ]
-
-            # These functions can be time-consuming
-            st.session_state.fasta = read_fasta(st.session_state.fasta_path)
-            st.session_state.gr = read_gtf_annotation(st.session_state.gtf_path)
-
-        # 3. Set a flag indicating that the configuration is loaded
-        st.session_state.config_loaded = True
-        st.success(f"Loaded config for {st.session_state.selected_organism}!")
 
 # Dataclass to store the analysis, the logical flags, and the outputs. Each has its own quirky ID.
 @dataclass

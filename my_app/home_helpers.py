@@ -1,9 +1,62 @@
-# collection of helpers to render home page of RiboMARTA
-import streamlit as st
-import pandas as pd
-from module0 import genomic_mode_formatter
-from app_helpers import generate_quirky_id
-from app_helpers import AnalysisStatus
+"""
+home_helpers.py
+
+This module contains functions used to render the Home page of the app, set up the analysis (organism) and format
+inputs of the Upload mode. It works in sinergy with Home.py and relies on the functions in app_helpers.py
+
+Author: Gionmattia Carancini
+Date: 25-08-2025
+"""
+
+from app_helpers import *
+
+# Organism Loader - Provides interface and code to load organism.
+def organism_loader_interface():
+    """
+    Displays the Streamlit UI for selecting and loading an organism's data.
+
+    This function creates a select box and a button. When the user clicks the
+    button, it loads all necessary configuration and data files (metadata, paths, etc.)
+    into st.session_state.
+
+    Side Effects:
+        - Populates st.session_state with data like 'gtf_path', 'metadata', 'fasta', etc.
+        - Sets st.session_state.config_loaded = True upon successful loading.
+    """
+
+    # Load configuration file
+    config = load_config("config.yaml")
+    # Load path to annotation file, metadata, and the bigwigs in the app
+    organisms_available = list(config.keys())
+
+    # The selectbox determines which organism will be loaded
+    selected_key = st.selectbox("Select from list", organisms_available)
+
+    if st.button(f"Load {selected_key}"):
+        # 1. Update session state with the selected organism and its specific config
+        st.session_state.selected_organism = selected_key
+        organism_config = config[st.session_state.selected_organism]
+
+        # 2. Load all paths and data into session state
+        with st.spinner(f"Loading data for {st.session_state.selected_organism}..."):
+            st.session_state.gtf_path = organism_config["gtf_path"]
+            st.session_state.metadata = pd.read_csv(organism_config["metadata_path"])
+            bigwigs_dir = organism_config["bigwigs_dir"]
+            st.session_state.fasta_path = organism_config["fasta_path"]
+            st.session_state.bigwig_files = [
+                os.path.abspath(os.path.join(bigwigs_dir, f))
+                for f in os.listdir(bigwigs_dir)
+                if os.path.isfile(os.path.join(bigwigs_dir, f))
+            ]
+
+            # These functions can be time-consuming
+            st.session_state.fasta = read_fasta(st.session_state.fasta_path)
+            st.session_state.gr = read_gtf_annotation(st.session_state.gtf_path)
+
+        # 3. Set a flag indicating that the configuration is loaded
+        st.session_state.config_loaded = True
+        st.success(f"Loaded config for {st.session_state.selected_organism}!")
+
 
 def genomic_coordinates_selection():
     """
@@ -88,6 +141,7 @@ def ensembl_txid_selection():
         reset_session_state(keys_to_reset)
         # Proceed to next page of the analysis
         st.switch_page("pages/page_2.py")
+
 
 def upload_selection():
     """
@@ -180,6 +234,44 @@ def upload_selection():
                                                                                tx_cov_extracted=tx_cov_extracted)
             st.switch_page("pages/page_2.py")
 
+
+def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
+                           post_feature_y:pd.DataFrame,
+                           noise_n:pd.DataFrame
+                           ) -> tuple[pd.DataFrame, dict[str, tuple[int, int]]]:
+    '''
+    This module serves if the user selects upload - genomic. Basically, it formats the input so that they can be used
+    by the same functions used by the "genomic coordinates" mode.
+
+    Args:
+        pre_feature_x: pd.DataFrame with coverages from genomic coordinates (rows are positions, columns are SRR Runs)
+        post_feature_y: pd.DataFrame with coverages from genomic coordinates (rows are positions, columns are SRR Runs)
+        noise_n: pd.DataFrame with coverages from genomic coordinates
+        used as noise control (rows are positions, columns are SRR Runs)
+
+    Returns:
+        genomic_merged: pd.DataFrame, the three inputs, concatenated on top of each other.
+        genomic_slices: dictionary, the coordinates to re-extract the original three DataFrames.
+    '''
+
+    # Create a single df for run_analysis()
+    genomic_merged = pd.concat([pre_feature_x, post_feature_y, noise_n],
+                               axis=0,
+                               ignore_index=True)
+
+    length_x = len(pre_feature_x)
+    length_y = len(post_feature_y)
+    length_n = len(noise_n)
+
+    # Set up the dictionary of coordinates for run_analysis()
+    genomic_slices = {"x_slice": (0, length_x),
+                      "y_slice": (length_x,length_x + length_y),
+                      "n_slice": (length_x + length_y, length_x + length_y + length_n)}
+
+    return genomic_merged, genomic_slices
+
+
+# OLD version, currently not used by the app... but leaving it for reference
 # Helper - resets streamlit state variables
 def reset_session_state(keys):
     """

@@ -17,9 +17,7 @@ from joblib import Parallel, delayed
 import os
 import multiprocessing as mp
 mp.set_start_method("fork", force=True)
-import plotly.graph_objects as go
 import random
-import re
 import time
 
 
@@ -168,35 +166,3 @@ def global_aggregate(input_df: pd.DataFrame,
         ga_df["Position"] = input_df["Position"]
 
     return ga_df
-
-def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
-                           post_feature_y:pd.DataFrame,
-                           noise_n:pd.DataFrame
-                           ) -> tuple[pd.DataFrame, dict[str, tuple[int, int]]]:
-    '''
-    Args:
-        pre_feature_x: pd.DataFrame with coverages from genomic coordinates (rows are positions, columns are SRR Runs)
-        post_feature_y: pd.DataFrame with coverages from genomic coordinates (rows are positions, columns are SRR Runs)
-        noise_n: pd.DataFrame with coverages from genomic coordinates
-        used as noise control (rows are positions, columns are SRR Runs)
-
-    Returns:
-        genomic_merged: pd.DataFrame, the three inputs, concatenated on top of each other.
-        genomic_slices: dictionary, the coordinates to re-extract the original three DataFrames.
-    '''
-
-    # Create a single df for run_analysis()
-    genomic_merged = pd.concat([pre_feature_x, post_feature_y, noise_n],
-                               axis=0,
-                               ignore_index=True)
-
-    length_x = len(pre_feature_x)
-    length_y = len(post_feature_y)
-    length_n = len(noise_n)
-
-    # Set up the dictionary of coordinates for run_analysis()
-    genomic_slices = {"x_slice": (0, length_x),
-                      "y_slice": (length_x,length_x + length_y),
-                      "n_slice": (length_x + length_y, length_x + length_y + length_n)}
-
-    return genomic_merged, genomic_slices
