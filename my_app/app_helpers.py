@@ -113,6 +113,7 @@ class AnalysisStatus:
     # --- Flags 3 - Tixd Mode ---
     loading_tx_cov: bool = False
     tx_cov_extracted: bool = False
+    show_ranges_selectors: bool = False
 
     # --- Txid mode variables and parameters ---
     utr5_length: int = None
