@@ -20,6 +20,8 @@ from module2 import _clean_data
 from module2 import _permute_values
 from module2 import _permute_ratios
 from module2 import compute_pvalues_and_ci
+from module2 import test_x_region
+import plotly.express as px
 
 def _fa_compute_xn_diffs(df: pd.DataFrame, coordinates: dict, baseline_frame: int):
     """
@@ -285,7 +287,7 @@ def RTA_by_frame_plotter(long_df):
                       y1=long_df[long_df['SRR'] == srr]['RTA'].max(),
                       line_width=2,
                       line_dash='solid',
-                      line_color='black',
+                      line_color='white',
                       layer="below")
 
     # Update the layout for a cleaner look

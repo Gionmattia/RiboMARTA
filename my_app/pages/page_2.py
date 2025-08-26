@@ -91,7 +91,26 @@ if current_run.tx_cov_extracted == True and current_run.transcript_sequence != "
     with col2:
         # Add a Marta with a baloon specifying the analysis selected!
         if current_run.frame_aware:
-            st.write("Frame-Aware Analysis Activated!")
+            st.write("Please select the Reading Frames")
+            option_map = {
+                1: "1",
+                2: "2",
+                3: "3",
+            }
+            current_run.baseline_frame = st.pills(
+                "Baseline Region reading frame",
+                options=option_map.keys(),
+                format_func=lambda option: option_map[option],
+                selection_mode="single",
+            )
+            st.write(
+                "Your selected option: "
+                f"{None if current_run.baseline_frame is None else option_map[current_run.baseline_frame]}"
+            )
+
+            options = [1, 2, 3]
+            current_run.target_frames = st.pills("Target Region reading frames (one or more)", options, selection_mode="multi")
+            st.markdown(f"Your selected options: {current_run.target_frames}")
         elif not current_run.frame_aware:
             st.write("Classic Analysis Selected!")
 

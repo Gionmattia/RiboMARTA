@@ -3,6 +3,7 @@ import streamlit as st
 from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
+from frame_aware_analysis_helpers import *
 
 current_run = st.session_state.runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
@@ -60,33 +61,33 @@ if st.button("Run Analysis"):
     df["Frame"] = (df["X"] % 3) + 1
     df = df.drop(columns=["Position", "X"])
 
-    #### --- NOTES ---
-    # I need to divide by ranges.... but also SUBDIVIDE somehow... I need three shorter DFs, with reads from a frame only of y.
-    # I COOULD use nan + mean() but that works only for the values, not for the permutation test...
-    # Better to just do with the "STURDY" option... which could also mean to add a new function to manage the dataframes...
+    st.session_state.fa_txid_results = run_fa_analysis(df = df,
+                                      coordinates = coordinates,
+                                      baseline_frame = current_run.baseline_frame,
+                                      target_frames = current_run.target_frames,
+                                      ci = current_run.ci,
+                                      N = current_run.N,
+                                      n_jobs = current_run.n_jobs)
 
-# It's going to be a pain, but surely is the best for now.
-    # NEED TO REWRITE IT. IT NEEDS TO BE ABLE TO GENERATE ARRAYS FROM FRAME... OTHERWISE it's a mess.
 
-
-    current_run.txid_results = run_analysis(df, coordinates,
-                                            ci = current_run.ci,
-                                            N = current_run.N,
-                                            n_jobs = current_run.n_jobs)
-
-    current_run.txid_results_meta = integrate_metadata(current_run.txid_results,
-                                                       st.session_state.metadata)
+    #current_run.txid_results_meta = integrate_metadata(current_run.txid_results, st.session_state.metadata)
 
     current_run.txid_analysis_done = True
 
 
 if current_run.txid_analysis_done is True:
 
-    if current_run.frames_aware is True:
+    if current_run.frame_aware is True:
         st.write("You are performing a frame-aware analysis")
 
-    with st.expander("Show Tabular Results"):
+    with st.expander("Show Results"):
 
+        results_df = format_frame_aware_res(current_run.baseline_frame, st.session_state.fa_txid_results)
+        long_df = setup_df_for_plot(results_df)
+        fig = RTA_by_frame_plotter(long_df)
+        st.plotly_chart(fig)
+
+        st.stop()
         tab1, tab2= st.tabs(["Detailed Results", "Results with Metadata"])
 
         with tab1:

@@ -147,7 +147,9 @@ class AnalysisStatus:
 
     # --- Frame-aware Analysis Flags --- #
     frame_aware: bool = False # If activated, will perform the RTA calculation while also comparing all possible Frames.
-
+    # --- Frame-aware Analysis Inputs ---#
+    baseline_frame: int = None
+    target_frames: list = None
 
 
 def compile_report(current_run):
