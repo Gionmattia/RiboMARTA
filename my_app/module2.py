@@ -114,7 +114,7 @@ def test_x_region(diffs_df, perms_array, ci=95):
     greater = (perms_array >= observed.values).sum(axis=0)
     pvals = (greater + 0.5) / (N + 1)
 
-    alpha = 100 - ci
+    #alpha = 100 - ci
     #lower = np.percentile(perms_array, alpha/2, axis = 0)
     #upper = np.percentile(perms_array, 100 - (alpha/2), axis=0)
     reject, pvals_bh, _, _ = multipletests(pvals, alpha= 1 - (ci/100), method='fdr_bh')
@@ -124,7 +124,7 @@ def test_x_region(diffs_df, perms_array, ci=95):
         "n avg": diffs_df["n avg"],
         #f'ci_lower_{ci}%': lower, # Not sure if I need it
         #f'ci_upper_{ci}%': upper, # Not sure if I need it
-        'padj_bh': pvals_bh, # Not sure if I need it
+        'padj_bh': pvals_bh,
         'reject' : reject,
     }, index=observed.index)
 

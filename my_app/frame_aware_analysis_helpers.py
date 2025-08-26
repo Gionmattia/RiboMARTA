@@ -2,6 +2,9 @@
 frame_aware_analysis_helpers.py
 
 This module contains all the functions used in RiboMARTA, but readapted to work for a frame-aware analysis.
+Only the functions readapted have been rewritten (and they have a "fa" in the name, as in "frame aware").
+Other functions have been imported from module2.
+Also, I added a couple of functions to prepare the data for plotting.
 
 Author: Gionmattia Carancini
 Date: 25-08-2025
@@ -13,36 +16,12 @@ from narwhals import Boolean
 from statsmodels.stats.multitest import multipletests
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
+from module2 import _clean_data
+from module2 import _permute_values
+from module2 import _permute_ratios
+from module2 import compute_pvalues_and_ci
 
-
-# needed to remove samples where we do not have info
-def _clean_data(df, verbose=False):
-    """
-    Clean input dataframe by:
-      1) Dropping columns that are all zeros.
-
-    Args:
-        df (pd.DataFrame): input data.
-        verbose (bool): if True, prints filtering stats.
-
-    Returns:
-        pd.DataFrame: cleaned dataframe.
-    """
-    # Drop all-zero columns
-    original_shape = df.shape[1]
-    df_clean = df.loc[:, (df != 0).any(axis=0)]
-    zero_filtered_shape = df_clean.shape[1]
-
-    # Originally, we used to remove all columns were x was 0...now we are doing the permutation test
-
-    if verbose:
-        print(f"Numbers of studies originally: {original_shape}")
-        print(f"After removing studies with zero coverage: {zero_filtered_shape}")
-
-    return df_clean
-
-
-def _compute_xn_diffs(df: pd.DataFrame, coordinates: dict, baseline_frame: int):
+def _fa_compute_xn_diffs(df: pd.DataFrame, coordinates: dict, baseline_frame: int):
     """
     Extracts coverage info from df, using coordinates (they define baseline and noise region).
     Works only with the
@@ -75,64 +54,7 @@ def _compute_xn_diffs(df: pd.DataFrame, coordinates: dict, baseline_frame: int):
 
     return diffs_df, reg_x.to_numpy(), reg_n.to_numpy()
 
-
-def _permute_values(base_array, noise_array, N, random_state=None):  # removed y_array, not needed.
-    """
-    Perform N permutations by shuffling combined baseline+noise arrays,
-    recomputing fake difference each time.
-
-    :param base_array: array with values from the "baseline" region of the permutation analysis
-    :param noise_array: array with values from the "noise" region.
-    :return perms_array: Returns an (N, n_series)-shaped array of "fake differences" for the permutation test.
-    """
-
-    # Combine the two arrays
-    combined = np.concatenate((base_array, noise_array), axis=0)
-    # Retrieve the original size of x
-    base_size = base_array.shape[0]
-    # Set the random state for permutations
-    rng = np.random.default_rng(random_state)
-
-    # Set the empty array for the results
-    perms_array = np.empty((N, base_array.shape[1]))
-
-    for i in range(N):
-        # Shuffles the labels
-        shuffled = np.apply_along_axis(rng.permutation, 0, combined)
-        # Gets permutated sets averages
-        perm_base = shuffled[:base_size].mean(axis=0)
-        perm_noise = shuffled[base_size:].mean(axis=0)
-        # Computes the diff between perm x and n. Stores it in the output array.
-        perms_array[i, :] = abs(perm_base - perm_noise)
-
-    return perms_array
-
-# Computes the p-value and confidence boundary
-def test_x_region(diffs_df, perms_array, ci=95):
-    """
-    One-tailed p-values and upper confidence bound for each series:
-      p = (count(perms_array >= observed) + 1) / (N + 1)
-      ci_upper = percentile(perms_array, ci)
-    """
-
-    N = perms_array.shape[0]
-    # New code, we extract the observed difference between x and n
-    observed = diffs_df["abs_xn_diff"]
-    # Now we observe how many times the perms_array abs(x-n) were more extreme than the observed values.
-    greater = (perms_array >= observed.values).sum(axis=0)
-    pvals = (greater + 0.5) / (N + 1)
-
-    reject, pvals_bh, _, _ = multipletests(pvals, alpha= 1 - (ci/100), method='fdr_bh')
-
-    return pd.DataFrame({
-        "x avg": diffs_df["x avg"],
-        "n avg": diffs_df["n avg"],
-        'padj_bh': pvals_bh,
-        'reject' : reject,
-    }, index=observed.index)
-
-
-def _compute_observed_ratios(valid_runs_df: pd.DataFrame, coordinates: dict[str, tuple[int, int]], good_runs: list,
+def _fa_compute_observed_ratios(clean_df: pd.DataFrame, coordinates: dict[str, tuple[int, int]], good_runs: list,
                              baseline_frame: int, target_frame: int) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, np.ndarray]:
     """
     Extract the three regions (x, y, and n)
@@ -142,7 +64,7 @@ def _compute_observed_ratios(valid_runs_df: pd.DataFrame, coordinates: dict[str,
     Returns the ratios, and the two regions as numpy arrays.
 
     Args:
-       valid_runs_df (pd.DataFrame): input data.A dataframe representing the coverage per nt position on a transcript. Each row is
+       clean_df (pd.DataFrame): input data.A dataframe representing the coverage per nt position on a transcript. Each row is
         a position, each column is a different SRR (Run), among those that were prefiltered.
         coordinates: a dictionary, defining the boundaries of the regions "x_slice", "y_slice", and "n_slice". User-given
 
@@ -154,7 +76,9 @@ def _compute_observed_ratios(valid_runs_df: pd.DataFrame, coordinates: dict[str,
     """
 
     # Keep only columns in "good_runs"
-    df = valid_runs_df[good_runs].copy()
+    df = clean_df[good_runs].copy()
+    # Add again frame info
+    df["Frame"] = clean_df["Frame"]
 
     # slice out each region
     slice_x = df.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]]
@@ -191,81 +115,11 @@ def _compute_observed_ratios(valid_runs_df: pd.DataFrame, coordinates: dict[str,
     return ratios_df, reg_y.to_numpy(), reg_n.to_numpy(), x_avg_array
 
 
-def _permute_ratios(y_array: np.ndarray,
-                    n_array: np.ndarray,
-                    x_avg_array: np.ndarray,
-                    N: int,
-                    random_state: bool = None
-                    ) -> np.ndarray:  # removed y_array, not needed.
-    """
-    Perform N permutations by shuffling combined baseline+noise arrays,
-    recomputing fake difference each time.
-
-    :param base_array: array with values from the "baseline" region of the permutation analysis
-    :param noise_array: array with values from the "noise" region.
-    :return perms_array: Returns an (N, n_series)-shaped array of "fake differences" for the permutation test.
-    """
-
-    # Combine the two arrays
-    combined = np.concatenate((y_array, n_array), axis=0)
-    # Retrieve the original size of x
-    y_size = y_array.shape[0]
-    # Set the random state for permutations
-    rng = np.random.default_rng(random_state)
-
-    # Set the empty array for the results
-    perms_array = np.empty((N, y_array.shape[1]))
-
-    for i in range(N):
-        # Shuffles the labels
-        shuffled = np.apply_along_axis(rng.permutation, 0, combined)
-        # Gets permutated sets averages
-        perm_y = shuffled[:y_size].mean(axis=0)
-        perm_n = shuffled[y_size:].mean(axis=0)
-        # Computes the fake ratios for this permutation and stores them in the output array
-        perms_array[i, :] = (perm_y - perm_n) / (x_avg_array - perm_n)
-
-    return perms_array
-
-# Computes the p-value and confidence boundary
-def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
-    """
-    One-tailed p-values and upper confidence bound for each series:
-      p = (count(permuted >= observed) + 1) / (N + 1)
-      ci_upper = percentile(permuted, ci)
-    """
-
-    N = permuted.shape[0]
-    # New code, we extract the observed difference between x and n
-    observed = ratios_df["RTA"]
-    # Now we observe how many times the permuted abs(x-n) were more extreme than the observed values.
-    greater = (permuted >= observed.values).sum(axis=0)
-    pvals = (greater + 0.5) / (N + 1)
-
-    alpha = 100 - ci
-    lower = np.percentile(permuted, alpha/2, axis = 0)
-    upper = np.percentile(permuted, 100 - (alpha/2), axis=0)
-    reject, pvals_bh, _, _ = multipletests(pvals, alpha= 1 - (ci/100), method='fdr_bh')
-
-    return pd.DataFrame({
-        "x avg": ratios_df["x avg"],
-        "y avg": ratios_df["y avg"],
-        "n avg": ratios_df["n avg"],
-        'RTA': ratios_df["RTA"],
-        'log2RTA': np.log2(ratios_df["RTA"]),
-        'p-value': pvals,
-        f'ci_lower_{ci}%': lower,
-        f'ci_upper_{ci}%': upper,
-        'padj_bh': pvals_bh,
-        'significant' : reject,
-    }, index=observed.index)
-
-
 # Function linking together the various bits to be run all together
-def run_analysis(df: pd.DataFrame,
+def run_fa_analysis(df: pd.DataFrame,
                  coordinates: dict[str, tuple[int, int]],
                  baseline_frame: int,
-                 target_frame: int,
+                 target_frames: list,
                  ci: int,
                  N: int = 1000,
                  n_jobs: int = 3
@@ -275,7 +129,7 @@ def run_analysis(df: pd.DataFrame,
     df = _clean_data(df)
 
     # Compute ratios and obtain arrays
-    diffs_df, x_array, n_array_1 = _compute_xn_diffs(df, coordinates, baseline_frame)
+    diffs_df, x_array, n_array_1 = _fa_compute_xn_diffs(df, coordinates, baseline_frame)
 
     # Run in parallel
     perms_per_job = N // n_jobs
@@ -293,48 +147,152 @@ def run_analysis(df: pd.DataFrame,
     # Extract significant SRR from valid_runs_df
     good_runs = valid_runs_df.index[valid_runs_df["reject"] == True].tolist()
 
+    # Set up dictionary of results
+    results_dict = {}
+
     # Function to open original dataframe, remove the rows not needed, calculate ratios with permutations...
-    ratios_df, y_array, n_array_2, x_avg_array = _compute_observed_ratios(df,
-                                                                        coordinates,
-                                                                        good_runs,
-                                                                        baseline_frame,
-                                                                        target_frame)
+    for f in target_frames:
+        ratios_df, y_array, n_array_2, x_avg_array = _fa_compute_observed_ratios(df,
+                                                                            coordinates,
+                                                                            good_runs,
+                                                                            baseline_frame,
+                                                                            f)
 
-    # Do the permutation test again, but only for the "valid" SRRs. In parallel.
-    perms_per_job = N // n_jobs
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(_permute_ratios)(y_array, n_array_2, x_avg_array, perms_per_job, random_state=i)
-        for i in range(n_jobs)
-    )
-    # Stack the results into a single array (N, features)
-    perms_array = np.vstack(results)
+        # Do the permutation test again, but only for the "valid" SRRs. In parallel.
+        perms_per_job = N // n_jobs
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(_permute_ratios)(y_array, n_array_2, x_avg_array, perms_per_job, random_state=i)
+            for i in range(n_jobs)
+        )
+        # Stack the results into a single array (N, features)
+        perms_array = np.vstack(results)
 
-    # Attach values to the results_df, remove/rename values for x vs n...
-    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=95)
+        # Attach values to the results_df, remove/rename values for x vs n...
+        results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=95)
+
+        # Store df in results_dict
+        results_dict[f"Frame_{f}"] = results_df
+
+    return results_dict
+
+
+def format_frame_aware_res(baseline_frame: int, results_dict: dict) -> pd.DataFrame:
+    """
+    Formats the results dictionary as a dataframe, for easiness of plotting
+    :param baseline_frame: the frame for the baseline
+    :param results_dict:  dictionary with the results of run_analysis
+    :return:
+    """
+
+    results_df = pd.DataFrame()
+    # Extract the series to compile into a single dataframe
+    keys = list(results_dict.keys())
+
+    srr_series = results_dict[keys[0]].index
+    x_avg_series = results_dict[keys[0]]["x avg"]
+    n_avg_series = results_dict[keys[0]]["n avg"]
+
+    # Create a DataFrame from the Series directly
+    results_df = pd.DataFrame({
+        "SRR": srr_series,
+        f"x avg (f{baseline_frame})": x_avg_series,
+        "n avg": n_avg_series,
+    })
+
+    for k in keys:
+        y_colname = f"y avg ({k})"
+        RTA_colname = f"RTA ({k})"
+        padj_colname = f"padj ({k})"
+        results_df[y_colname] = results_dict[k]["y avg"]
+        results_df[RTA_colname] = results_dict[k]["RTA"]
+        results_df[padj_colname] = results_dict[k]["padj_bh"]
 
     return results_df
 
-
-# Function to integrate metadata with results
-def integrate_metadata(results: pd.DataFrame,
-                       metadata: pd.DataFrame
-                       ) -> pd.DataFrame:
+def setup_df_for_plot(results_df):
     """
-    Merges RiboMARTA results with the available metadata, using "Run" ID as index.
+    Formats the dataframe for the plotting function...
 
-    Args:
-        results (pd.DataFrame): dataframe generated by run_analysis().
-        metadata (pd.DataFrame): dataframe containing metadata, following the Riboseq.Org Data Format from Oct2024.
-
-    Returns:
-        pd.DataFrame: merged dataframe, with results and metadata for each SRR (Run).
+    :param results_df:
+    :return: long_df
     """
-    # Creates a slim version of the metadata
-    slim_meta = metadata[["Run", "TISSUE", "CELL_LINE", "Strain", "Genotype", "Growth_Condition", "Info", "SampleName", "sample_source", "BioSample"]].copy()
-    # assigns the column "Run" as the index
-    slim_meta.set_index("Run", inplace=True)
-    # merge the two dataframes on index, keep only indexes in results
-    merged_df =  pd.merge(slim_meta, results, left_index=True, right_index=True, how="right")
+    long_df = pd.melt(results_df,
+                      id_vars=['SRR'],
+                      value_vars=['RTA (Frame_1)', 'RTA (Frame_2)', 'RTA (Frame_3)'],
+                      var_name='Frame',
+                      value_name='RTA')
+    long_df['Frame'] = long_df['Frame'].str.replace('RTA ', '')
 
-    return merged_df
+    padj_df = pd.melt(results_df,
+                      id_vars=['SRR'],
+                      value_vars=['padj (Frame_1)', 'padj (Frame_2)', 'padj (Frame_3)'],
+                      var_name='Frame',
+                      value_name='padj')
 
+    padj_df['Frame'] = padj_df['Frame'].str.replace('padj ', '')
+
+    long_df = long_df.merge(padj_df[['SRR', 'Frame', 'padj']], on=['SRR', 'Frame'])
+
+    long_df['Significance'] = long_df['padj'].apply(lambda x: 'Significant' if x < 0.05 else 'Not Significant')
+
+    long_df['Frame'] = long_df['Frame'].str.replace('(', '')
+    long_df['Frame'] = long_df['Frame'].str.replace(')', '')
+    long_df['Frame'] = long_df['Frame'].str.replace('_', ' ')
+    long_df['symbol_size'] = long_df['Significance'].apply(lambda x: 0.1 if x == 'Not Significant' else 0.5)
+
+    long_df['hover_text'] = ('<b>SRR</b>: ' + long_df['SRR'].astype(str) + '<br>' +
+                             '<b>RTA</b>: ' + long_df['RTA'].round(2).astype(str) + '<br>' +
+                             '<b>Frame</b>: ' + long_df['Frame'].astype(str) + '<br>' +
+                             '<b>padj</b>: ' + long_df['padj'].round(4).astype(str))
+
+    return long_df
+
+
+def RTA_by_frame_plotter(long_df):
+    """
+    Plotting Function.
+
+    :param long_df:
+    :return:
+    """
+    # Define custom colors and markers for the plot
+    color_map = {'Frame 1': "#48cf4b", 'Frame 2': "#68ace3", 'Frame 3': "#e66343"}
+
+    symbol_map = {'Significant': 'diamond', 'Not Significant': 'circle'}
+
+    # Create the interactive plot using Plotly Express
+    fig = px.scatter(long_df,
+                     x='SRR',
+                     y='RTA',
+                     color='Frame',
+                     symbol='Significance',
+                     size='symbol_size',
+                     color_discrete_map=color_map,
+                     symbol_map=symbol_map,
+                     hover_data=['padj', 'Frame'],
+                     title='Interactive RTA Values per SRR by Frame and Significance')
+
+    fig.update_traces(hovertemplate='<b>SRR</b>: %{x}<br>'
+                                    '<b>RTA</b>: %{y:.2f}<br>'
+                                    '<b>Frame</b>: %{customdata[1]}<br>'
+                                    '<b>padj</b>: %{customdata[0]:.4f}<br>'
+                                    '<extra></extra>')
+
+    # Add vertical lines connecting the points
+    for srr in long_df['SRR'].unique():
+        fig.add_vrect(x0=srr, x1=srr,
+                      y0=long_df[long_df['SRR'] == srr]['RTA'].min(),
+                      y1=long_df[long_df['SRR'] == srr]['RTA'].max(),
+                      line_width=2,
+                      line_dash='solid',
+                      line_color='black',
+                      layer="below")
+
+    # Update the layout for a cleaner look
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="SRR",
+        yaxis_title="RTA"
+    )
+
+    return fig
