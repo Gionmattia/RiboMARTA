@@ -4,6 +4,7 @@ from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
 from frame_aware_analysis_helpers import *
+from app_helpers import srr_lookup_sidebar
 
 current_run = st.session_state.runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
@@ -13,7 +14,8 @@ st.write("In this page, you can run the analysis for a transcript of your choice
 
 # Selection of dominant frame for the baseline (only one option)
 
-#
+#srr_lookup_sidebar(current_run.fa_txid_results_meta, st.session_state.metadata)
+
 
 # Check if dataframe has been loaded
 df = current_run.all_studies_df
@@ -59,33 +61,59 @@ if st.button("Run Analysis"):
     # Add frame information to the dataframe, removes unnecessary cols
     df["X"] = df.index
     df["Frame"] = (df["X"] % 3) + 1
-    df = df.drop(columns=["Position", "X"])
+    current_run.fa_df = df.drop(columns=["Position", "X"])
 
-    st.session_state.fa_txid_results = run_fa_analysis(df = df,
-                                      coordinates = coordinates,
-                                      baseline_frame = current_run.baseline_frame,
-                                      target_frames = current_run.target_frames,
-                                      ci = current_run.ci,
-                                      N = current_run.N,
-                                      n_jobs = current_run.n_jobs)
+    current_run.fa_txid_results = run_fa_analysis(df = current_run.fa_df,
+                                                       coordinates = coordinates,
+                                                       baseline_frame = current_run.baseline_frame,
+                                                       ci=current_run.ci,
+                                                       N = current_run.N,
+                                                       # target_frames = [1,2,3],
+                                                       n_jobs = current_run.n_jobs)
 
+    current_run.fa_results_df = format_frame_aware_res(current_run.baseline_frame, st.session_state.fa_txid_results)
+    current_run.fa_txid_results_meta = integrate_metadata(current_run.fa_results_df, st.session_state.metadata)
 
-    #current_run.txid_results_meta = integrate_metadata(current_run.txid_results, st.session_state.metadata)
+    current_run.fa_txid_analysis_done = True
 
-    current_run.txid_analysis_done = True
-
-
-if current_run.txid_analysis_done is True:
+if current_run.fa_txid_analysis_done:
 
     if current_run.frame_aware is True:
         st.write("You are performing a frame-aware analysis")
+    with st.expander("Show Results (tables)"):
+        # Need to improve column order...
+        col1, col2, col3 = st.columns([3, 3, 6])
+        verbose = False
+        with col1:
+            if st.button("Selected Metadata"):
+                verbose = False
+        with col2:
+            if st.button("Full Metadata"):
+                verbose = True
 
-    with st.expander("Show Results"):
+        if not verbose:  # Display fewer metadata
+            st.dataframe(current_run.fa_txid_results_meta,
+                         column_order=("RTA (Frame_1)", "padj (Frame_1)",
+                                       "RTA (Frame_2)", "padj (Frame_2)",
+                                       "RTA (Frame_3)", "padj (Frame_3)",
+                                       "TISSUE", "CELL_LINE", "Info"))
+        else:
+            current_run.fa_txid_results_meta
 
-        results_df = format_frame_aware_res(current_run.baseline_frame, st.session_state.fa_txid_results)
-        long_df = setup_df_for_plot(results_df)
-        fig = RTA_by_frame_plotter(long_df)
-        st.plotly_chart(fig)
+    with st.expander("Show Results (plots)"):
+
+        # results_df = format_frame_aware_res(current_run.baseline_frame, st.session_state.fa_txid_results)
+        remove_ns = st.toggle("Remove runs with no significant RTAs in any reading frame")
+
+        long_df = setup_df_for_plot(results_df = current_run.fa_results_df,
+                                    remove_ns = remove_ns
+                                    )
+        current_run.fa_RTAs_plot = RTA_by_frame_plotter(long_df)
+        st.plotly_chart(current_run.fa_RTAs_plot)
+
+        srr_lookup_sidebar(current_run.fa_txid_results_meta, current_run)
+
+
 
         st.stop()
         tab1, tab2= st.tabs(["Detailed Results", "Results with Metadata"])

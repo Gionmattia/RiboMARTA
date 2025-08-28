@@ -35,16 +35,17 @@ def txid_mode_intro():
     """
     col1, col2 = st.columns([4, 1])
     with col1:
-        st.write("Welcome to the Transcript ID Analysis page. This analysis is broken down in two stages:")
+        st.write("Welcome to the Transcript ID Analysis page.")
         st.write("""1) By clicking on "Load Transcript", you will be shown a plot with the aggregate Ribo-Seq footprints 
-        across all the available studies.""")
+        across all the available studies. You are also allowed to download the data as a .csv, if you wish so.""")
         st.write(
-            "Since this first step can take time, you will be allowed to save the raw data if you wish so. Click on 'Dowload"
-            "Data as CSV'")
+            """2) Once the plots are visualised, you can click on 'Select Ranges' to specify the areas of the transcript
+             you want to compare in the analysis. You will be asked to select a baseline, a target, and a noise region.""")
         st.write(
-            """2) Once the dynamic plot is visualised, you can click on 'Select Ranges' to specify the areas of the transcript
-             you want to compare in the analysis.""")
+            """3) Finally, you can decide whether you want to take into consideration the region's reading frames 
+            (frame-aware analysis) or not.""")
     with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("martas/explaining_marta.png", width=180)
 
 
@@ -162,11 +163,14 @@ def ga_plots_UI_render(current_run):
 
 
 def frame_aware_analysis_intro():
-    st.write("### About Frame Awareness")
-    st.write("The analysis uses coverage data between regions coming from all three different reading frames."
-             "While this allows to have stronger signal, it is less precise and cannot allow for the discrimination"
-             "of overlapping or nested ORFs.")
-    st.write("The Frame-Aware analysis allows to compute the RTA using signal coming from each reading frame "
-             "individually. While this is mode is more precise, it has the downside not all individual studies will"
-             " have an in-frame signal strong enough to be detected as significant.")
-    st.write("")
+    with st.popover("About the Frame-Aware Analysis",
+                    use_container_width=True):
+
+        st.write("### About Frame Awareness")
+        st.write("The analysis uses coverage data between regions coming from all three different reading frames."
+                 "While this allows to have stronger signal, it is less precise and cannot allow for the discrimination"
+                 "of overlapping or nested ORFs.")
+        st.write("The Frame-Aware analysis allows to compute the RTA using signal coming from each reading frame "
+                 "individually. While this is mode is more precise, it has the downside not all individual studies will"
+                 " have an in-frame signal strong enough to be detected as significant.")
+        st.write("")

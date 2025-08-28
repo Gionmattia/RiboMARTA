@@ -8,6 +8,17 @@ st.title("Try out colors!")
 color = st.color_picker("Pick a color", "#FF5733")
 st.write(f"You selected: {color}")
 
+## --- Sidebar elements test --- #
+st.sidebar.header("Quick Run (SRR) Metadata Lookup")
+
+st.sidebar.selectbox("Select Colour",
+                     ("Blue", "Green", "Red", "Gold"))
+
+with st.popover("Quick Run Metadata Lookup",
+                use_container_width= True):
+                st.header("Lookup Panel")
+                st.write("You can explore the metadata for individual runs here")
+
 st.markdown(
     f'<div style="width:100px;height:40px;background-color:{color};border-radius:8px;border:1px solid #888;"></div>',
     unsafe_allow_html=True

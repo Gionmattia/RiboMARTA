@@ -16,6 +16,8 @@ import yaml
 from pyfaidx import Fasta
 import pyranges as pr
 import plotly.graph_objects as go
+from frame_aware_analysis_helpers import fa_tx_line_plot
+#from TranscriptID_results_helpers import multi_line_plot
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
 ADJECTIVES = [
@@ -147,10 +149,18 @@ class AnalysisStatus:
 
     # --- Frame-aware Analysis Flags --- #
     frame_aware: bool = False # If activated, will perform the RTA calculation while also comparing all possible Frames.
+    fa_txid_analysis_done: bool = False
     # --- Frame-aware Analysis Inputs ---#
     baseline_frame: int = None
-    target_frames: list = None
+    fa_df: pd.DataFrame = None
+    # --- Frame-aware Analysis Outputs ---#
+    fa_txid_results: pd.DataFrame = None
+    fa_results_df: pd.DataFrame = None
+    fa_txid_results_meta: pd.DataFrame = None
+    fa_RTAs_plot = None
 
+    # --- Cart. A list where we store all SRR of interest ---#
+    cart: list = field(default_factory=list)
 
 def compile_report(current_run):
 
@@ -188,3 +198,30 @@ def compile_report(current_run):
 
 
     return text_opener
+
+## --- Sidebar elements test --- #
+def srr_lookup_sidebar(data, current_run):
+
+    st.sidebar.header("Quick Run (SRR) Lookup")
+    srr_list = list(data.index)
+    srr = st.sidebar.selectbox("Select Colour", srr_list)
+    info = data.loc[srr]
+
+    with st.sidebar.popover("Metadata", use_container_width=True):
+        st.write(info)
+    with st.sidebar.popover("Raw Data", use_container_width=True):
+        # Add the plot (should just plot raw data for one selected SRR)
+        srr_plot = fa_tx_line_plot(current_run.fa_df,
+                                   current_run.utr5_length,
+                                   current_run.cds_length,
+                                   [srr],
+                                   current_run.txid_ranges)
+
+        st.plotly_chart(srr_plot, use_container_width=True)
+    if st.sidebar.button("Add SRR to cart"):
+        current_run.cart.append(srr)
+    if st.sidebar.button("Remove SRR from cart"):
+        try:
+            current_run.cart.remove(srr)
+        except:
+            st.sidebar.write(f"{str(srr)} already NOT in your cart!")

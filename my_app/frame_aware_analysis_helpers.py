@@ -22,6 +22,8 @@ from module2 import _permute_ratios
 from module2 import compute_pvalues_and_ci
 from module2 import test_x_region
 import plotly.express as px
+import plotly.graph_objects as go
+
 
 def _fa_compute_xn_diffs(df: pd.DataFrame, coordinates: dict, baseline_frame: int):
     """
@@ -119,13 +121,13 @@ def _fa_compute_observed_ratios(clean_df: pd.DataFrame, coordinates: dict[str, t
 
 # Function linking together the various bits to be run all together
 def run_fa_analysis(df: pd.DataFrame,
-                 coordinates: dict[str, tuple[int, int]],
-                 baseline_frame: int,
-                 target_frames: list,
-                 ci: int,
-                 N: int = 1000,
-                 n_jobs: int = 3
-                 ) -> pd.DataFrame:
+                    coordinates: dict[str, tuple[int, int]],
+                    baseline_frame: int,
+                    ci: int,
+                    target_frames: list = [1, 2, 3],
+                    N: int = 1000,
+                    n_jobs: int = 3
+                    ) -> pd.DataFrame:
 
     # Remove 0-count studies
     df = _clean_data(df)
@@ -211,21 +213,32 @@ def format_frame_aware_res(baseline_frame: int, results_dict: dict) -> pd.DataFr
 
     return results_df
 
-def setup_df_for_plot(results_df):
+def setup_df_for_plot(results_df: pd.DataFrame, remove_ns: bool = False) -> pd.DataFrame:
     """
     Formats the dataframe for the plotting function...
 
     :param results_df:
     :return: long_df
     """
-    long_df = pd.melt(results_df,
+
+    # Optional. Remove studies (SRR) where all three padj are non-significant
+    if remove_ns:
+        df = results_df[
+            (results_df['padj (Frame_1)'] <= 0.05) |
+            (results_df['padj (Frame_2)'] <= 0.05) |
+            (results_df['padj (Frame_3)'] <= 0.05)
+            ].copy()
+    else:
+        df = results_df.copy()
+
+    long_df = pd.melt(df,
                       id_vars=['SRR'],
                       value_vars=['RTA (Frame_1)', 'RTA (Frame_2)', 'RTA (Frame_3)'],
                       var_name='Frame',
                       value_name='RTA')
     long_df['Frame'] = long_df['Frame'].str.replace('RTA ', '')
 
-    padj_df = pd.melt(results_df,
+    padj_df = pd.melt(df,
                       id_vars=['SRR'],
                       value_vars=['padj (Frame_1)', 'padj (Frame_2)', 'padj (Frame_3)'],
                       var_name='Frame',
@@ -240,7 +253,7 @@ def setup_df_for_plot(results_df):
     long_df['Frame'] = long_df['Frame'].str.replace('(', '')
     long_df['Frame'] = long_df['Frame'].str.replace(')', '')
     long_df['Frame'] = long_df['Frame'].str.replace('_', ' ')
-    long_df['symbol_size'] = long_df['Significance'].apply(lambda x: 0.1 if x == 'Not Significant' else 0.5)
+    long_df['symbol_size'] = long_df['Significance'].apply(lambda x: 8 if x == 'Not Significant' else 11)
 
     long_df['hover_text'] = ('<b>SRR</b>: ' + long_df['SRR'].astype(str) + '<br>' +
                              '<b>RTA</b>: ' + long_df['RTA'].round(2).astype(str) + '<br>' +
@@ -258,7 +271,7 @@ def RTA_by_frame_plotter(long_df):
     :return:
     """
     # Define custom colors and markers for the plot
-    color_map = {'Frame 1': "#48cf4b", 'Frame 2': "#68ace3", 'Frame 3': "#e66343"}
+    color_map = {'Frame 1': "#18BB1C", 'Frame 2': "#137BD2", 'Frame 3': "#DC3608"} # {'Frame 1': "#48cf4b", 'Frame 2': "#68ace3", 'Frame 3': "#e66343"}
 
     symbol_map = {'Significant': 'diamond', 'Not Significant': 'circle'}
 
@@ -274,21 +287,29 @@ def RTA_by_frame_plotter(long_df):
                      hover_data=['padj', 'Frame'],
                      title='Interactive RTA Values per SRR by Frame and Significance')
 
+    fig.update_traces(marker_sizemode='diameter', marker_sizeref=1)
+
     fig.update_traces(hovertemplate='<b>SRR</b>: %{x}<br>'
                                     '<b>RTA</b>: %{y:.2f}<br>'
                                     '<b>Frame</b>: %{customdata[1]}<br>'
                                     '<b>padj</b>: %{customdata[0]:.4f}<br>'
                                     '<extra></extra>')
 
-    # Add vertical lines connecting the points
+    # **THE FIX**: Loop through each SRR and add a line trace for it
     for srr in long_df['SRR'].unique():
-        fig.add_vrect(x0=srr, x1=srr,
-                      y0=long_df[long_df['SRR'] == srr]['RTA'].min(),
-                      y1=long_df[long_df['SRR'] == srr]['RTA'].max(),
-                      line_width=2,
-                      line_dash='solid',
-                      line_color='white',
-                      layer="below")
+        srr_df = long_df[long_df['SRR'] == srr]
+        fig.add_trace(go.Scatter(
+            x=[srr, srr],  # X-coordinates for the start and end of the line
+            y=[srr_df['RTA'].min(), srr_df['RTA'].max()], # Y-coordinates for min/max
+            mode='lines',
+            line=dict(color='lightgrey', width=1.5),
+            hoverinfo='none',      # Disable hover tooltips for the line
+            showlegend=False       # Hide this trace from the legend
+        ))
+
+    # Move the main scatter traces to the front to ensure they are on top of the lines
+    fig.data = fig.data[::-1]
+
 
     # Update the layout for a cleaner look
     fig.update_layout(
@@ -296,5 +317,90 @@ def RTA_by_frame_plotter(long_df):
         xaxis_title="SRR",
         yaxis_title="RTA"
     )
+
+    return fig
+
+
+# Function to make single transcript plot for only one srr, in frame-aware analysis
+def fa_tx_line_plot(df, utr5_length=0, cds_length=0, run_option=None, coordinates=None, x=None):
+    """
+    Plots each column of a dataframe as a bar chart, colored by a fixed
+    map for Frame values (1: green, 2: blue, 3: red).
+    """
+    fig = go.Figure()
+
+    run_option.append("Frame")
+    if run_option is not None:
+        df = df.loc[:, df.columns.isin(run_option)]
+
+    # Decide x values
+    if x is not None:
+        if isinstance(x, str):
+            x_vals = df[x]
+        else:
+            x_vals = x
+        plot_cols = [col for col in df.columns if col not in [x, 'Frame']]
+    else:
+        x_vals = df.index
+        plot_cols = [col for col in df.columns if col != 'Frame']
+
+    # Background colors and labels
+    if coordinates:
+        for i, (region, (start, end)) in enumerate(coordinates.items()):
+            fig.add_shape(type="rect", x0=start, x1=end, y0=0, y1=1, yref='paper', fillcolor="lightgrey",
+                          line=dict(width=0), layer="below")
+        fig.add_annotation(x=(coordinates["x_slice"][0] + coordinates["x_slice"][1]) / 2, y=1, yref="paper",
+                           text="Baseline", showarrow=False, font=dict(size=11, color="black"), bgcolor="white",
+                           borderpad=3)
+        fig.add_annotation(x=(coordinates["y_slice"][0] + coordinates["y_slice"][1]) / 2, y=1, yref="paper",
+                           text="Target", showarrow=False, font=dict(size=11, color="black"), bgcolor="white",
+                           borderpad=3)
+        fig.add_annotation(x=(coordinates["n_slice"][0] + coordinates["n_slice"][1]) / 2, y=1, yref="paper",
+                           text="Noise Region", showarrow=False, font=dict(size=11, color="black"), bgcolor="white",
+                           borderpad=3)
+
+    # --- SIMPLIFIED PLOTTING LOGIC ---
+
+        # Colors are now hardcoded
+    color_map = {1: "#18BB1C", 2: "#137BD2", 3: "#DC3608"}
+
+    for col in plot_cols:
+        for frame, color in color_map.items():
+            frame_df = df[df['Frame'] == frame]
+
+            # Only create a trace if there's data for that frame
+            if not frame_df.empty:
+                if x is not None:
+                    if isinstance(x, str):
+                        x_vals_frame = frame_df[x]
+                    else:
+                        x_vals_frame = x[df['Frame'] == frame]
+                else:
+                    x_vals_frame = frame_df.index
+
+                fig.add_trace(go.Bar(
+                    x=x_vals_frame,
+                    y=frame_df[col],
+                    name=f'{col} - Frame {frame}',
+                    marker_color=color
+                ))
+
+    # CDS lines and annotations
+    fig.add_vline(x=utr5_length, line_dash="dash", line_color="black", line_width=2)
+    fig.add_annotation(x=utr5_length, y=1, yref="paper", text="START", showarrow=False,
+                       font=dict(size=12, color="black"), bgcolor="white", borderpad=4)
+    fig.add_vline(x=utr5_length + cds_length, line_dash="dash", line_color="black", line_width=2)
+    fig.add_annotation(x=utr5_length + cds_length, y=1, yref="paper", text="STOP", showarrow=False,
+                       font=dict(size=12, color="black"), bgcolor="white", borderpad=4)
+
+    fig.update_layout(
+        title="Raw Counts Plot",
+        xaxis_title="Position on Transcript",
+        yaxis_title="Raw counts",
+        plot_bgcolor="white",
+        barmode='stack',
+        showlegend = False
+    )
+    fig.update_yaxes(showgrid=True, gridcolor="lightgray")
 
     return fig
