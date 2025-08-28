@@ -80,6 +80,7 @@ if current_run.fa_txid_analysis_done:
 
     if current_run.frame_aware is True:
         st.write("You are performing a frame-aware analysis")
+        srr_lookup_sidebar(current_run.fa_txid_results_meta, current_run)
     with st.expander("Show Results (tables)"):
         # Need to improve column order...
         col1, col2, col3 = st.columns([3, 3, 6])
@@ -110,8 +111,6 @@ if current_run.fa_txid_analysis_done:
                                     )
         current_run.fa_RTAs_plot = RTA_by_frame_plotter(long_df)
         st.plotly_chart(current_run.fa_RTAs_plot)
-
-        srr_lookup_sidebar(current_run.fa_txid_results_meta, current_run)
 
 
 

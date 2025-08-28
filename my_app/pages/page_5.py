@@ -3,6 +3,7 @@ import streamlit as st
 from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
+from app_helpers import *
 
 current_run = st.session_state.runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
@@ -86,6 +87,8 @@ if st.button("Run Analysis"):
     # From the heatmap, we have 9 times the results. Maybe best to fit in another page?
 
 if current_run.txid_analysis_done is True:
+
+    srr_lookup_sidebar2(current_run.txid_results, current_run)
 
     with st.expander("Show Tabular Results"):
 

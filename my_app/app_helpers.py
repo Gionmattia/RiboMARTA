@@ -17,7 +17,7 @@ from pyfaidx import Fasta
 import pyranges as pr
 import plotly.graph_objects as go
 from frame_aware_analysis_helpers import fa_tx_line_plot
-#from TranscriptID_results_helpers import multi_line_plot
+from TranscriptID_results_helpers import multi_line_plot
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
 ADJECTIVES = [
@@ -212,6 +212,34 @@ def srr_lookup_sidebar(data, current_run):
     with st.sidebar.popover("Raw Data", use_container_width=True):
         # Add the plot (should just plot raw data for one selected SRR)
         srr_plot = fa_tx_line_plot(current_run.fa_df,
+                                   current_run.utr5_length,
+                                   current_run.cds_length,
+                                   [srr],
+                                   current_run.txid_ranges)
+
+        st.plotly_chart(srr_plot, use_container_width=True)
+    if st.sidebar.button("Add SRR to cart"):
+        current_run.cart.append(srr)
+    if st.sidebar.button("Remove SRR from cart"):
+        try:
+            current_run.cart.remove(srr)
+        except:
+            st.sidebar.write(f"{str(srr)} already NOT in your cart!")
+
+
+## --- Sidebar elements for txid mode (could be fused to the one above, but later on) --- #
+def srr_lookup_sidebar2(data, current_run):
+
+    st.sidebar.header("Quick Run (SRR) Lookup")
+    srr_list = list(data.index)
+    srr = st.sidebar.selectbox("Select Colour", srr_list)
+    info = current_run.txid_results_meta.loc[srr]
+
+    with st.sidebar.popover("Metadata", use_container_width=True):
+        st.write(info)
+
+    with st.sidebar.popover("Raw Data", use_container_width=True):
+        srr_plot = multi_line_plot(current_run.all_studies_df,
                                    current_run.utr5_length,
                                    current_run.cds_length,
                                    [srr],
