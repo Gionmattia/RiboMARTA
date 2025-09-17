@@ -71,7 +71,7 @@ if st.button("Run Analysis"):
                                                        # target_frames = [1,2,3],
                                                        n_jobs = current_run.n_jobs)
 
-    current_run.fa_results_df = format_frame_aware_res(current_run.baseline_frame, st.session_state.fa_txid_results)
+    current_run.fa_results_df = format_frame_aware_res(current_run.baseline_frame, current_run.fa_txid_results)
     current_run.fa_txid_results_meta = integrate_metadata(current_run.fa_results_df, st.session_state.metadata)
 
     current_run.fa_txid_analysis_done = True

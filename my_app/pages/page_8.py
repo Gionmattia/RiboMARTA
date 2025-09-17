@@ -68,27 +68,12 @@ st.write(st.session_state.runs.keys())
 
 if st.button("Plese, report!"):
     info = compile_report(current_run)
-    st.write(info)
+
+    st.text_area("report",
+                 info,
+                 height=300)
+
 
 
 
     # Your multi-line text, e.g., a report of parametes
-    report_text = """
-    Report Date: August 21, 2025
-    -----------------------------
-    Model: XYZ-123
-    Accuracy: 95.2%
-    Precision: 94.8%
-    Recall: 96.1%
-    F1-Score: 95.4%
-    Parameters:
-      - Learning Rate: 0.01
-      - Batch Size: 32
-      - Epochs: 50
-    """
-
-    st.text_area(
-        "Parameter Report",
-        report_text,
-        height=250
-    )
