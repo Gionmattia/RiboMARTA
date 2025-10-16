@@ -5,54 +5,113 @@ This module contains all the functions used in RiboMARTA, as per the refactoring
 Author: Gionmattia Carancini
 Date: 23-04-2025
 """
-import pandas
+
 import pandas as pd
 import numpy as np
-from narwhals import Boolean
 from statsmodels.stats.multitest import multipletests
 from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
 
 
 # needed to remove samples where we do not have info
-def _clean_data(df, verbose=False):
+def _clean_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
     """
-    Clean input dataframe by:
-      1) Dropping columns that are all zeros.
+    Remove runs (samples) with zero coverage across all positions.
+
+    Filters out columns where every position has zero counts, indicating
+    no sequencing data or failed library preparation.
 
     Args:
-        df (pd.DataFrame): input data.
-        verbose (bool): if True, prints filtering stats.
+        df: Coverage dataframe with positions as rows, runs (SRRs) as columns
+        verbose: If True, print filtering statistics (default: False)
 
     Returns:
-        pd.DataFrame: cleaned dataframe.
+        Cleaned dataframe with all-zero columns removed
     """
-    # Drop all-zero columns
-    original_shape = df.shape[1]
+
+    n_runs_original = df.shape[1]
+    # Keeps columns with at least a non-0 value.
     df_clean = df.loc[:, (df != 0).any(axis=0)]
-    zero_filtered_shape = df_clean.shape[1]
+
+    n_runs_after = df_clean.shape[1]
 
     # Originally, we used to remove all columns were x was 0...now we are doing the permutation test
 
     if verbose:
-        print(f"Numbers of studies originally: {original_shape}")
-        print(f"After removing studies with zero coverage: {zero_filtered_shape}")
+        n_removed = n_runs_original - n_runs_after
+        print(f"Runs originally: {n_runs_original}")
+        print(f"Runs with zero coverage removed: {n_removed}")
+        print(f"Runs remaining: {n_runs_after}")
 
     return df_clean
 
 
-def _compute_xn_diffs(df, coordinates):
+def test_baseline_vs_noise(
+        dataframe: pd.DataFrame,
+        coordinates: dict[str, tuple[int, int]],
+        N: int = 10000,
+        random_state: int | None = None,
+        ci: int = 95
+) -> tuple[pd.DataFrame, list[str]]:
     """
-    Lorem Ipsum
+    Test if baseline region (x) differs significantly from noise region (n).
 
+    Uses permutation testing to identify runs (samples) where the baseline
+    region shows average raw counts significantly different from the noise region.
+
+    Biological reasoning: not everything is espressed.
+    This test makes sure that baseline is indeed expressed to a significant level.
+
+    Args:
+        dataframe: Coverage data with positions as rows, runs (SRRs) as columns
+        coordinates: Dictionary with 'x_slice' and 'n_slice' keys, each containing
+                    (start, end) tuples defining region boundaries
+        N: Number of permutations for null distribution (default: 1000)
+        random_state: Seed for reproducibility (default: None)
+        ci: Confidence level for statistical testing (default: 95)
+
+    Returns:
+        results: DataFrame with columns ['x avg', 'n avg', 'padj_bh', 'reject']
+                indexed by run IDs
+        good_runs: List of run IDs that passed the significance test
     """
+
+    # computes an array of observed differences between baseline(x) and noise(n).
+    diffs_df, reg_x, reg_n = _compute_xn_diffs(dataframe, coordinates)
+
+    # permutes the values between x and n, to generate Null hypothesis distribution.
+    perms_array = _permute_values(reg_x, reg_n, N, random_state=random_state)
+
+    # does the actual test, computing the p-values and adjusting them
+    results, good_runs = test_x_region(diffs_df, perms_array, ci=ci)
+
+    return results, good_runs
+
+
+def _compute_xn_diffs(df: pd.DataFrame,
+                      coordinates: dict[str, tuple[int, int]]
+                      ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+    """
+    Extract baseline (x) and noise (n) regions from the dataframe, and compute their differences in terms of average raw counts.
+
+    Args:
+        df: Coverage dataframe with positions as rows, runs as columns
+        coordinates: Dictionary containing 'x_slice' and 'n_slice' keys with
+                    (start, end) tuples
+
+    Returns:
+        diffs_df: DataFrame with columns ['x avg', 'n avg', 'abs_xn_diff'],
+                 indexed by run IDs
+        reg_x: Array of shape (n_positions_x, n_runs) with x region coverage
+        reg_n: Array of shape (n_positions_n, n_runs) with n region coverage
+    """
+
     # slice out each region
     reg_x = df.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]]
     reg_n = df.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]]
 
     # Calculated as it follows so that the Pandas series keeps the rownames
-    x_avg = reg_x.mean()
-    n_avg = reg_n.mean()
+    x_avg = reg_x.mean(axis=0)
+    n_avg = reg_n.mean(axis=0)
 
     # Compute the absolute difference between x and n
     abs_xn_dff = abs(x_avg - n_avg)
@@ -68,14 +127,26 @@ def _compute_xn_diffs(df, coordinates):
     return diffs_df, reg_x.to_numpy(), reg_n.to_numpy()
 
 
-def _permute_values(base_array, noise_array, N, random_state=None):  # removed y_array, not needed.
+def _permute_values(
+        base_array: np.ndarray,
+        noise_array: np.ndarray,
+        N: int,
+        random_state: int | None = None
+) -> np.ndarray:
     """
-    Perform N permutations by shuffling combined baseline+noise arrays,
-    recomputing fake difference each time.
+    Generate null distribution by permuting baseline and noise regions.
 
-    :param base_array: array with values from the "baseline" region of the permutation analysis
-    :param noise_array: array with values from the "noise" region.
-    :return perms_array: Returns an (N, n_series)-shaped array of "fake differences" for the permutation test.
+    Shuffles the combined baseline + noise arrays N times, recomputing
+    the absolute difference between means for each permutation.
+
+    Args:
+        base_array: Array of shape (n_positions_base, n_runs) from baseline region
+        noise_array: Array of shape (n_positions_noise, n_runs) from noise region
+        N: Number of permutations to perform
+        random_state: Seed for reproducibility (default: None)
+
+    Returns:
+        Array of shape (N, n_runs) containing permuted absolute differences
     """
 
     # Combine the two arrays
@@ -99,82 +170,116 @@ def _permute_values(base_array, noise_array, N, random_state=None):  # removed y
 
     return perms_array
 
+
 # Computes the p-value and confidence boundary
-def test_x_region(diffs_df, perms_array, ci=95):
+def test_x_region(
+        diffs_df: pd.DataFrame,
+        perms_array: np.ndarray,
+        ci: int = 95
+) -> tuple[pd.DataFrame, list[str]]:
     """
-    One-tailed p-values and upper confidence bound for each series:
-      p = (count(perms_array >= observed) + 1) / (N + 1)
-      ci_upper = percentile(perms_array, ci)
-    """
+    Compute p-values and identify significant runs via permutation test.
 
-    N = perms_array.shape[0]
-    # New code, we extract the observed difference between x and n
-    observed = diffs_df["abs_xn_diff"]
-    # Now we observe how many times the perms_array abs(x-n) were more extreme than the observed values.
-    greater = (perms_array >= observed.values).sum(axis=0)
-    pvals = (greater + 0.5) / (N + 1)
-
-    #alpha = 100 - ci
-    #lower = np.percentile(perms_array, alpha/2, axis = 0)
-    #upper = np.percentile(perms_array, 100 - (alpha/2), axis=0)
-    reject, pvals_bh, _, _ = multipletests(pvals, alpha= 1 - (ci/100), method='fdr_bh')
-
-    return pd.DataFrame({
-        "x avg": diffs_df["x avg"],
-        "n avg": diffs_df["n avg"],
-        #f'ci_lower_{ci}%': lower, # Not sure if I need it
-        #f'ci_upper_{ci}%': upper, # Not sure if I need it
-        'padj_bh': pvals_bh,
-        'reject' : reject,
-    }, index=observed.index)
-
-
-def _compute_observed_ratios(valid_runs_df: pd.DataFrame, coordinates: dict[str, tuple[int, int]], good_runs: list
-                             ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Extract the three regions (x, y, and n)
-    Compute observed ratio of translational-activity (RTA):
-      (mean(region_y) - mean(region_n)) / (mean(region_x) - mean(region_n))
-
-    Returns the ratios, and the two regions as numpy arrays.
+    Calculates one-tailed p-values by comparing observed differences to the
+    permutation-based null distribution, then applies FDR correction.
 
     Args:
-       valid_runs_df (pd.DataFrame): input data.A dataframe representing the coverage per nt position on a transcript. Each row is
-        a position, each column is a different SRR (Run), among those that were prefiltered.
-        coordinates: a dictionary, defining the boundaries of the regions "x_slice", "y_slice", and "n_slice". User-given
+        diffs_df: DataFrame with observed differences, must contain 'abs_xn_diff' column
+        perms_array: Array of shape (N, n_runs) with null distribution
+        ci: Confidence level for FDR correction (default: 95)
 
     Returns:
-        ratios_df (pd.DataFrame): dataframe wtih averages for each slice, RTA.
-        reg_y (np.ndarray): array of the values from y slice
-        reg_n (np.ndarray): array of the values from n slice
-
+        results: DataFrame with columns ['x avg', 'n avg', 'padj_bh', 'reject']
+        good_runs: List of run IDs where reject == True
     """
 
-    # Keep only columns in "good_runs"
-    df = valid_runs_df[good_runs].copy()
+    # """
+    # One-tailed p-values and upper confidence bound for each series:
+    #   p = (count(perms_array >= observed) + 1) / (N + 1)
+    #   ci_upper = percentile(perms_array, ci)
+    # """
 
-    # slice out each region
-    reg_x = df.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]]
-    reg_y = df.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]]
-    reg_n = df.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]]
+    N = perms_array.shape[0]
+    observed = diffs_df["abs_xn_diff"]
 
-    # Calculated as it follows so that the Pandas series keeps the rownames
-    x_avg = reg_x.mean()
-    y_avg = reg_y.mean()
-    n_avg = reg_n.mean()
+    # Now we observe how many times the perms_array abs(x-n) were more extreme than the observed values.
+    greater = (perms_array >= observed.values).sum(axis=0)
+    pvals = (greater + 1) / (N + 1)  # Changed from  (greater + 0.5) / (N + 1)
 
-    # Compute the observed RTA
-    RTA = (y_avg - n_avg) / (x_avg - n_avg)
+    # FDR correction for multiple testing
+    reject, pvals_bh, _, _ = multipletests(pvals, alpha=1 - (ci / 100), method='fdr_bh')
 
-    # Stores the values into a dataframe
+    # Compile results
+    results = pd.DataFrame({
+        "x avg": diffs_df["x avg"],
+        "n avg": diffs_df["n avg"],
+        'padj_bh': pvals_bh,
+        'reject': reject,
+    }, index=observed.index)
+
+    good_runs = results[results["reject"] == True].index.to_list()
+
+    return results, good_runs
+
+
+def _compute_observed_ratios(
+        df: pd.DataFrame,
+        coordinates: dict[str, tuple[int, int]],
+        good_runs: list[str]
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute observed RTA ratios for valid runs and extract region arrays.
+
+    Filters the input dataframe to include only runs that passed baseline vs
+    noise testing, then calculates Relative Translational Activity (RTA) as:
+    RTA = (Y_avg - N_avg) / (X_avg - N_avg)
+
+    Args:
+        df: Coverage dataframe with positions as rows, runs as columns
+        coordinates: Dictionary defining region boundaries with keys:
+            - 'x_slice': (start, end) for baseline region
+            - 'y_slice': (start, end) for test region
+            - 'n_slice': (start, end) for noise region
+        good_runs: List of run IDs (SRRs) that passed baseline filtering
+
+    Returns:
+        ratios_df: DataFrame with columns ['x avg', 'y avg', 'n avg', 'RTA'],
+                   indexed by run IDs
+        y_array: Array of shape (n_positions_y, n_runs) with Y region coverage
+        n_array: Array of shape (n_positions_n, n_runs) with N region coverage
+        x_avg_array: Array of shape (n_runs,) with mean X region coverage per run
+
+    Notes:
+        - Only runs in good_runs are included in the output
+        - x_avg_array is returned separately for use in permutation testing
+        - Arrays are returned as numpy arrays for computational efficiency
+    """
+
+    # Filter to valid runs only.
+    df_filtered = df[good_runs].copy()
+
+    # Slice out each region.
+    reg_x = df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]]
+    reg_y = df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]]
+    reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]]
+
+    # Compute averages per each srr, on each different slice.
+    x_avg = reg_x.mean(axis=0)
+    y_avg = reg_y.mean(axis=0)
+    n_avg = reg_n.mean(axis=0)
+
+    # Compute the observed RTA.
+    rta = (y_avg - n_avg) / (x_avg - n_avg)
+
+    # Stores the values in a dataframe.
     ratios_df = pd.DataFrame({
         "x avg": x_avg,
         "y avg": y_avg,
         "n avg": n_avg,
-        "RTA": RTA,
+        "RTA": rta,
     })
 
-    # We keep the average x to calculate the fake ratios during the permutation test
+    # Convert to arrays for permutation testing.
     x_avg_array = x_avg.to_numpy()
 
     return ratios_df, reg_y.to_numpy(), reg_n.to_numpy(), x_avg_array
@@ -184,57 +289,106 @@ def _permute_ratios(y_array: np.ndarray,
                     n_array: np.ndarray,
                     x_avg_array: np.ndarray,
                     N: int,
-                    random_state: bool = None
-                    ) -> np.ndarray:  # removed y_array, not needed.
+                    random_state: int | None = None
+                    ) -> np.ndarray:
     """
-    Perform N permutations by shuffling combined baseline+noise arrays,
-    recomputing fake difference each time.
+    Generate null distribution for RTA via permutation of y and n regions.
 
-    :param base_array: array with values from the "baseline" region of the permutation analysis
-    :param noise_array: array with values from the "noise" region.
-    :return perms_array: Returns an (N, n_series)-shaped array of "fake differences" for the permutation test.
+    Shuffles the combined y and n region positions N times, recomputing
+    permuted RTA ratios to establish the null distribution for significance testing.
+
+    Args:
+        y_array: Array of shape (n_positions_y, n_runs) with y region coverage
+        n_array: Array of shape (n_positions_n, n_runs) with n region coverage
+        x_avg_array: Array of shape (n_runs,) with mean X region coverage
+        N: Number of permutations to perform
+        random_state: Seed for reproducibility (default: None)
+
+    Returns:
+        Array of shape (N, n_runs) containing permuted RTA ratios.
+        Each row represents one permutation's RTA values across all runs.
+
+    Notes:
+        - Permutation preserves run structure (shuffles positions, not runs)
+        - X region average is held constant (not permuted)
+        - RTA formula: (perm_y_avg - perm_n_avg) / (X_avg - perm_n_avg)
     """
-
-    # Combine the two arrays
+    # Combine the two arrays with y and n regions
     combined = np.concatenate((y_array, n_array), axis=0)
-    # Retrieve the original size of x
+
+    # Retrieve the original size of y for splitting and shuffle
     y_size = y_array.shape[0]
-    # Set the random state for permutations
+
+    # Initialise the random generator
     rng = np.random.default_rng(random_state)
 
-    # Set the empty array for the results
+    # Preallocate results array
     perms_array = np.empty((N, y_array.shape[1]))
 
     for i in range(N):
-        # Shuffles the labels
+        # Shuffles the positions within each run (columnn-wise)
         shuffled = np.apply_along_axis(rng.permutation, 0, combined)
-        # Gets permutated sets averages
+
+        # Compute averages for permuted regions
         perm_y = shuffled[:y_size].mean(axis=0)
         perm_n = shuffled[y_size:].mean(axis=0)
-        # Computes the fake ratios for this permutation and stores them in the output array
+
+        # Compute the null-hypothesis RTAs and stores them
         perms_array[i, :] = (perm_y - perm_n) / (x_avg_array - perm_n)
 
     return perms_array
 
+
 # Computes the p-value and confidence boundary
-def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
+def compute_pvalues_and_ci(
+        ratios_df: pd.DataFrame,
+        perms_array: np.ndarray,
+        ci: int = 95
+) -> pd.DataFrame:
     """
-    One-tailed p-values and upper confidence bound for each series:
-      p = (count(permuted >= observed) + 1) / (N + 1)
-      ci_upper = percentile(permuted, ci)
-    """
+    Compute p-values and confidence intervals for observed RTA values.
 
-    N = permuted.shape[0]
-    # New code, we extract the observed difference between x and n
+    Calculates one-tailed permutation p-values by comparing observed RTA
+    to the null distribution, applies FDR correction, and determines
+    confidence interval bounds for the null distribution.
+
+    Args:
+        ratios_df: DataFrame with observed RTA values and region averages
+        perms_array: Array of shape (N, n_runs) with permuted RTA null distribution
+        ci: Confidence level as percentage (default: 95)
+
+    Returns:
+        DataFrame with columns:
+            - 'x avg', 'y avg', 'n avg': Mean coverage for each region
+            - 'RTA': Observed Relative Translational Activity
+            - 'log2RTA': Log2-transformed RTA
+            - 'p-value': Raw permutation p-value
+            - 'H0_ci_lower_XX%': Lower bound of null distribution CI
+            - 'H0_ci_upper_XX%': Upper bound of null distribution CI
+            - 'padj_bh': Benjamini-Hochberg adjusted p-value
+            - 'significant': Boolean indicating statistical significance
+
+    Notes:
+        - P-values use standard permutation formula: (greater + 1) / (N + 1)
+        - Confidence intervals represent the null distribution range
+        - FDR correction via Benjamini-Hochberg method
+    """
+    N = perms_array.shape[0]
+
+    # Extract observed RTA values
     observed = ratios_df["RTA"]
-    # Now we observe how many times the permuted abs(x-n) were more extreme than the observed values.
-    greater = (permuted >= observed.values).sum(axis=0)
-    pvals = (greater + 0.5) / (N + 1)
 
+    # Count permutations where RTA >= observed
+    greater = (perms_array >= observed.values).sum(axis=0)
+    pvals = (greater + 1) / (N + 1)
+
+    # Compute null distribution confidence intervals
     alpha = 100 - ci
-    lower = np.percentile(permuted, alpha/2, axis = 0)
-    upper = np.percentile(permuted, 100 - (alpha/2), axis=0)
-    reject, pvals_bh, _, _ = multipletests(pvals, alpha= 1 - (ci/100), method='fdr_bh')
+    lower = np.percentile(perms_array, alpha / 2, axis=0)
+    upper = np.percentile(perms_array, 100 - (alpha / 2), axis=0)
+
+    # FDR correction
+    reject, pvals_bh, _, _ = multipletests(pvals, alpha=1 - (ci / 100), method='fdr_bh')
 
     return pd.DataFrame({
         "x avg": ratios_df["x avg"],
@@ -243,56 +397,186 @@ def compute_pvalues_and_ci(ratios_df, permuted, ci=95):
         'RTA': ratios_df["RTA"],
         'log2RTA': np.log2(ratios_df["RTA"]),
         'p-value': pvals,
-        f'ci_lower_{ci}%': lower,
-        f'ci_upper_{ci}%': upper,
+        f'H0_ci_lower_{ci}%': lower,
+        f'H0_ci_upper_{ci}%': upper,
         'padj_bh': pvals_bh,
-        'significant' : reject,
+        'significant': reject,
     }, index=observed.index)
 
 
+# New function for boostrap analysis and RTA CIs
+
+def _bootstrap_rta_ci(
+        df: pd.DataFrame,
+        coordinates: dict[str, tuple[int, int]],
+        good_runs: list[str],
+        B: int = 10000,
+        ci: int = 95,
+        random_state: int | None = None
+) -> pd.DataFrame:
+    """
+    Compute bootstrap confidence intervals for observed RTA estimates.
+
+    Resamples positions within each region (x, y, n) with replacement to
+    estimate the sampling distribution of RTA, providing confidence intervals
+    that quantify uncertainty in the point estimates.
+
+    Args:
+        df: Coverage dataframe with positions as rows, runs as columns
+        coordinates: Dictionary defining region boundaries with keys:
+            - 'x_slice': (start, end) for baseline region
+            - 'y_slice': (start, end) for test region
+            - 'n_slice': (start, end) for noise region
+        good_runs: List of run IDs (SRRs) to compute bootstrap CIs for
+        B: Number of bootstrap samples (default: 1000)
+        ci: Confidence level as percentage (default: 95)
+        random_state: Seed for reproducibility (default: None)
+
+    Returns:
+        DataFrame indexed by run IDs with columns:
+            - 'bootstrap_ci_lower_XX%': Lower bound of bootstrap CI for RTA
+            - 'bootstrap_ci_upper_XX%': Upper bound of bootstrap CI for RTA
+
+    Notes:
+        - Bootstrap resamples positions independently within each region
+        - Confidence intervals reflect uncertainty in the RTA estimate itself
+        - Different from permutation test null distribution CIs
+    """
+    # Filter to good runs
+    df_filtered = df[good_runs].copy()
+
+    # Extract regions
+    reg_x = df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy()
+    reg_y = df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy()
+    reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy()
+
+    # Initialize random generator
+    rng = np.random.default_rng(random_state)
+
+    # Get dimensions
+    n_runs = len(good_runs)
+    n_x = reg_x.shape[0]
+    n_y = reg_y.shape[0]
+    n_n = reg_n.shape[0]
+
+    # Preallocate array for bootstrap RTAs
+    bootstrap_rtas = np.empty((B, n_runs))
+
+    for i in range(B):
+        # Resample positions within each region (with replacement)
+        boot_x_idx = rng.integers(0, n_x, size=n_x)
+        boot_y_idx = rng.integers(0, n_y, size=n_y)
+        boot_n_idx = rng.integers(0, n_n, size=n_n)
+
+        # Get bootstrap samples, using the random indices created above.
+        boot_x = reg_x[boot_x_idx, :]
+        boot_y = reg_y[boot_y_idx, :]
+        boot_n = reg_n[boot_n_idx, :]
+
+        # Compute bootstrap RTA
+        x_avg_boot = boot_x.mean(axis=0)
+        y_avg_boot = boot_y.mean(axis=0)
+        n_avg_boot = boot_n.mean(axis=0)
+
+        bootstrap_rtas[i, :] = (y_avg_boot - n_avg_boot) / (x_avg_boot - n_avg_boot)
+
+    # Compute percentile-based CI
+    alpha = 100 - ci
+    lower = np.percentile(bootstrap_rtas, alpha / 2, axis=0)
+    upper = np.percentile(bootstrap_rtas, 100 - (alpha / 2), axis=0)
+
+    # Return as DataFrame with proper index
+    return pd.DataFrame({
+        f'RTA_ci_lower_{ci}%': lower,
+        f'RTA_ci_upper_{ci}%': upper,
+    }, index=good_runs)
+
+
 # Function linking together the various bits to be run all together
-def run_analysis(df: pd.DataFrame,
-                 coordinates: dict[str, tuple[int, int]],
-                 ci: int,
-                 N: int = 1000,
-                 n_jobs: int = 3
-                 ) -> pd.DataFrame:
-    # Remove 0-count studies
+def run_permutation_analysis(df: pd.DataFrame,
+                             coordinates: dict[str, tuple[int, int]],
+                             ci: int = 95,
+                             N: int = 10000,
+                             n_jobs: int = 3,
+                             random_state: int | None = None) -> pd.DataFrame:
+    """
+    Execute RiboMARTA's "permutation_analysis" pipeline with two-stage permutation testing.
+
+    This function performs a comprehensive analysis of ribosome profiling data to
+    identify significant changes in translational activity. The pipeline consists of:
+
+    1. Data cleaning: Remove runs with zero coverage
+    2. Baseline filtering: Test x vs n regions to identify valid runs
+    3. RTA calculation: Compute Relative Translational Activity ratios
+    4. Significance testing: Permutation test to assess RTA significance
+
+    Args:
+        df: Coverage dataframe where rows represent nucleotide positions and
+            columns represent individual runs (SRRs). Values are read counts.
+        coordinates: Dictionary defining region boundaries with keys:
+            - 'x_slice': (start, end) for baseline region
+            - 'y_slice': (start, end) for test region
+            - 'n_slice': (start, end) for noise/background region
+        ci: Confidence level for statistical testing, as percentage (default: 95)
+        N: Number of permutations for null distribution generation (default: 10000)
+        n_jobs: Number of parallel jobs for permutation computation (default: 3)
+        random_state: Random seed for reproducibility. If None, results are
+            non-deterministic (default: None)
+
+    Returns:
+        DataFrame indexed by run IDs (SRRs) containing:
+            - 'x avg', 'y avg', 'n avg': Mean coverage for each region
+            - 'RTA': Relative Translational Activity ratio
+            - 'log2RTA': Log2-transformed RTA
+            - 'p-value': Raw permutation p-value
+            - 'ci_lower_XX%', 'ci_upper_XX%': Confidence interval bounds
+            - 'padj_bh': Benjamini-Hochberg adjusted p-value
+            - 'significant': Boolean flag indicating statistical significance
+
+        Only runs that passed the baseline vs noise filter are included.
+
+    Notes:
+        - RTA is calculated as: (Y_avg - N_avg) / (X_avg - N_avg)
+        - Runs where X region shows no difference from N region are excluded
+        - Parallelization uses independent random seeds per job for valid permutations
+        - Higher N values provide finer p-value resolution but increase runtime
+
+    Example:
+        >>> coords = {
+        ...     'x_slice': (0, 100),
+        ...     'y_slice': (100, 200),
+        ...     'n_slice': (200, 300)
+        ... }
+        >>> results = run_analysis(coverage_df, coords, ci=95, N=10000)
+        >>> significant_runs = results[results['significant']]
+    """
+
+    # Clean input data.
     df = _clean_data(df)
 
-    # Compute ratios and obtain arrays
-    diffs_df, x_array, n_array = _compute_xn_diffs(df, coordinates)
+    # Test baseline (x) vs noise region (n).
+    results_x_vs_n, good_runs = test_baseline_vs_noise(df, coordinates, N=N, random_state=random_state, ci=ci)
 
-    # Run in parallel
-    perms_per_job = N // n_jobs
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(_permute_values)(x_array, n_array, perms_per_job, random_state=i)
-        for i in range(n_jobs)
-    )
-
-    # Stack the results into a single array (N, features)
-    perms_array = np.vstack(results)
-
-    # Compile dataframe of valid SRRs (they passed the perm test)
-    valid_runs_df = test_x_region(diffs_df, perms_array, ci=ci)
-
-    # Extract significant SRR from valid_runs_df
-    good_runs = valid_runs_df.index[valid_runs_df["reject"] == True].tolist()
-
-    # Function to open original dataframe, remove the rows not needed, calculate ratios with permutations...
+    # Compute observed RTAs and extract arrays.
     ratios_df, y_array, n_array, x_avg_array = _compute_observed_ratios(df, coordinates, good_runs)
 
-    # Do the permutation test again, but only for the "valid" SRRs. In parallel.
+    # Do the permutation test again, this time testing y vs n. In parallel.
     perms_per_job = N // n_jobs
-    results = Parallel(n_jobs=n_jobs)(
+    perm_results = Parallel(n_jobs=n_jobs)(
         delayed(_permute_ratios)(y_array, n_array, x_avg_array, perms_per_job, random_state=i)
         for i in range(n_jobs)
     )
-    # Stack the results into a single array (N, features)
-    perms_array = np.vstack(results)
+    # Stack the results into a single array (N, features).
+    perms_array = np.vstack(perm_results)
 
-    # Attach values to the results_df, remove/rename values for x vs n...
-    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=95)
+    # Compiles results dataframe.
+    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=ci)
+
+    # Computes CI for RTA by boostrapping.
+    bootstrap_cis = _bootstrap_rta_ci(df, coordinates, good_runs, B=N, ci=ci, random_state=random_state)
+
+    # Merge into results
+    results_df = results_df.join(bootstrap_cis)
 
     return results_df
 
