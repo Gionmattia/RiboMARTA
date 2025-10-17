@@ -60,13 +60,15 @@ with st.expander("Change options"):
     with col3:
         current_run.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
 
+
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
     df = df.drop(columns=["Position"])
-    current_run.txid_results = run_analysis(df, coordinates,
-                                            ci = current_run.ci,
-                                            N = current_run.N,
-                                            n_jobs = current_run.n_jobs)
+
+    current_run.txid_results = run_permutation_analysis(df, coordinates,
+                                                        ci = current_run.ci,
+                                                        N = current_run.N,
+                                                        n_jobs = current_run.n_jobs)
 
     current_run.txid_results_meta = integrate_metadata(current_run.txid_results,
                                                        st.session_state.metadata)
@@ -133,7 +135,7 @@ if current_run.txid_analysis_done is True:
                 "To visualise the diamond plot, select the medatadata column to use",
                 current_run.txid_results_meta.columns[:5]) # select first 5
 
-            d_plot = diamond_plotter(current_run.txid_results_meta,
+            d_plot = new_diamond_plotter(current_run.txid_results_meta,
                                      meta=meta_option,
                                      logs = False)
             st.plotly_chart(d_plot, use_container_width=True)

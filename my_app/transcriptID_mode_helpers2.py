@@ -228,7 +228,6 @@ def ga_plots_UI_render(current_run):
                 # Patchy, maybe I can come up with something better... but does it job for now.
                 html = file_html(current_run.triplet_ga_plot, CDN, "Transcript_plot_with_ORF")
                 st.components.v1.html(html, height=650, width=1600)
-                st.write("DEEE-HEEEE-OHH")
                 #html = file_html(current_run.triplet_ga_plot, CDN, "Transcript_plot_with_ORF")
                 #st.components.v1.html(html, height=650, width=1600)
         with tab3:

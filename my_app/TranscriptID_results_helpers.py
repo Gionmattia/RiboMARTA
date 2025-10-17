@@ -231,6 +231,175 @@ def diamond_plotter(df, meta="TISSUE", logs = False):
     return fig
 
 
+# Function to make diamond plot with CI whiskers by selected metadata field
+import numpy as np
+
+
+# Function to make diamond plot with CI whiskers by selected metadata field
+def new_diamond_plotter(df, meta="TISSUE", logs=False, jitter_amount=0.4, show_nonsignificant=False):
+    """
+    Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
+    Significant values are diamonds, while non-significant are circles (optional).
+    Each point has confidence interval whiskers.
+    Points are jittered horizontally within each tissue group.
+
+    Args:
+        df: DataFrame with RTA results
+        meta: Metadata column to group by (default: "TISSUE")
+        logs: If True, plot log2RTA values (default: False)
+        jitter_amount: Amount of horizontal jitter within groups (default: 0.4)
+        show_nonsignificant: If True, show non-significant points as circles (default: False)
+    """
+    df = df.copy()
+    if not show_nonsignificant:
+        df = df[df['significant'] == True]
+
+    tissues = df[meta].unique()
+    pastel_colors = px.colors.qualitative.Pastel
+    tissue_color_map = {t: pastel_colors[i % len(pastel_colors)] for i, t in enumerate(tissues)}
+
+    if logs == True:
+        y_column = "log2RTA"
+        ci_lower = "log2RTA_ci_lower_95%"  # You'll need to add these columns if using logs
+        ci_upper = "log2RTA_ci_upper_95%"
+        plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
+    else:
+        y_column = "RTA"
+        ci_lower = "RTA_ci_lower_95%"
+        ci_upper = "RTA_ci_upper_95%"
+        plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
+
+    fig = go.Figure()
+
+    # Create a mapping of tissue to numeric position
+    tissue_positions = {tissue: i for i, tissue in enumerate(tissues)}
+
+    # Add jittered positions to dataframe
+    df = df.copy()
+    df['x_pos'] = df[meta].map(tissue_positions)
+
+    # Add random jitter within each tissue group
+    np.random.seed(42)  # For reproducibility
+    for tissue in tissues:
+        mask = df[meta] == tissue
+        n_points = mask.sum()
+        jitter = np.random.uniform(-jitter_amount, jitter_amount, n_points)
+        df.loc[mask, 'x_jitter'] = df.loc[mask, 'x_pos'] + jitter
+
+    # Add error bars first (so they appear behind the points)
+    for tissue in tissues:
+        df_tissue = df[df[meta] == tissue]
+
+        # Add error bars for this tissue
+        for idx, row in df_tissue.iterrows():
+            fig.add_trace(go.Scatter(
+                x=[row['x_jitter'], row['x_jitter']],
+                y=[row[ci_lower], row[ci_upper]],
+                mode='lines',
+                line=dict(color='gray', width=1.5),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+
+    # Circles (significant == False). By default hidden.
+    mask_circle = df['significant'] == False
+    for tissue in tissues:
+        df_t = df[mask_circle & (df[meta] == tissue)]
+        if len(df_t) > 0:
+            fig.add_trace(go.Scatter(
+                x=df_t['x_jitter'],
+                y=df_t[y_column],
+                mode='markers',
+                marker=dict(
+                    symbol='circle',
+                    color=tissue_color_map[tissue],
+                    size=8,
+                    line=dict(width=1, color='white')
+                ),
+                customdata=np.column_stack((df_t[meta], df_t.index, df_t[ci_lower].round(2), df_t[ci_upper].round(2))),
+                hovertemplate='Tissue: %{customdata[0]}<br>'
+                              'RTA: %{y:.2f}<br>'
+                              'CI: %{customdata[2]} - %{customdata[3]}<br>'
+                              'Run: %{customdata[1]}<extra></extra>',
+                showlegend=False
+            ))
+
+    # Diamonds (significant == True)
+    mask_diamond = df['significant'] == True
+    for tissue in tissues:
+        df_t = df[mask_diamond & (df[meta] == tissue)]
+        fig.add_trace(go.Scatter(
+            x=df_t['x_jitter'],
+            y=df_t[y_column],
+            mode='markers',
+            marker=dict(
+                symbol='diamond',
+                color=tissue_color_map[tissue],
+                size=13,
+                line=dict(width=1, color='white')
+            ),
+            customdata=np.column_stack((df_t[meta], df_t.index, df_t[ci_lower].round(2), df_t[ci_upper].round(2))),
+            hovertemplate='Tissue: %{customdata[0]}<br>'
+                          'RTA: %{y:.2f}<br>'
+                          'CI: %{customdata[2]} - %{customdata[3]}<br>'
+                          'Run: %{customdata[1]}<extra></extra>',
+            showlegend=False
+        ))
+
+    # --- Add "fake" traces for legend ---
+    if show_nonsignificant:
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],
+            mode='markers',
+            marker=dict(symbol='diamond', color='gray', size=13, line=dict(width=1, color='gray')),
+            legendgroup='sig',
+            showlegend=True,
+            name='s.'
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],
+            mode='markers',
+            marker=dict(symbol='circle', color='gray', size=8, line=dict(width=1, color='gray')),
+            legendgroup='nonsig',
+            showlegend=True,
+            name='n.s.'
+        ))
+
+    # Background, grid, and reference lines
+    fig.update_layout(
+        margin=dict(b=70),
+        plot_bgcolor='#daecf1',
+        paper_bgcolor='white',
+        title=dict(text=plot_title, font=dict(color="black")),
+        legend_title_text='Significance:',
+        legend=dict(font=dict(color="black"), title_font=dict(color="black")),
+        width=max(600, len(tissues) * 100)
+    )
+
+    # axis-level updates with categorical labels
+    fig.update_xaxes(
+        automargin=False,
+        title_text=meta.lower(),
+        title_font=dict(color='black'),
+        tickfont=dict(color='black'),
+        showgrid=True, gridcolor='white',
+        tickangle=45,
+        tickmode='array',
+        tickvals=list(tissue_positions.values()),
+        ticktext=list(tissue_positions.keys())
+    )
+    fig.update_yaxes(
+        title_text=y_column,
+        title_font=dict(color='black'),
+        tickfont=dict(color='black'),
+        showgrid=True, gridcolor='white'
+    )
+
+    fig.add_hline(y=0, line_color='white', line_dash='solid', line_width=1)
+
+    return fig
+
 # plot to have single transcript plot of the original raw data
 def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coordinates = None, x=None):
     """
