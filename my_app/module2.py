@@ -1,9 +1,9 @@
 """
 module2.py
 
-This module contains all the functions used in RiboMARTA, as per the refactoring done in April 2025
+This module contains all the functions used in the permutation test of RiboMARTA, as per the refactoring done in October 2025
 Author: Gionmattia Carancini
-Date: 23-04-2025
+Date: 16-10-2025
 """
 
 import pandas as pd

@@ -43,24 +43,38 @@ if current_run.tx_cov_extracted:
             st.error("The File Uploaded does not come from RiboMARTA ('Sequence' column is missing).")
 
 
-# For the next chunk, we need coverage AND transcript sequence to be present
+### Display the data once extracted | Allow for ranges selection ###
 if current_run.tx_cov_extracted == True and current_run.transcript_sequence != "":
 
     # computes global aggregate
-    ga_df = global_aggregate(current_run.all_studies_df) # SRR[...i] | "Global Aggregate"
-    # creates single transcript plot for it
-    current_run.tx_ga_plot = plot_global_aggregate_with_zero(ga_df,
-                                                             current_run.utr5_length,
-                                                             current_run.cds_length,
-                                                             current_run.txid)
+    ga_df_raw = global_aggregate(current_run.all_studies_df)
+    ga_df_norm = global_aggregate(current_run.all_studies_df, normalize=True)
 
-    # creates single transcript plot with frame info
+    # Generate plots if they don't exist (lazy initialization via direct checks)
+    if current_run.tx_ga_plot is None:
+        # Single transcript plot of global aggregate. No frames or ORF plots
+        current_run.tx_ga_plot = plot_global_aggregate_with_zero(ga_df_raw,
+                                                                 current_run.utr5_length,
+                                                                 current_run.cds_length,
+                                                                 current_run.txid)
+
     if current_run.triplet_ga_plot is None:
-        make_triplet_ga_plot(current_run, ga_df)
+        current_run.triplet_ga_plot = plot_ga_with_frames(current_run,
+                                                          ga_df_raw,
+                                                          y_column = "Global Aggregate smoothed",
+                                                          smoothing = True)
+
+    if current_run.norm_triplet_ga_plot is None:
+        current_run.norm_triplet_ga_plot = plot_ga_with_frames(current_run,
+                                                               ga_df_norm,
+                                                               y_column = "Global Aggregate smoothed",
+                                                               smoothing = True)
 
     # Expanders to render the plots, if present
     ga_plots_UI_render(current_run)
 
+
+    # Ranges selection for analysis
     if st.button("Select Ranges"):
         current_run.show_ranges_selectors = True
 
@@ -82,47 +96,10 @@ if current_run.tx_cov_extracted == True and current_run.transcript_sequence != "
 
         st.markdown("<br><br>", unsafe_allow_html=True)
 
-        # Renders info on the Frame Aware mode.
-    frame_aware_analysis_intro()
-
-    col1, col2 = st.columns([3, 3])
-    with col1:
-        current_run.frame_aware = st.toggle("Perform Frame-Aware Analysis", key = "frame_aware_selector")
-    with col2:
-        # Add a Marta with a baloon specifying the analysis selected!
-        if current_run.frame_aware:
-            st.write("")
-            option_map = {
-                1: "1",
-                2: "2",
-                3: "3",
-            }
-            current_run.baseline_frame = st.pills(
-                "Please select the Reading Frame you wish to use for the Baseline",
-                options=option_map.keys(),
-                format_func=lambda option: option_map[option],
-                selection_mode="single",
-            )
-            st.write(
-                "Your selected option: "
-                f"{None if current_run.baseline_frame is None else option_map[current_run.baseline_frame]}"
-            )
-
-        elif not current_run.frame_aware:
-            st.write("Classic Analysis Selected!")
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
 
     if st.button("Next"):
+        current_run.txid_ranges = {"x_slice": current_run.x_slice,
+                                   "y_slice": current_run.y_slice,
+                                   "n_slice": current_run.n_slice}
+        st.switch_page("pages/page_5.py")
 
-        if not current_run.frame_aware:
-            current_run.txid_ranges = {"x_slice": current_run.x_slice,
-                                       "y_slice": current_run.y_slice,
-                                       "n_slice": current_run.n_slice}
-            st.switch_page("pages/page_5.py")
-
-        elif current_run.frame_aware:
-            current_run.txid_ranges = {"x_slice": current_run.x_slice,
-                                       "y_slice": current_run.y_slice,
-                                       "n_slice": current_run.n_slice}
-            st.switch_page("pages/page_6.py")

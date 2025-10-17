@@ -141,28 +141,56 @@ def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
 
 # General-use Helper
 def global_aggregate(input_df: pd.DataFrame,
+                     normalize: bool = False,
                      keep_pos: bool= False
                      ) -> pd.DataFrame:
-    '''
+    """
+    Compute global aggregate coverage across all samples.
+
+    Sums coverage values across all runs (columns) for each position (row).
+    Optionally normalizes each sample by its total coverage before aggregating.
+
     Args:
-        input_df: dataframe with coverage info per position. Rows are positions, columns are SRR Runs.
-        keep_pos: whether to keep position numbers (genomic coordinate numbers) or not.
+        input_df: DataFrame with coverage data. Rows are positions, columns are
+                  sample IDs (SRRs), must contain a 'Position' column
+        normalize: If True, normalize each sample by total coverage before
+                   aggregating; if False, sum raw counts (default: False)
+        keep_pos: If True, include 'Position' column in output (default: False)
 
     Returns:
-        pd.DataFrame with aggregated coverage per position
+        DataFrame with 'Global Aggregate' column containing summed (or normalized
+        and summed) coverage per position. Optionally includes 'Position' column.
 
-    Creates a new dataframe with the "Global Aggregate" column, which is just the sum of counts per position
-    '''
+    Examples:
+        >>> # Raw count aggregation
+        >>> ga_raw = global_aggregate(coverage_df, normalize=False)
 
-    df =  input_df.copy()
+        >>> # Normalized aggregation (each sample contributes equally)
+        >>> ga_norm = global_aggregate(coverage_df, normalize=True)
+    """
+    # Work on a copy to avoid modifying original
+    df = input_df.copy()
+
+    # Extract position info if needed
+    positions = df["Position"] if keep_pos else None
+
+    # Remove Position column and handle missing values
     df.drop(columns="Position", inplace=True)
     df.fillna(0, inplace=True)
 
-    col_sums = df.sum()
-    # Replace 0 with 1s, so to not get NaN when diving by 0
-    ga_df = df / col_sums.replace(0, 1)
-    ga_df["Global Aggregate"] = ga_df.sum(axis = 1)
-    if keep_pos == True:
-        ga_df["Position"] = input_df["Position"]
+    if normalize:
+        # Normalize each sample by its total coverage
+        col_sums = df.sum()
+        # Replace 0 with 1 to avoid division by zero (results in 0/1 = 0)
+        df = df / col_sums.replace(0, 1)
 
-    return ga_df
+    # Compute global aggregate (sum across samples)
+    result_df = pd.DataFrame({
+        "Global Aggregate": df.sum(axis=1)
+    })
+
+    # Add position column if requested
+    if keep_pos:
+        result_df["Position"] = positions
+
+    return result_df

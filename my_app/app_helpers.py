@@ -9,14 +9,11 @@ Date: 11-08-2025
 import random
 import streamlit as st
 import pandas as pd
-import os
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
 import yaml
 from pyfaidx import Fasta
 import pyranges as pr
 import plotly.graph_objects as go
-from frame_aware_analysis_helpers import fa_tx_line_plot
 from TranscriptID_results_helpers import multi_line_plot
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
@@ -125,6 +122,7 @@ class AnalysisStatus:
     transcript_sequence: str = ""
     tx_ga_plot: go.Figure = None
     triplet_ga_plot: go.Figure = None
+    norm_triplet_ga_plot: go.Figure = None
     # User-selected slices to compare in the analysis
     x_slice: tuple = None
     y_slice: tuple = None

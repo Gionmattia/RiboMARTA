@@ -12,10 +12,8 @@ import random
 from module0 import _extract_one
 import time
 from Bio.Seq import Seq
-from bokeh.models import Span, Label
 from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models import HoverTool
-from bokeh.models import PanTool
+from bokeh.models import Span, Label, FactorRange, HoverTool, PanTool
 
 # Function to load the ranges
 def extract_tx_pyranges(gr, txid):
@@ -255,13 +253,15 @@ def smoother(df: pd.DataFrame, smoothing:bool = True):
             # out of those, groupby Frame, calculate the mean
             chunk_averages = chunk.groupby('Frame')['Global Aggregate'].transform("mean")
             # store the new values as a new column
-            df.loc[chunk.index, "Global_Aggregate_smoothed"] = chunk_averages
+            df.loc[chunk.index, "Global Aggregate smoothed"] = chunk_averages
 
         return df, k
 
     elif smoothing == False:
+        # No smoothing, indicated as k = 1
+        k=1
 
-        return df
+        return df, k
 
 # Helper. Adds a vertical line to a plot, with a label on top.
 def _add_vline_and_label(p, x, max_y, text):
@@ -300,7 +300,145 @@ def _add_vline_and_label(p, x, max_y, text):
 
 
 # New function to make Single transcript plot. Shows also frame info.
-def subplot_single_transcript_plot(df, y_axis, x_range, k, start=0, stop=0, txid = ""):
+def subplot_single_transcript_plot(
+        df: pd.DataFrame,
+        x_range: FactorRange,
+        y_axis: str,
+        utr5_length: int,
+        cds_length: int,
+        txid: str = "",
+        k: int = 1
+) -> figure:    #  (df, y_axis, x_range, k, start=0, stop=0, txid = ""):
+    """
+    Create a frame-aware transcript coverage plot with ORF boundaries marked.
+
+    Plots coverage data colored by reading frame (1, 2, 3) with vertical lines
+    marking the start and stop codons.
+
+    Args:
+        df: DataFrame with columns 'X' (position), 'Frame' (1-3), and
+            'Global Aggregate' (coverage values)
+        x_range: Shared FactorRange for x-axis (ensures alignment with ORF plots)
+        y_axis: Name of the column in df to use for y-axis values
+        utr5_length: Length of 5' UTR (marks CDS start position)
+        cds_length: Length of CDS region
+        txid: Transcript identifier for plot title
+        k: Smoothing window size (for title only, to inform user)
+
+    Returns:
+        Bokeh figure object with interactive frame-colored coverage plot
+    """
+    # Ensure 'Frame' is string for color mapping
+    df = df.copy()
+    df['Frame'] = df['Frame'].astype(str)
+
+    # Color map
+    frame_color_map = {
+        "1": "#48cf4b",
+        "2": "#68ace3",
+        "3": "#e66343"
+    }
+
+    # Define y-axis limits
+    max_y = df[y_axis].max()
+    min_y = -1 * df[y_axis].quantile(0.10)
+
+    # Build plot title
+    if k > 1:
+        title = f"Global Aggregate for {txid}, smoothed by k = {k}"
+    else:
+        title = f"Global Aggregate for {txid}"
+
+    p = figure(
+        x_range=x_range,
+        y_range = (min_y, max_y * 1.5),
+        sizing_mode="stretch_both",
+        background_fill_color="white",
+        x_axis_label="Position on the transcript (nt)",
+        y_axis_label="Aggregate Counts",
+        title= title
+    )
+
+    # Remove gridlines and set white background (like theme_minimal + tweaks)
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+    p.outline_line_color = None
+
+    # Plot each frame as an area (overlay, not stacked)
+    for frame, group in df.groupby('Frame'):
+        group_sorted = group.sort_values('X')
+        source = ColumnDataSource(group_sorted)
+
+        # Area fill
+        p.varea(
+            x="X", y1=0, y2=y_axis,
+            source=source,
+            fill_color=frame_color_map.get(frame, "#cccccc"),
+            fill_alpha=0.6,
+            legend_label=f"Frame {frame}",
+        )
+
+        # invisible hover bars
+        p.vbar(
+            x="X",
+            top=y_axis,
+            bottom=0,
+            width=1,
+            source=source,
+            fill_color=frame_color_map.get(frame, "#cccccc"),
+            fill_alpha=0,
+            hover_fill_color=frame_color_map.get(frame, "#cccccc"),
+            hover_fill_alpha=0.4,
+            line_color=None
+        )
+
+    # Style axes text
+    p.yaxis.axis_label_text_font_size = "13pt"
+    p.xaxis.axis_label_text_font_size = "13pt"
+    p.yaxis.major_label_text_font_size = "13pt"
+    p.xaxis.major_label_text_font_size = "13pt"
+
+    # Configure legend and placement
+    p.legend.title = "Frame"
+    p.legend.location = "top_center"
+    p.legend.orientation = "horizontal"
+    p.legend.click_policy = "hide"
+
+    hover = HoverTool(
+        tooltips=[
+            ("Position", "@X"),
+            ("Frame", "@Frame"),
+            ("Value", f"@{{{y_axis}}}"),
+        ],
+        # Use 'vline' to snap tooltip to the nearest x-value (optional)
+        mode='vline'
+    )
+    p.add_tools(hover)
+
+    # Hide x-axis labels (nucleotides are too clutter-y)
+    p.xaxis.major_label_text_font_size = '0pt'
+    p.xaxis.major_tick_line_color = None
+    p.xaxis.minor_tick_line_color = None
+
+    # Define ranges to limit plot pan
+    p.y_range.bounds = ( min_y, max_y * 1.5)
+    max_x = max(map(int, x_range.factors)) * 1.5
+    min_x = min(map(int, x_range.factors)) - max_x * 0.2
+    p.x_range.bounds = (min_x, max_x)
+
+    # Compute start?stop codon positions
+    start_pos = utr5_length
+    stop_pos = utr5_length + cds_length
+
+    # Add lines to highlight Start/Stop codons
+    _add_vline_and_label(p, start_pos, df[y_axis].max() ,"Start")
+    _add_vline_and_label(p, stop_pos, df[y_axis].max()  ,"Stop")
+
+    return p
+
+
+
+def old_subplot_single_transcript_plot(df, y_axis, x_range, k, start=0, stop=0, txid = ""):
     """
     Creates the single transcript plot, each frame coloured differently.
 
@@ -323,6 +461,11 @@ def subplot_single_transcript_plot(df, y_axis, x_range, k, start=0, stop=0, txid
 
     max_y = df[y_axis].max()
 
+    if k != 1:
+        title = f"Global Aggregate for {txid}, smoothed by k = {k}"
+    else:
+        title = f"Global Aggregate for {txid}"
+
     p = figure(
         x_range=x_range,
         y_range = ( -1* df[y_axis].quantile(0.10), max_y * 1.5),
@@ -330,7 +473,7 @@ def subplot_single_transcript_plot(df, y_axis, x_range, k, start=0, stop=0, txid
         background_fill_color="white",
         x_axis_label="Position on the transcript (nt)",
         y_axis_label="Normalised Aggregate Counts",
-        title= f"Global Aggregate for {txid}, smoothed by k = {k}"
+        title= title
     )
 
     # Remove gridlines and set white background (like theme_minimal + tweaks)

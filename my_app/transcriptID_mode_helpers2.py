@@ -94,8 +94,71 @@ def format_txid_df_download(current_run):
         mime='text/csv'
     )
 
+def plot_ga_with_frames(
+        current_run: AnalysisStatus,
+        ga_df: pd.DataFrame,
+        y_column: str,
+        smoothing: bool = False
+) -> column:
+    """
+    Create a frame-aware global aggregate plot with ORF tracks beneath.
 
-def make_triplet_ga_plot(current_run, ga_df):
+    Generates a multi-panel Bokeh visualization showing:
+    - Top panel: Global aggregate coverage colored by reading frame
+    - Bottom panels: ORF tracks for each of the three reading frames
+
+    Args:
+        current_run: Analysis state containing transcript metadata and sequence
+        ga_df: DataFrame with 'Global Aggregate' column containing coverage data
+        y_column: Name of the column to plot on y-axis
+        smoothing: If True, smooth data by frame-specific windows; if False,
+                   use raw values (default: False)
+
+    Returns:
+        Bokeh column layout with transcript plot and three ORF track panels
+    """
+    # prepare data: add frame info and optionally smooths the data.
+    processed_df, k = smoother(ga_df, smoothing)
+
+    # Creates shared x-axis as FactorRange object (allows for multiple plots to share X)
+    positions = processed_df['X'].astype(str).tolist()
+    x_range = FactorRange(*positions)
+
+    # Create main transcript plot
+    transcript_plot = subplot_single_transcript_plot(
+        df = processed_df,
+        x_range = x_range,
+        y_axis = y_column,
+        utr5_length=current_run.utr5_length,
+        cds_length=current_run.cds_length,
+        txid=current_run.txid,
+        k=k)
+
+    transcript_plot.height = 400  # or whatever height you need
+    transcript_plot.sizing_mode = 'stretch_width'
+
+    # Code to retrieve sequence and codon positions
+    orf_info = compute_codons_by_frame(current_run.transcript_sequence)
+
+    # Create ORF plots for each frame
+    orf_plots = []
+    for frame in [1,2,3]:
+        orf_plot = ORF_plotter(orf_info, frame, x_range)
+        orf_plot.height = 75
+        orf_plot.sizing_mode = 'stretch_width'
+        orf_plots.append(orf_plot)
+
+    # Combine all plots into a single one
+    combined_plot = column(transcript_plot,
+                           orf_plots[0],
+                           orf_plots[1],
+                           orf_plots[2],
+                           sizing_mode='stretch_width')
+
+    return combined_plot
+
+
+def plot_norm_ga_with_frames(current_run, ga_df):
     """
     Makes the plot with triplet periodicity info, and the ORF plots beneath it..
 
@@ -132,8 +195,9 @@ def make_triplet_ga_plot(current_run, ga_df):
     orfplot_f3 = ORF_plotter(orf_info, 3, x_range)
     orfplot_f3.height = 75
     orfplot_f3.sizing_mode = 'stretch_width'
-    current_run.triplet_ga_plot = column(picture2_transcript_plot, orfplot_f1, orfplot_f2, orfplot_f3,
+    plot = column(picture2_transcript_plot, orfplot_f1, orfplot_f2, orfplot_f3,
                                          sizing_mode='stretch_width')
+    return plot
 
 def ga_plots_UI_render(current_run):
     """
@@ -143,22 +207,43 @@ def ga_plots_UI_render(current_run):
     :return:
     """
     with st.expander("Global Aggregate Plots"):
-        tab1, tab2 = st.tabs(["Simple Plot", "Periodicity Plot"])
+        tab1, tab2, tab3 = st.tabs(["Simple Aggregate", "Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
         with tab1:
-            st.write("Below you can see a Global aggregate for your data (the total sum of raw counts from each study)."
-                     "This plot is a simplified visualisation. Easy on the eyes, but less informative for what concernes"
-                     "the possible reading frames.")
+            st.write("#### Simple Global Aggregate plot")
+            st.write("Below you can see a Single Transcript plot for your data.")
+            st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
+                     "(the sum of raw counts from each study, in that position).")
+            st.write("This plot is a simplified visualisation, with no information on ORFs or reading frames."
+                     "It's an easy-on-the eyes visualisation, less informative but useful for an initial exploration.")
             if current_run.tx_ga_plot is not None:
                 st.plotly_chart(current_run.tx_ga_plot, use_container_width=True)
         with tab2:
-            st.write("Below you can see a Global Aggregate for the (normalised) data, coloured by frame."
-                     "To help the detection of patterns, data has been smoothed by a window of size k."
-                     "This visualisation is less intuitive (since the y-axis now displays a normalised value),"
-                     " but more informative for what concerns the possible reading frames translated.")
+            st.write("####  Raw Global Aggregate & ORF plot")
+            st.write("Below you can see a Single Transcript plot for your data.")
+            st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
+                     "(the sum of raw counts from each study, in that position), smoothed by a window of size k for easy exploration.")
+            st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
+                     "has been added.")
             if current_run.triplet_ga_plot is not None:
-                # Saving as html, since blokeh v.3+ is not directly compatible with streamlit...
                 # Patchy, maybe I can come up with something better... but does it job for now.
                 html = file_html(current_run.triplet_ga_plot, CDN, "Transcript_plot_with_ORF")
+                st.components.v1.html(html, height=650, width=1600)
+                st.write("DEEE-HEEEE-OHH")
+                #html = file_html(current_run.triplet_ga_plot, CDN, "Transcript_plot_with_ORF")
+                #st.components.v1.html(html, height=650, width=1600)
+        with tab3:
+            st.write("#### Normalised Global Aggregate & ORF plot")
+            st.write("The x-axis represents the position on the transcript, while the y-axis represents the Normalised Global Aggregate"
+                     "(each count in a position was normalised by the total counts of its study. The the normalised values have been summed to generate"
+                     "the Normalised Global Aggregate), smoothed by a window of size k for easy exploration."
+                     "The normalisation treats all studies as equivalent, regardless of the number of total counts."
+                     "(ie. low-count studies contribute to the plot in the same way as high-count studies).")
+            st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
+                     "has been added.")
+            if current_run.norm_triplet_ga_plot is not None:
+                # Saving as html, since blokeh v.3+ is not directly compatible with streamlit...
+                # Patchy, maybe I can come up with something better... but does it job for now.
+                html = file_html(current_run.norm_triplet_ga_plot, CDN, "Normalised_transcript_plot_with_ORF")
                 st.components.v1.html(html, height=650, width=1600)
 
 

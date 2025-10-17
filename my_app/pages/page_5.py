@@ -73,18 +73,6 @@ if st.button("Run Analysis"):
 
     current_run.txid_analysis_done = True
 
-    # Frame-Aware mode (now we have RTA for each frame...)
-    # Also, noise is still multi-frame. We are considering noise from ALL frames in the noise region.
-    # Y1/X1, Y1/X2, Y1/X3
-    # Y2/X1, Y2/X2, Y2/X3
-    # Y3/X1, Y3/X2, Y3/X3
-
-    # I think this is the best approach... Users MIGHT know frame beforehand... but I think it's best to allow
-    # to see everything...
-    # Then again, some will be significant, some will be not. So I expect some cells of a heatmap to be emtpy (white)
-    # If a frame is dominant, then the row/column should be coloured... (maybe use a bivariate heatmap?)
-
-    # From the heatmap, we have 9 times the results. Maybe best to fit in another page?
 
 if current_run.txid_analysis_done is True:
 
