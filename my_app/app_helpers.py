@@ -63,6 +63,13 @@ def read_gtf_annotation(gtf_path):
 
 ## Below we add the sub-classes used within AnalysisStatus
 @dataclass
+class MetadataFilters:
+    """Dataclass to store the filtering criteria and selected bigwigs for the analysis"""
+    filtering_criteria: dict = None
+    selected_studies: list = None
+
+
+@dataclass
 class GenomicCoordinatesMode:
     """State for genomic coordinates analysis mode"""
     # Step 1 - Flag. Genomic Mode activated | User inputs stored.
@@ -89,12 +96,47 @@ class GenomicCoordinatesMode:
     results: pd.DataFrame = None
     results_meta: pd.DataFrame = None
 
+    # Step 5b - Flag. BERTA Analysis done | Results and metadata stored.
+    genco_BERTA_analysis_done: bool = False
+    BERTA_results: pd.DataFrame = None
+    BERTA_results_meta: pd.DataFrame = None
+
 
 @dataclass
-class MetadataFilters:
-    """Dataclass to store the filtering criteria and selected bigwigs for the analysis"""
-    filtering_criteria: dict = None
-    selected_studies: list = None
+class TranscriptIDMode:
+    # Step 1 - Flag. Txid mode activated | Ensembl Transcript ID.
+    active: bool = False
+    txid: str = ""
+
+    # Step 2 - Flags. Coverage extraction and extracted -> used to manage flow/UI
+    loading_tx_cov: bool = False
+    tx_cov_extracted: bool = False
+    show_ranges_selector: bool = False
+
+    # Step 3 - Annotation-derived metrics | Data Retrieved | Plots rendered
+    utr5_length: int = None
+    cds_length: int = None
+    utr3_length: int = None
+    all_studies_df: pd.DataFrame = None
+    transcript_sequence: str = None
+    tx_ga_plot: go.Figure = None
+    triplet_ga_plot: go.Figure = None
+    norm_triplet_ga_plot: go.Figure = None
+
+    # Step 4 - User-selected regions | Analysis Parameters
+    x_slice: tuple = None
+    y_slice: tuple = None
+    n_slice: tuple = None
+    txid_ranges: dict = None # Redundant?
+    ci: int = None
+    N: int = None
+    n_jobs: int = None
+
+    # Step 5 - Flag for legacy analysis | Legacy Results
+    txid_analysis_done: bool = False
+    txid_results: pd.DataFrame = None
+    txid_results_meta: pd.DataFrame = None
+
 
 
 # Dataclass to store the analysis, the logical flags, and the outputs. Each has its own quirky ID.
@@ -115,8 +157,11 @@ class AnalysisStatus:
 
     # Analysis modes (only one active at a time)
     genomic_mode: GenomicCoordinatesMode = field(default_factory=GenomicCoordinatesMode)
-    #transcript_mode: TranscriptIDMode = field(default_factory=TranscriptIDMode)
-    #upload_mode: UploadMode = field(default_factory=UploadMode)
+    transcript_mode: TranscriptIDMode = field(default_factory=TranscriptIDMode)
+
+    # Upload mode (they fall back into their respective modes)
+    genomic_upload: bool = False
+    tx_upload: bool = False
 
     # Shopping cart for SRR IDs
     #cart: list = field(default_factory=list)
@@ -126,11 +171,11 @@ class AnalysisStatus:
         """Returns the analysis mode currently active"""
         if self.genomic_mode.active:
             return "genomic_coordinates"
-        # elif self.transcript_mode.active:
-        #     return "transcript_id"
+        elif self.transcript_mode.active:
+            return "ensembl_transcript_id"
         # elif self.upload_mode.active:
         #     return "upload"
-        # return "none"
+        return "none"
 
 
 

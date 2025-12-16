@@ -16,7 +16,7 @@ st.write("In this page, you can run the analysis for your selected genomic coord
 
 # Check if dataframe has been loaded
 df = current_mode.genomic_merged
-genomic_upload = current_mode.genomic_upload
+genomic_upload = analysis.genomic_upload
 if df is None:
     col1, col2 = st.columns([1,  3])
     with col1:

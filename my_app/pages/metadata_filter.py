@@ -5,6 +5,14 @@ import os
 analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 st.title("Dataset Selection")
+
+if analysis.genomic_upload == True:
+    st.write("You are currently working with loaded data. This feature is not available.")
+    st.stop()
+elif analysis.tx_upload == True:
+    st.write("You are currently working with loaded data. This feature is not available.")
+    st.stop()
+
 st.write("Here you can select which datasets to process, based on the available metadata. "
          "The current interface allows to choose from any metadata information available on the RDP,"
          " good suggestions to start from are TISSUE, CONDITION, or CELL_LINE")

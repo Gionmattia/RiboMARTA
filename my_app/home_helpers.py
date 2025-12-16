@@ -198,12 +198,16 @@ def upload_selection():
         if st.button("Next"):
             # Generate ID for current run
             st.session_state.quirky_id = generate_quirky_id()
-            st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id=st.session_state.quirky_id,
-                                                                               organism=st.session_state.selected_organism,
-                                                                               genomic_upload=st.session_state.genomic_upload,
-                                                                               tx_upload=st.session_state.tx_upload,
-                                                                               genomic_merged=genomic_merged,
-                                                                               genomic_merged_ranges=genomic_merged_ranges)
+            st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
+                quirky_id=st.session_state.quirky_id,
+                organism=st.session_state.selected_organism,
+                genomic_upload=st.session_state.genomic_upload,
+                tx_upload=st.session_state.tx_upload,
+                genomic_mode=GenomicCoordinatesMode(
+                    active=True,
+                    genomic_merged=genomic_merged,
+                    genomic_merged_ranges=genomic_merged_ranges)
+            )
             # clean the keys
             st.switch_page("pages/page_4.py")
 
