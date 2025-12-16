@@ -49,6 +49,10 @@ def organism_loader_interface():
                 for f in os.listdir(bigwigs_dir)
                 if os.path.isfile(os.path.join(bigwigs_dir, f))
             ]
+            st.session_state.full_dataset_list = [
+                f.replace(".bw", "") for f in os.listdir(bigwigs_dir)
+                if os.path.isfile(os.path.join(bigwigs_dir, f))
+            ]
 
             # These functions can be time-consuming
             st.session_state.fasta = read_fasta(st.session_state.fasta_path)
@@ -96,26 +100,29 @@ def genomic_coordinates_selection():
         genomic_ranges = [genomic_range_1, genomic_range_2, genomic_range_n]
 
     if st.button("Next"):
-        #### THIS IS WHERE WE IMPLEMENT THE NEW ANALYSIS FLOW CONTROL...
+
         # Generate ID for current run
         st.session_state.quirky_id = generate_quirky_id()
-        # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
-        st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id = st.session_state.quirky_id,
-                                                            organism = st.session_state.selected_organism,
-                                                            genomic_coordinates = True,
-                                                            genomic_range_1 = genomic_range_1,
-                                                            genomic_range_2=genomic_range_2,
-                                                            genomic_range_n=genomic_range_n,
-                                                            genomic_ranges = genomic_ranges)
+
+        # Initialize custom dataclasses (AnalysisStatus and GenomicCoordinatesMode) to keep track of analysis flow.
+        st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
+            quirky_id=st.session_state.quirky_id,
+            organism=st.session_state.selected_organism,
+            genomic_mode=GenomicCoordinatesMode(
+                active=True,
+                genomic_ranges=genomic_ranges
+            )
+        )
 
         # session_state clean-up
         keys_to_reset = ["txid", "picture", "genomic_slices", "all_studies_df", "utr5_length",
         "cds_length", "utr3_length"]
         reset_session_state(keys_to_reset)
         # Reset regions_extracted (used to display page_1 breakdowns)
-        st.session_state.regions_extracted = False
+        # st.session_state.regions_extracted = False
         # Proceed to next page of the analysis
-        st.switch_page("pages/page_1.py")
+
+        st.switch_page("pages/metadata_filter.py")
 
 
 def ensembl_txid_selection():
@@ -141,7 +148,10 @@ def ensembl_txid_selection():
          "cds_length", "utr3_length", "tx_upload", "genomic_upload", "cov_extracted"]
         reset_session_state(keys_to_reset)
         # Proceed to next page of the analysis
-        st.switch_page("pages/page_2.py")
+        if st.session_state.meta_filter == True:
+            st.switch_page("pages/metadata_filter.py")
+        else:
+            st.switch_page("pages/page_2.py")
 
 
 def upload_selection():

@@ -4,8 +4,8 @@ from home_helpers import *
 from app_helpers import *
 
 # Initialise runs dictionary, to store multiple runs. Each run is a AnalysisStatus class, with inputs, outputs, and logical flags.
-if "runs" not in st.session_state:
-    st.session_state.runs ={}
+if "analysis_runs" not in st.session_state:
+    st.session_state.analysis_runs ={}
 
 st.title("Welcome to RiboMARTA")
 col1, col2 = st.columns([1,4])
@@ -24,10 +24,11 @@ with col2:
      Once you are settled, press
     'Next'.""")
 
-## Organism Loader (wrapped up as a function)
+## Organism Loader
 st.write("###  Select Organism 🦠")
 st.write("To run the analysis, you need to first decide which organism (and version of their references) to use.")
 organism_loader_interface()
+# st.session_state.meta_filter = st.toggle("Do you wish to filter studies by available metadata, before the analysis?")
 
 # Sets up possible choices for analysis
 df = pd.DataFrame({
@@ -35,7 +36,7 @@ df = pd.DataFrame({
 })
 
 st.write("###  Select Analysis Mode 🔬")
-st.write("Now, choose the analysis mode you are interested in:")
+st.write("Choose the analysis mode you are interested in:")
 option = st.selectbox(
     'Select from list',
      df['Analysis_options'])

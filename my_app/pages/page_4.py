@@ -6,15 +6,17 @@ from TranscriptID_results_helpers import *
 from genomic_mode_helpers import *
 
 # We are retrieving the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
-current_run = st.session_state.runs[st.session_state.quirky_id]
-st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
+analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
+# This bit tests your current id matches the AnalysisStatus ID (to make sure you don't have old data)
+current_mode = analysis.genomic_mode
+st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 
 st.title("Genomic Coodrinates Activity Analysis")
 st.write("In this page, you can run the analysis for your selected genomic coordinates of choice.")
 
 # Check if dataframe has been loaded
-df = current_run.genomic_merged
-genomic_upload = current_run.genomic_upload
+df = current_mode.genomic_merged
+genomic_upload = current_mode.genomic_upload
 if df is None:
     col1, col2 = st.columns([1,  3])
     with col1:
@@ -26,7 +28,7 @@ if df is None:
 
 
 # There should be a part where it checks the existence of the coordinates df
-coordinates =  current_run.genomic_merged_ranges
+coordinates =  current_mode.genomic_merged_ranges
 if coordinates is None:
     col1, col2 = st.columns([3,  1])
     with col1:
@@ -40,19 +42,19 @@ elif genomic_upload == True:
 else:
     st.write(f"""You selected the following genomic coordinates for the analysis:
 
-    - First Region - { current_run.genomic_ranges[0] }
-    - Second Region - { current_run.genomic_ranges[1] }
-    - Noise Region - { current_run.genomic_ranges[2] }
+    - First Region - { current_mode.genomic_ranges[0] }
+    - Second Region - { current_mode.genomic_ranges[1] }
+    - Noise Region - { current_mode.genomic_ranges[2] }
     """)
 
 with st.expander("Change options"):
     col1, col2, col3 = st.columns([2, 2, 2])
     with col1:
-        current_run.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
+        current_mode.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
     with col2:
-        current_run.N = st.number_input("Choose number permutations", min_value=10, max_value=100000, value=10000)
+        current_mode.N = st.number_input("Choose number permutations", min_value=10, max_value=100000, value=10000)
     with col3:
-        current_run.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
+        current_mode.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
 
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
@@ -60,18 +62,18 @@ if st.button("Run Analysis"):
 
 
     df = df.drop(columns=["Position"])
-    current_run.genco_results = run_analysis(df, coordinates,  # DOUBLE CHECK THIS
-                                            ci = current_run.ci,
-                                            N = current_run.N,
-                                            n_jobs = current_run.n_jobs)
+    current_mode.genco_results = run_permutation_analysis(df, coordinates,  # DOUBLE CHECK THIS
+                                            ci = current_mode.ci,
+                                            N = current_mode.N,
+                                            n_jobs = current_mode.n_jobs)
 
-    current_run.results_meta = integrate_metadata(current_run.genco_results, # DOUBLE CHECK THIS
+    current_mode.results_meta = integrate_metadata(current_mode.genco_results, # DOUBLE CHECK THIS
                                                     st.session_state.metadata)
 
-    current_run.genco_analysis_done = True
+    current_mode.genco_analysis_done = True
 
 
-if current_run.genco_analysis_done == True:
+if current_mode.genco_analysis_done == True:
 
     with st.expander("Show Tabular Results"):
 
@@ -79,7 +81,7 @@ if current_run.genco_analysis_done == True:
 
         with tab1:
             st.write("Here you can visualise the results of the analysis.")
-            current_run.genco_results
+            current_mode.genco_results
         with tab2:
             st.write("Here you can visualise the results with relative metadata, either in a shortened or full version.")
             col1, col2, col3 = st.columns([2.5, 2, 6])
@@ -92,11 +94,11 @@ if current_run.genco_analysis_done == True:
                     verbose = True
 
             if not verbose:    # Display fewer metadata
-                st.dataframe(current_run.results_meta,
+                st.dataframe(current_mode.results_meta,
                          column_order=("RTA", "padj_bh", "significant", "TISSUE", "CELL_LINE", "Info",
                                        "BioSample"))
             else:
-                current_run.results_meta
+                current_mode.results_meta
 
 
     # Add expander for boxplot
@@ -108,12 +110,12 @@ if current_run.genco_analysis_done == True:
              "Single Transcript Plot", "Aggregated Plots"])
 
         with tab3:
-            fig2 = plot_rta_boxplot(current_run.genco_results)
+            fig2 = plot_rta_boxplot(current_mode.genco_results)
             st.plotly_chart(fig2)
 
         with tab3_log:
             # Modify results so that they are log2-based now!
-            log_2_genco_results = current_run.genco_results
+            log_2_genco_results = current_mode.genco_results
             # plot the results
             fig2_bis = plot_rta_boxplot(log_2_genco_results, logs = True, box_fill = "#c44601")
             st.plotly_chart(fig2_bis, key = "plot_bis")
@@ -125,9 +127,9 @@ if current_run.genco_analysis_done == True:
             # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
             meta_option = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
-                current_run.results_meta.columns[:5]) # select first 5
+                current_mode.results_meta.columns[:5]) # select first 5
 
-            d_plot = diamond_plotter(current_run.results_meta, meta=meta_option)
+            d_plot = diamond_plotter(current_mode.results_meta, meta=meta_option)
             st.plotly_chart(d_plot, use_container_width=True)
 
         with tab4_log:
@@ -135,10 +137,10 @@ if current_run.genco_analysis_done == True:
             # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
             meta_option_bis = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
-                current_run.results_meta.columns[:5],
+                current_mode.results_meta.columns[:5],
                 key = "meta_dplot_bis") # select first 5
 
-            d_plot_bis = diamond_plotter(current_run.results_meta,
+            d_plot_bis = diamond_plotter(current_mode.results_meta,
                                      meta=meta_option_bis,
                                      logs = True)
             st.plotly_chart(d_plot_bis,
@@ -149,9 +151,9 @@ if current_run.genco_analysis_done == True:
             st.write("Here you can visualise an individual Run of interest")
 
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-                                        current_run.results_meta.index)
+                                        current_mode.results_meta.index)
 
-            ml_plot = multi_line_plot_genomic(current_run.genomic_merged,
+            ml_plot = multi_line_plot_genomic(current_mode.genomic_merged,
                                       run_option,
                                       coordinates)
             st.plotly_chart(ml_plot, use_container_width=True)
@@ -162,16 +164,16 @@ if current_run.genco_analysis_done == True:
             # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
             agg_meta_option = st.selectbox(
                 "Select the medatadata field to use for the aggregation",
-                current_run.results_meta.columns[:5])
+                current_mode.results_meta.columns[:5])
 
             # SAME AS ABOVE< THIS SHOULD BE MADE TO WORK WITH THREE DFS, NOT JUST ONE!
             # # Now to select the individual condition or conditions
             aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
-                                         current_run.results_meta[agg_meta_option].unique())
+                                         current_mode.results_meta[agg_meta_option].unique())
 
             # Button to choose whether to aggregate only significant ones or everything.
-            agg_selection = aggregator(current_run.genomic_merged,
-                                        current_run.results_meta,
+            agg_selection = aggregator(current_mode.genomic_merged,
+                                        current_mode.results_meta,
                                         agg_meta_option)
 
              # Function to normalise data, then aggregate it based on the elements selected in "aggregations".

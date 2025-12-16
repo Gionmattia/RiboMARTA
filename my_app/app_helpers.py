@@ -60,104 +60,179 @@ def read_gtf_annotation(gtf_path):
     #st.info(f".gtf took: {gtf_time:.2f} to load.")
     return gr
 
-# Dataclass to store the analysis, the logical flags, and the outputs. Each has its own quirky ID.
+
+## Below we add the sub-classes used within AnalysisStatus
 @dataclass
-class AnalysisStatus:
-    """
-    This custom class holds the analysis status. It comprises:
-    - Logical Flags
-    - User Inputs
-    - Outputs
-    Each analysis has a unique quirky_id, to encapsulate the analysis
-    """
+class GenomicCoordinatesMode:
+    """State for genomic coordinates analysis mode"""
+    # Step 1 - Flag. Genomic Mode activated | User inputs stored.
+    active: bool = False # same purpose as old "genomic_coordinates"
+    genomic_ranges: list = None
+    genomic_upload: bool = False
 
-    # --- General Info: Analysis quirky ID and organism ---
-    quirky_id: str = None # to check with runs dictionary
-    organism: str = ""
+    # Step 2 - Genomic Ranges formatted as a dataframe.
+    formatted_genomic_ranges: pd.DataFrame = None
 
-    # --- Parameters for the analysis (shared across modes) ---
+    # Step 3 - Flag. Regions Extracted | Slices stored.
+    regions_extracted: bool = False
+    genomic_slices: list = None
+    genomic_merged: pd.DataFrame = None
+    genomic_merged_ranges: dict = None
+
+    # Step 4 - Analysis Parameters stored.
     ci: int = None
     N: int = None
     n_jobs: int = None
 
-    # --- Flags 1 - Analysis Mode ---
-    genomic_coordinates: bool = False
-    ensembl_transcript_id: bool = False
-    uploaded_file: bool = False
-
-    ## --- Variables and Flags for Genomic Coordinates Mode ---
-    # --- User Inputs for Genomic Mode ---
-    genomic_range_1: str = ""
-    genomic_range_2: str = ""
-    genomic_range_n: str = ""
-    genomic_ranges: list = None
-    formatted_genomic_ranges: pd.DataFrame = None
-    # --- Raw counts for Genomic Mode ---
-    genomic_slices: list = None
-    genomic_merged: pd.DataFrame = None
-    genomic_merged_ranges: dict = None
-    # --- Flags 2 - Extraction of regions ---
-    regions_extracted: bool = False
-
-    # --- Results Genomic Coordinates Mode ---
-    genco_results: pd.DataFrame = None
-    results_meta: pd.DataFrame = None
-    # --- Flag 3 - Analysis Ran for Genomic Coordinates mode ---
+    # Step 5 - Flag. Analysis done | Results and metadata stored.
     genco_analysis_done: bool = False
-    ### IMPORTANT: SO FAR, WE ARE NOT STORING RESULTS!! MAYBE THIS COULD BE CHANGED LATER ON...
+    results: pd.DataFrame = None
+    results_meta: pd.DataFrame = None
 
-    ## --- Variables and Flags for Ensembl Transcript ID Mode ---
-    txid: str = ""
 
-    # --- Flags 3 - Tixd Mode ---
-    loading_tx_cov: bool = False
-    tx_cov_extracted: bool = False
-    show_ranges_selectors: bool = False
+@dataclass
+class MetadataFilters:
+    """Dataclass to store the filtering criteria and selected bigwigs for the analysis"""
+    filtering_criteria: dict = None
+    selected_studies: list = None
 
-    # --- Txid mode variables and parameters ---
-    utr5_length: int = None
-    cds_length: int = None
-    utr3_length: int = None
-    all_studies_df: pd.DataFrame = None
-    transcript_sequence: str = ""
-    tx_ga_plot: go.Figure = None
-    triplet_ga_plot: go.Figure = None
-    norm_triplet_ga_plot: go.Figure = None
-    # User-selected slices to compare in the analysis
-    x_slice: tuple = None
-    y_slice: tuple = None
-    n_slice: tuple = None
-    txid_ranges: dict = None
 
-    # --- Txid mode results ---
-    txid_results: pd.DataFrame = None
-    txid_results_meta: pd.DataFrame = None
+# Dataclass to store the analysis, the logical flags, and the outputs. Each has its own quirky ID.
+@dataclass
+class AnalysisStatus:
+    """
+    Main analysis status container, reworked to use composition for readability.
+    Each analysis has a unique quirky_id to encapsulate the run.
 
-    # --- Flag 4 - Analysis Ran for Txid mode ---
-    txid_analysis_done: bool = False
+    """
+    # General Info
+    quirky_id: str = None
+    organism: str = ""
+    full_dataset_list: list = None
 
-    # --- Variables and Flags for Update Mode ---
-    # Nb. This mode has not many flags. Theoretically, we want to converge the analysis into genomic or txid modes.
-    genomic_upload: bool = False
-    tx_upload: bool = False
+    # Studies selection
+    filters: MetadataFilters = field(default_factory=MetadataFilters)
 
-    # --- Flags for breakdowns ---#
-    tx_ranges = False
-    tx_regions = False
+    # Analysis modes (only one active at a time)
+    genomic_mode: GenomicCoordinatesMode = field(default_factory=GenomicCoordinatesMode)
+    #transcript_mode: TranscriptIDMode = field(default_factory=TranscriptIDMode)
+    #upload_mode: UploadMode = field(default_factory=UploadMode)
 
-    # --- Frame-aware Analysis Flags --- #
-    frame_aware: bool = False # If activated, will perform the RTA calculation while also comparing all possible Frames.
-    fa_txid_analysis_done: bool = False
-    # --- Frame-aware Analysis Inputs ---#
-    baseline_frame: int = None
-    fa_df: pd.DataFrame = None
-    # --- Frame-aware Analysis Outputs ---#
-    fa_txid_results: pd.DataFrame = None
-    fa_results_df: pd.DataFrame = None
-    fa_txid_results_meta: pd.DataFrame = None
-    fa_RTAs_plot = None
+    # Shopping cart for SRR IDs
+    #cart: list = field(default_factory=list)
 
-    # --- Cart. A list where we store all SRR of interest ---#
+    @property
+    def active_mode(self) -> str:
+        """Returns the analysis mode currently active"""
+        if self.genomic_mode.active:
+            return "genomic_coordinates"
+        # elif self.transcript_mode.active:
+        #     return "transcript_id"
+        # elif self.upload_mode.active:
+        #     return "upload"
+        # return "none"
+
+
+
+
+
+# @dataclass
+# class AnalysisStatus:
+#     """
+#     This custom class holds the analysis status. It comprises:
+#     - Logical Flags
+#     - User Inputs
+#     - Outputs
+#     Each analysis has a unique quirky_id, to encapsulate the analysis
+#     """
+#
+#     # --- General Info: Analysis quirky ID and organism ---
+#     quirky_id: str = None # to check with runs dictionary
+#     organism: str = ""
+#
+#     # --- Parameters for the analysis (shared across modes) ---
+#     ci: int = None
+#     N: int = None
+#     n_jobs: int = None
+#
+#     # --- Flags 1 - Analysis Mode ---
+#     genomic_coordinates: bool = False
+#     ensembl_transcript_id: bool = False
+#     uploaded_file: bool = False
+#
+#     ## --- Variables and Flags for Genomic Coordinates Mode ---
+#     # --- User Inputs for Genomic Mode ---
+#     genomic_range_1: str = ""
+#     genomic_range_2: str = ""
+#     genomic_range_n: str = ""
+#     genomic_ranges: list = None
+#     formatted_genomic_ranges: pd.DataFrame = None
+#     # --- Raw counts for Genomic Mode ---
+#     genomic_slices: list = None
+#     genomic_merged: pd.DataFrame = None
+#     genomic_merged_ranges: dict = None
+#     # --- Flags 2 - Extraction of regions ---
+#     regions_extracted: bool = False
+#
+#     # --- Results Genomic Coordinates Mode ---
+#     genco_results: pd.DataFrame = None
+#     results_meta: pd.DataFrame = None
+#     # --- Flag 3 - Analysis Ran for Genomic Coordinates mode ---
+#     genco_analysis_done: bool = False
+#     ### IMPORTANT: SO FAR, WE ARE NOT STORING RESULTS!! MAYBE THIS COULD BE CHANGED LATER ON...
+#
+#     ## --- Variables and Flags for Ensembl Transcript ID Mode ---
+#     txid: str = ""
+#
+#     # --- Flags 3 - Tixd Mode ---
+#     loading_tx_cov: bool = False
+#     tx_cov_extracted: bool = False
+#     show_ranges_selectors: bool = False
+#
+#     # --- Txid mode variables and parameters ---
+#     utr5_length: int = None
+#     cds_length: int = None
+#     utr3_length: int = None
+#     all_studies_df: pd.DataFrame = None
+#     transcript_sequence: str = ""
+#     tx_ga_plot: go.Figure = None
+#     triplet_ga_plot: go.Figure = None
+#     norm_triplet_ga_plot: go.Figure = None
+#     # User-selected slices to compare in the analysis
+#     x_slice: tuple = None
+#     y_slice: tuple = None
+#     n_slice: tuple = None
+#     txid_ranges: dict = None
+#
+#     # --- Txid mode results ---
+#     txid_results: pd.DataFrame = None
+#     txid_results_meta: pd.DataFrame = None
+#
+#     # --- Flag 4 - Analysis Ran for Txid mode ---
+#     txid_analysis_done: bool = False
+#
+#     # --- Variables and Flags for Update Mode ---
+#     # Nb. This mode has not many flags. Theoretically, we want to converge the analysis into genomic or txid modes.
+#     genomic_upload: bool = False
+#     tx_upload: bool = False
+#
+#     # --- Flags for breakdowns ---#
+#     tx_ranges = False
+#     tx_regions = False
+#
+#     # --- Frame-aware Analysis Flags --- #
+#     frame_aware: bool = False # If activated, will perform the RTA calculation while also comparing all possible Frames.
+#     fa_txid_analysis_done: bool = False
+#     # --- Frame-aware Analysis Inputs ---#
+#     baseline_frame: int = None
+#     fa_df: pd.DataFrame = None
+#     # --- Frame-aware Analysis Outputs ---#
+#     fa_txid_results: pd.DataFrame = None
+#     fa_results_df: pd.DataFrame = None
+#     fa_txid_results_meta: pd.DataFrame = None
+#     fa_RTAs_plot = None
+#
+#     # --- Cart. A list where we store all SRR of interest ---#
     cart: list = field(default_factory=list)
 
 def compile_report(current_run):
