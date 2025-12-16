@@ -20,17 +20,42 @@ available_meta =  restricted_meta.columns
 selected_columns = st.multiselect(f"Select the metadata fields to filter by", available_meta)
 
 # Build filters dictionary dynamically
+from pandas.api.types import is_numeric_dtype
 filters = {}
 for col in selected_columns:
-    unique_vals = restricted_meta[col].unique()
-    selected = st.multiselect(f"Select values for {col}", unique_vals)
-    if selected:
-        filters[col] = selected
+    data = restricted_meta[col]
+
+    # CASE 1: Continuous Data (Integers and Floats)
+    if is_numeric_dtype(data) and data.nunique() > 10:
+        min_val = float(data.min())
+        max_val = float(data.max())
+
+        selected_range = st.slider(
+            f"Select range for {col}",
+            min_value=min_val,
+            max_value=max_val,
+            value=(min_val, max_val)
+        )
+        # Only add to filters if the range has been narrowed
+        if selected_range != (min_val, max_val):
+            filters[col] = selected_range
+
+    # CASE 2: Categorical Data (Strings, Booleans)
+    else:
+        unique_vals = data.unique()
+        selected = st.multiselect(f"Select values for {col}", unique_vals)
+        if selected:
+            filters[col] = selected
 
 # Apply all filtering criteria
-mask = pd.Series([True] * len(restricted_meta), index=restricted_meta.index)
+mask = pd.Series(True, index=restricted_meta.index)
+
 for col, values in filters.items():
-    mask &= restricted_meta[col].isin(values)
+    # This works if one feature is a range
+    if isinstance(values, tuple):
+        mask &= restricted_meta[col].between(values[0], values[1]) # &= operator acts as a "narrowing" filter
+    else:
+        mask &= restricted_meta[col].isin(values)
 
 filtered_df = restricted_meta[mask]
 
