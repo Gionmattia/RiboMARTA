@@ -1,8 +1,10 @@
 # page_1.py
 from module0 import *
 import streamlit as st
-import pandas as pd
+from app_helpers import *
 from home_helpers import genomic_mode_formatter
+
+quirky_id_checkpoint()
 
 # We are retrieving the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
 analysis = st.session_state.analysis_runs[st.session_state.quirky_id]

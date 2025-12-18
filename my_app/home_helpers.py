@@ -138,20 +138,20 @@ def ensembl_txid_selection():
     if st.button("Next"):
         st.session_state.quirky_id = generate_quirky_id()
         # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
-        st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(
-                                                            quirky_id = st.session_state.quirky_id,
-                                                            organism = st.session_state.selected_organism,
-                                                            ensembl_transcript_id = True,
-                                                            txid = txid)
+        st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
+            quirky_id = st.session_state.quirky_id,
+            organism = st.session_state.selected_organism,
+            transcript_mode=TranscriptIDMode(
+                active=True,
+                txid = txid
+            )
+        )
         # session_state clean-up
         keys_to_reset = ["my_ranges", "picture", "genomic_slices","genomic_merged", "genomic_ranges", "all_studies_df", "utr5_length",
          "cds_length", "utr3_length", "tx_upload", "genomic_upload", "cov_extracted"]
         reset_session_state(keys_to_reset)
         # Proceed to next page of the analysis
-        if st.session_state.meta_filter == True:
-            st.switch_page("pages/metadata_filter.py")
-        else:
-            st.switch_page("pages/page_2.py")
+        st.switch_page("pages/metadata_filter.py")
 
 
 def upload_selection():
@@ -237,16 +237,20 @@ def upload_selection():
         if st.button("Next"):
             # Generate ID for current run
             st.session_state.quirky_id = generate_quirky_id()
-            st.session_state.runs[st.session_state.quirky_id] = AnalysisStatus(quirky_id=st.session_state.quirky_id,
-                                                                               organism=st.session_state.selected_organism,
-                                                                               genomic_upload=st.session_state.genomic_upload,
-                                                                               tx_upload=st.session_state.tx_upload,
-                                                                               all_studies_df=all_studies_df,
-                                                                               txid=txid,
-                                                                               utr5_length=utr5_length,
-                                                                               cds_length=cds_length,
-                                                                               utr3_length=utr3_length,
-                                                                               tx_cov_extracted=tx_cov_extracted)
+            st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
+                quirky_id=st.session_state.quirky_id,
+                organism=st.session_state.selected_organism,
+                genomic_upload=st.session_state.genomic_upload,
+                tx_upload=st.session_state.tx_upload,
+                transcript_mode=TranscriptIDMode(
+                    active=True,
+                    txid = txid,
+                    all_studies_df=all_studies_df,
+                    utr5_length=utr5_length,
+                    cds_length=cds_length,
+                    utr3_length=utr3_length,
+                    tx_cov_extracted=tx_cov_extracted)
+            )
             st.switch_page("pages/page_2.py")
 
 

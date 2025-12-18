@@ -17,16 +17,6 @@ from bokeh.embed import file_html
 from bokeh.resources import CDN
 from bokeh.layouts import column
 
-def quirky_id_checkpoint():
-    if st.session_state.get("quirky_id", None) is None:
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.image("martas/error_marta.png", width=127)
-        with col2:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.error("You haven't initialised any analysis yet, please return to Home page")
-        st.stop()
-
 
 def txid_mode_intro():
     """
@@ -49,7 +39,7 @@ def txid_mode_intro():
         st.image("martas/explaining_marta.png", width=180)
 
 
-def txid_start_checkpoint(current_run):
+def txid_start_checkpoint(current_run, analysis):
     """
     Checkpoint function. It checks if the user has submitted a transcriptID before allowing
     to further proceed in the analysis.
@@ -69,7 +59,7 @@ def txid_start_checkpoint(current_run):
             st.error(" The 'Transcript ID' field was empty. Please provide a value before proceeding!")
     # Allows to extract the tx coverage, if not in Upload Mode.
     else:
-        if current_run.tx_upload == False:
+        if analysis.tx_upload == False:
             if st.button("Load Transcript"):
                 current_run.loading_tx_cov = True
 
@@ -93,6 +83,7 @@ def format_txid_df_download(current_run):
         file_name=f'{current_run.txid}_raw_counts.csv',
         mime='text/csv'
     )
+
 
 def plot_ga_with_frames(
         current_run: AnalysisStatus,
@@ -198,6 +189,7 @@ def plot_norm_ga_with_frames(current_run, ga_df):
     plot = column(picture2_transcript_plot, orfplot_f1, orfplot_f2, orfplot_f3,
                                          sizing_mode='stretch_width')
     return plot
+
 
 def ga_plots_UI_render(current_run):
     """

@@ -111,7 +111,7 @@ class TranscriptIDMode:
     # Step 2 - Flags. Coverage extraction and extracted -> used to manage flow/UI
     loading_tx_cov: bool = False
     tx_cov_extracted: bool = False
-    show_ranges_selector: bool = False
+    show_ranges_selectors: bool = False
 
     # Step 3 - Annotation-derived metrics | Data Retrieved | Plots rendered
     utr5_length: int = None
@@ -371,3 +371,14 @@ def srr_lookup_sidebar2(data, current_run):
             current_run.cart.remove(srr)
         except:
             st.sidebar.write(f"{str(srr)} already NOT in your cart!")
+
+
+def quirky_id_checkpoint():
+    if st.session_state.get("quirky_id", None) is None:
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.image("martas/error_marta.png", width=127)
+        with col2:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.error("You haven't initialised any analysis yet, please return to Home page")
+        st.stop()

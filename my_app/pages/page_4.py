@@ -129,7 +129,9 @@ if current_mode.genco_analysis_done == True:
                 "To visualise the diamond plot, select the medatadata column to use",
                 current_mode.results_meta.columns[:5]) # select first 5
 
-            d_plot = diamond_plotter(current_mode.results_meta, meta=meta_option)
+            d_plot = new_diamond_plotter(current_mode.results_meta,
+                                         meta=meta_option,
+                                         logs = False)
             st.plotly_chart(d_plot, use_container_width=True)
 
         with tab4_log:

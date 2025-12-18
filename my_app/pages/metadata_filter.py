@@ -79,8 +79,8 @@ if st.button("Next"):
     analysis.filters.selected_studies = filtered_bigwigs
     analysis.filters.filtering_criteria = filters
 
-    if analysis.genomic_mode:
+    if analysis.genomic_mode.active == True:
         st.switch_page("pages/page_1.py")
 
-    # add option to dynamically switch to page2 instead if tx mode is on
-    # if analysis.TX
+    elif analysis.transcript_mode.active == True:
+        st.switch_page("pages/page_2.py")
