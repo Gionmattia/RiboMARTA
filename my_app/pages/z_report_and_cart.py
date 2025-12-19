@@ -6,6 +6,8 @@ from TranscriptID_results_helpers import *
 from app_helpers import srr_lookup_sidebar
 import io
 import zipfile
+from bokeh.embed import file_html
+from bokeh.resources import CDN
 
 # Then I need a function to report the info as a table/something that can be exported
 st.write("# Analysis Report")
@@ -21,9 +23,10 @@ st.write(
     f"{ chosen_run }"
 )
 
-run = st.session_state.analysis_runs[chosen_run]
+if chosen_run is None:
+    st.stop()
 
-#st.stop()
+run = st.session_state.analysis_runs[chosen_run]
 
 
 # Compile the report
@@ -111,7 +114,16 @@ def create_zip_report(markdown_content, user_plots, results):
         # 2) save all plots as html
         for i, fig in enumerate(user_plots):
             # Convert Plotly figure to HTML string
-            plot_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+            # Check if it's a Plotly figure
+            if hasattr(fig, "to_html"):
+                plot_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+            # Check if it's a Bokeh figure
+            else:
+                try:
+                    plot_html = file_html(fig, CDN, "Transcript_plot_with_ORF")
+                except Exception as e:
+                    plot_html = f"<h1>Error saving plot</h1><p>{str(e)}</p>"
             zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
         # 3) Save results
         csv_results = results.to_csv(index=False)

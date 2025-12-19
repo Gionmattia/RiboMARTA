@@ -78,7 +78,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                                                                smoothing = True)
 
     # Expanders to render the plots, if present
-    ga_plots_UI_render(current_mode)
+    ga_plots_UI_render(current_mode, analysis)
 
 
     # Ranges selection for analysis

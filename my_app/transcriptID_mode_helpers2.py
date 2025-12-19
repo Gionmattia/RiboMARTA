@@ -191,7 +191,7 @@ def plot_norm_ga_with_frames(current_run, ga_df):
     return plot
 
 
-def ga_plots_UI_render(current_run):
+def ga_plots_UI_render(current_run, analysis):
     """
     Renders the plots stored (tx_ga_plot and triplet_ga_plot) as a st.expander.
     Also adds some info text.
@@ -221,6 +221,9 @@ def ga_plots_UI_render(current_run):
                 html = file_html(current_run.triplet_ga_plot, CDN, "Transcript_plot_with_ORF")
                 st.components.v1.html(html, height=650, width=1600)
                 #html = file_html(current_run.triplet_ga_plot, CDN, "Transcript_plot_with_ORF")
+                if st.button("Store in the report", key="triplet_ga_plot"):
+                    analysis.user_plots.append(current_run.triplet_ga_plot)
+                    st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
                 #st.components.v1.html(html, height=650, width=1600)
         with tab3:
             st.write("#### Normalised Global Aggregate & ORF plot")

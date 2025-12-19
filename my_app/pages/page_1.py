@@ -57,10 +57,10 @@ if current_mode.regions_extracted == True:
         If you wish to download one of the intervals, you can also download the ranges locally as a .csv.""")
         col1, col2,col3 = st.columns(3)
         with col1:
-            st.write("First Region")
+            st.write("Baseline Region")
             current_mode.genomic_slices[0]
         with col2:
-            st.write("Second Region")
+            st.write("Target Region")
             current_mode.genomic_slices[1]
         with col3:
             st.write("Noise control Region")
@@ -73,14 +73,15 @@ if current_mode.regions_extracted == True:
         If you wish to download one of the plots, click on the '...' button on the same side.""")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.write("First Region")
+            st.write("Baseline Region")
             agg_df_x = global_aggregate(current_mode.genomic_slices[0],
                                         normalize = False,
                                         keep_pos = True)
             # Plot
             st.line_chart(agg_df_x, x = "Position", y = "Global Aggregate")
+            # Add option to save these plots in the report later on?
         with col2:
-            st.write("Second Region")
+            st.write("Target Region")
             agg_df_y = global_aggregate(current_mode.genomic_slices[1],
                                         normalize = False,
                                         keep_pos = True)
