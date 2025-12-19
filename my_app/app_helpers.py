@@ -164,7 +164,7 @@ class AnalysisStatus:
     tx_upload: bool = False
 
     # Shopping cart for SRR IDs
-    #cart: list = field(default_factory=list)
+    flagged_datasets: list = field(default_factory=list)
     user_plots: list = field(default_factory=list)
 
     @property
@@ -281,45 +281,45 @@ class AnalysisStatus:
 #     # --- Cart. A list where we store all SRR of interest ---#
     cart: list = field(default_factory=list)
 
-def compile_report(current_run):
-
-    # Get analysis mode
-    analysis_mode_flags = [current_run.genomic_coordinates,
-                           current_run.ensembl_transcript_id,
-                           current_run.uploaded_file]
-    flags_names = ["Genomic Coordinates", "Ensembl Transcript ID", "Uploaded File"]
-    analysis_mode = [name for name, value in zip(flags_names, analysis_mode_flags) if value]
-    analysis_mode = str(analysis_mode).replace("[", "").replace("]", "").replace("'","")
-
-    # Wraps in text - Still prints analysis_mode as a list... need to change it
-    text_opener = f"""
-    Analysis ID: {current_run.quirky_id} \n
-    Organism and reference: {current_run.organism} \n
-    Analysis Mode: {analysis_mode} \n
-    """
-
-    if analysis_mode == "Genomic Coordinates":
-        # Should I create a specific wrapper? like subfunctions?
-        user_input_genco_ranges = current_run.genomic_ranges
-        text_opener = text_opener + f"""Genomic Ranges selected: {user_input_genco_ranges}"""
-
-    elif analysis_mode == "Ensembl Transcript ID":
-        user_input_transcript_id = current_run.txid
-        ranges_selected = current_run.txid_ranges
-
-        txid_mode_info = f"""
-        Transcript selected: {user_input_transcript_id} \n 
-        Baseline: {ranges_selected["x_slice"]} \n
-        Target: {ranges_selected["y_slice"]} \n
-        Noise region: {ranges_selected["n_slice"]} \n
-        """
-        text_opener = text_opener + txid_mode_info
-
-
-    return text_opener
+# def compile_report(current_run):
+#
+#     # Get analysis mode
+#     analysis_mode_flags = [current_run.genomic_coordinates,
+#                            current_run.ensembl_transcript_id,
+#                            current_run.uploaded_file]
+#     flags_names = ["Genomic Coordinates", "Ensembl Transcript ID", "Uploaded File"]
+#     analysis_mode = [name for name, value in zip(flags_names, analysis_mode_flags) if value]
+#     analysis_mode = str(analysis_mode).replace("[", "").replace("]", "").replace("'","")
+#
+#     # Wraps in text - Still prints analysis_mode as a list... need to change it
+#     text_opener = f"""
+#     Analysis ID: {current_run.quirky_id} \n
+#     Organism and reference: {current_run.organism} \n
+#     Analysis Mode: {analysis_mode} \n
+#     """
+#
+#     if analysis_mode == "Genomic Coordinates":
+#         # Should I create a specific wrapper? like subfunctions?
+#         user_input_genco_ranges = current_run.genomic_ranges
+#         text_opener = text_opener + f"""Genomic Ranges selected: {user_input_genco_ranges}"""
+#
+#     elif analysis_mode == "Ensembl Transcript ID":
+#         user_input_transcript_id = current_run.txid
+#         ranges_selected = current_run.txid_ranges
+#
+#         txid_mode_info = f"""
+#         Transcript selected: {user_input_transcript_id} \n
+#         Baseline: {ranges_selected["x_slice"]} \n
+#         Target: {ranges_selected["y_slice"]} \n
+#         Noise region: {ranges_selected["n_slice"]} \n
+#         """
+#         text_opener = text_opener + txid_mode_info
+#
+#
+#     return text_opener
 
 ## --- Sidebar elements test --- #
-def srr_lookup_sidebar(data, current_run):
+def srr_lookup_sidebar(data, current_run, analysis):
 
     st.sidebar.header("Quick Run (SRR) Lookup")
     srr_list = list(data.index)
@@ -338,16 +338,16 @@ def srr_lookup_sidebar(data, current_run):
 
         st.plotly_chart(srr_plot, use_container_width=True)
     if st.sidebar.button("Add SRR to cart"):
-        current_run.cart.append(srr)
+        analysis.flagged_datasets.append(srr)
     if st.sidebar.button("Remove SRR from cart"):
         try:
-            current_run.cart.remove(srr)
+            analysis.flagged_datasets.remove(srr)
         except:
             st.sidebar.write(f"{str(srr)} already NOT in your cart!")
 
 
 ## --- Sidebar elements for txid mode (could be fused to the one above, but later on) --- #
-def srr_lookup_sidebar2(data, current_run):
+def srr_lookup_sidebar2(data, current_run, analysis):
 
     st.sidebar.header("Quick Run (SRR) Lookup")
     srr_list = list(data.index)
@@ -365,11 +365,15 @@ def srr_lookup_sidebar2(data, current_run):
                                    current_run.txid_ranges)
 
         st.plotly_chart(srr_plot, use_container_width=True)
-    if st.sidebar.button("Add SRR to cart"):
-        current_run.cart.append(srr)
-    if st.sidebar.button("Remove SRR from cart"):
+    if st.sidebar.button("Add SRR to flagged ones"):
+        if srr in analysis.flagged_datasets:
+            st.sidebar.write(f"{str(srr)} has already been flagged!")
+        else:
+            analysis.flagged_datasets.append(srr)
+            st.sidebar.write(f"{str(srr)} flagged!")
+    if st.sidebar.button("Remove SRR "):
         try:
-            current_run.cart.remove(srr)
+            analysis.flagged_datasets.remove(srr)
         except:
             st.sidebar.write(f"{str(srr)} already NOT in your cart!")
 

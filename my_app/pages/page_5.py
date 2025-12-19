@@ -86,7 +86,7 @@ if st.button("Run Analysis"):
 
 if current_mode.txid_analysis_done is True:
 
-    srr_lookup_sidebar2(current_mode.txid_results, current_mode)
+    srr_lookup_sidebar2(current_mode.txid_results, current_mode, analysis)
 
     with st.expander("Show Tabular Results"):
 

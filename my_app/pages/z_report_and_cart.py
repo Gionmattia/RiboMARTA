@@ -96,6 +96,8 @@ markdown_content = report_content = f"""
 {inputs_recap}
 #### Datasets Processed (SRR):
 {selected_studies}
+#### Datasets Flagged:
+{run.flagged_datasets}
 """
 
 st.write(markdown_content)
