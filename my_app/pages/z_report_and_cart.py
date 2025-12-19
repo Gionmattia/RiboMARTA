@@ -4,6 +4,8 @@ from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
 from app_helpers import srr_lookup_sidebar
+import io
+import zipfile
 
 # Then I need a function to report the info as a table/something that can be exported
 st.write("# Analysis Report")
@@ -55,6 +57,8 @@ if run.genomic_mode.active == True:
         n_jobs: {run.genomic_mode.n_jobs}
     """
 
+    results = run.genomic_mode.results_meta
+
 elif run.transcript_mode.active == True:
     mode = "Ensembl Transcript ID"
     inputs_recap = f"""
@@ -73,6 +77,8 @@ elif run.transcript_mode.active == True:
         n_jobs: {run.transcript_mode.n_jobs}
     """
 
+    results = run.transcript_mode.txid_results_meta
+
 # Constructing the markdown string
 markdown_content = report_content = f"""
 ## {report_title}
@@ -90,4 +96,37 @@ markdown_content = report_content = f"""
 """
 
 st.write(markdown_content)
-print("Markdown report saved as report.md")
+
+# All plots are stored within the run.user_plots list (overall variable).
+# The report is written within the markdown_content variable (assembled here).
+# the table with the results is stored within run.transcript_mode.results_meta (mode-specific, for genomic is genomic_mode.results_meta)
+
+def create_zip_report(markdown_content, user_plots, results):
+
+# Create a buffer to hold the zip file
+    buffy = io.BytesIO()
+    with zipfile.ZipFile(buffy, "w") as zf:
+        # 1) save the markdown report
+        zf.writestr("report.md", markdown_content)
+        # 2) save all plots as html
+        for i, fig in enumerate(user_plots):
+            # Convert Plotly figure to HTML string
+            plot_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+            zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
+        # 3) Save results
+        csv_results = results.to_csv(index=False)
+        zf.writestr("results.csv", csv_results)
+
+        return buffy
+
+
+if st.button("Prepare Download Bundle"):
+    zip_data = create_zip_report(markdown_content, run.user_plots, results)
+
+    st.download_button(
+        label="Download All Files (.zip)",
+        data=zip_data,
+        file_name="analysis_results.zip",
+        mime="application/zip"
+    )
+

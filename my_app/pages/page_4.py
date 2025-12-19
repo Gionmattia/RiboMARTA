@@ -113,6 +113,11 @@ if current_mode.genco_analysis_done == True:
             fig2 = plot_rta_boxplot(current_mode.genco_results)
             st.plotly_chart(fig2)
 
+            if st.button("Store in the report", key = "rta_boxplot"):
+                analysis.user_plots.append(fig2)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+
+
         with tab3_log:
             # Modify results so that they are log2-based now!
             log_2_genco_results = current_mode.genco_results
@@ -120,7 +125,10 @@ if current_mode.genco_analysis_done == True:
             fig2_bis = plot_rta_boxplot(log_2_genco_results, logs = True, box_fill = "#c44601")
             st.plotly_chart(fig2_bis, key = "plot_bis")
 
-    # Add part for z-score plot?
+            if st.button("Store in the report", key = "log_rta_boxplot"):
+                analysis.user_plots.append(fig2_bis)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+
 
     # Adds plot with breakdowns by metadata
         with tab4:
@@ -133,6 +141,10 @@ if current_mode.genco_analysis_done == True:
                                          meta=meta_option,
                                          logs = False)
             st.plotly_chart(d_plot, use_container_width=True)
+
+            if st.button("Store in the report", key = "diamond plot"):
+                analysis.user_plots.append(d_plot)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
         with tab4_log:
 
@@ -148,6 +160,10 @@ if current_mode.genco_analysis_done == True:
             st.plotly_chart(d_plot_bis,
                             use_container_width=True,
                             key = "figure_d_bis")
+
+            if st.button("Store in the report", key = "log diamond plot"):
+                analysis.user_plots.append(d_plot_bis)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
         with tab5:
             st.write("Here you can visualise an individual Run of interest")
@@ -187,15 +203,6 @@ if current_mode.genco_analysis_done == True:
 
             # Should I use the new method (smooth criminal) here?
 
-
-
-    #with st.expander("Diamond Plot"):
-        # Insert here function to merge results with metadata...
-
-        # Function to select by which metadata to plot the results...
-
-        # st.button("Select"):
-        # generate the plot
 
 else:
     st.write("Here you will see the results once the analysis is complete")

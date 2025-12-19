@@ -165,6 +165,7 @@ class AnalysisStatus:
 
     # Shopping cart for SRR IDs
     #cart: list = field(default_factory=list)
+    user_plots: list = field(default_factory=list)
 
     @property
     def active_mode(self) -> str:
