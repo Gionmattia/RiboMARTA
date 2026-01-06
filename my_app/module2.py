@@ -560,6 +560,16 @@ def run_permutation_analysis(df: pd.DataFrame,
     # Compute observed RTAs and extract arrays.
     ratios_df, y_array, n_array, x_avg_array = _compute_observed_ratios(df, coordinates, good_runs)
 
+    # Checks the input dataframes are not empty after filtering
+    # Check for empty arrays
+    if x_avg_array.size == 0:
+        raise ValueError(f"""
+        Studies with baseline expression: {x_avg_array.shape[0]}.
+        There was no significant expression for the baseline after filtering against noise. 
+        This means all datasets for that region lack significant RFP signal, and hence it is impossible to statistically assess
+         whether your target transcript is being translated.
+        """)
+
     # Do the permutation test again, this time testing y vs n. In parallel.
     perms_per_job = N // n_jobs
     perm_results = Parallel(n_jobs=n_jobs)(
