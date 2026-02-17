@@ -33,15 +33,18 @@ run = st.session_state.analysis_runs[chosen_run]
 report_title = "RiboMARTA Report"
 
 # Extract metadata filters and compiles neatly
-filters_report = {f"{Factor}: {Levels}" for Factor, Levels in run.filters.filtering_criteria.items()}
-if filters_report.__len__() > 0:
-    filters_report = str(filters_report).replace("{", "").replace("}", "").replace("[","").replace("]","").replace('"', '')
-elif filters_report.__len__() == 0:
+if run.filters.filtering_criteria is not None:
+    filters_report = {f"{Factor}: {Levels}" for Factor, Levels in run.filters.filtering_criteria.items()}
+    if filters_report.__len__() > 0:
+        filters_report = str(filters_report).replace("{", "").replace("}", "").replace("[","").replace("]","").replace('"', '')
+    elif filters_report.__len__() == 0:
+        filters_report = "No filters adopted"
+elif run.filters.filtering_criteria is None:
     filters_report = "No filters adopted"
 
-srr_list = {srr.split("/")[-1].replace(".bw", "") for srr in run.filters.selected_studies}
-selected_studies = ", ".join(srr_list)
-
+if run.filters.selected_studies is not None:
+    srr_list = {srr.split("/")[-1].replace(".bw", "") for srr in run.filters.selected_studies}
+    selected_studies = ", ".join(srr_list)
 
 # Check whether analysis was genomic or transcriptomic and stores info
 if run.genomic_mode.active == True:
@@ -91,7 +94,7 @@ markdown_content = report_content = f"""
 {run.organism}
 #### Metadata Filters adopted: 
 {filters_report}
-\n Selected studies: {len(run.filters.selected_studies)} 
+\n Selected studies: {len(srr_list)} 
 #### Inputs Recap:
 {inputs_recap}
 #### Datasets Processed (SRR):

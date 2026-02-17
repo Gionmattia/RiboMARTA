@@ -179,11 +179,17 @@ def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs
 
 
 # Comment - Functionally speaking, does a bit too much... but not sure if I have time/will to unpack it.
-def txid_data_extraction(current_run, gr):
+def txid_data_extraction(current_run, bigwig_files, gr):
     """
-    It packs the spinner that runs while data is being extracted.
-    Also packs within some functions that extract transcript info and saves them to currrent_run
-    :param current_run:
+    Function loads coverage information into a dataframe (all_studies_df) which is stored into current_run.
+    Also extract features lengths (5', CDs, 3') and stores them in current_run object.
+
+    :param current_run: current run - object where txid mode variables and results are stored. See app_helpers.py
+    :param bigwig_files: absolute path to bigwig files.
+    :param gr: annotation object, as loaded by pyranges.
+
+
+
     :return: all_ranges, strandedness
     """
 
@@ -205,7 +211,7 @@ def txid_data_extraction(current_run, gr):
         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
             all_ranges)
         # 4 Extract coverage from given bigwigs
-        current_run.all_studies_df = extract_from_multiple_bigwigs(st.session_state.bigwig_files,
+        current_run.all_studies_df = extract_from_multiple_bigwigs(bigwig_files,
                                                                    all_ranges,
                                                                    strandedness,
                                                                    n_jobs=1)
@@ -231,6 +237,8 @@ def smoother(df: pd.DataFrame, smoothing:bool = True):
     """
     # Copies the position to column "X". Used to calculate Frame and for visualisation later
     df["X"] = df.index
+
+    df["X"] = df["X"].astype(int)
     # Assign frame to each position
     df["Frame"] = (df["X"] % 3) + 1
 
