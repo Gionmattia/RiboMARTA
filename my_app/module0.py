@@ -172,10 +172,11 @@ def global_aggregate(input_df: pd.DataFrame,
     df = input_df.copy()
 
     # Extract position info if needed
-    positions = df["Position"] if keep_pos else None
+    positions = df["Position"] if keep_pos and "Position" in df.columns else None
 
     # Remove Position column and handle missing values
-    df.drop(columns="Position", inplace=True)
+    if "Position" in df.columns:
+        df.drop(columns="Position", inplace=True)
     df.fillna(0, inplace=True)
 
     if normalize:
@@ -184,13 +185,14 @@ def global_aggregate(input_df: pd.DataFrame,
         # Replace 0 with 1 to avoid division by zero (results in 0/1 = 0)
         df = df / col_sums.replace(0, 1)
 
+
     # Compute global aggregate (sum across samples)
     result_df = pd.DataFrame({
-        "Global Aggregate": df.sum(axis=1)
+        "Global Aggregate": df.select_dtypes(include='number').sum(axis=1)
     })
 
-    # Add position column if requested
-    if keep_pos:
+    # Add position column if requested and present in the original input_df
+    if keep_pos and "Position" in input_df.columns:
         result_df["Position"] = positions
 
     return result_df

@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 import os
 
 analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
@@ -7,28 +8,40 @@ st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 st.title("Dataset Selection")
 
 if analysis.genomic_upload == True:
-    st.write("You are currently working with loaded data. This feature is not available.")
-    st.stop()
+    st.write("You are currently working with loaded data. Metadata might no be available for all your studies.")
+    analysis.full_dataset_list = analysis.genomic_mode.genomic_merged.columns.tolist()
+    analysis.full_dataset_list.remove("Sequence")
+    analysis.full_dataset_list.remove("Position")
+    restricted_meta = st.session_state.metadata[st.session_state.metadata["Run"].isin(analysis.full_dataset_list)]
+    available_meta = restricted_meta.columns
+    selected_columns = st.multiselect(f"Select the metadata fields to filter by", available_meta)
+
 elif analysis.tx_upload == True:
-    st.write("You are currently working with loaded data. This feature is not available.")
-    st.stop()
+    analysis.full_dataset_list = analysis.transcript_mode.all_studies_df.columns.tolist()
+    analysis.full_dataset_list.remove("Sequence")
+    analysis.full_dataset_list.remove("Position")
+    st.write("You are currently working with loaded data. Metadata might no be available for all your studies.")
+    restricted_meta = st.session_state.metadata[st.session_state.metadata["Run"].isin(analysis.full_dataset_list)]
+    available_meta = restricted_meta.columns
+    selected_columns = st.multiselect(f"Select the metadata fields to filter by", available_meta)
+
+elif analysis.genomic_upload == False and analysis.tx_upload == False:
+    # Move the dataset list to the current analysis run
+    analysis.full_dataset_list = st.session_state.full_dataset_list
+    # Retrieve absolute paths for all bigwigs
+    bigwigs = st.session_state.bigwig_files
+    # Subset the metadata based on the availability of bigwigs.
+    restricted_meta = st.session_state.metadata[st.session_state.metadata["Run"].isin(analysis.full_dataset_list)]
+    # Create selector based on available metadata
+    available_meta =  restricted_meta.columns
+    selected_columns = st.multiselect(f"Select the metadata fields to filter by", available_meta)
 
 st.write("Here you can select which datasets to process, based on the available metadata. "
-         "The current interface allows to choose from any metadata information available on the RDP,"
-         " good suggestions to start from are TISSUE, CONDITION, or CELL_LINE")
-
-# Move the dataset list to the current analysis run
-analysis.full_dataset_list = st.session_state.full_dataset_list
-# Retrieve absolute paths for all bigwigs
-bigwigs = st.session_state.bigwig_files
-# Subset the metadata based on the availability of bigwigs.
-restricted_meta = st.session_state.metadata[st.session_state.metadata["Run"].isin(analysis.full_dataset_list)]
-# Create selector based on available metadata
-available_meta =  restricted_meta.columns
-selected_columns = st.multiselect(f"Select the metadata fields to filter by", available_meta)
+             "The current interface allows to choose from any metadata information available on the RDP,"
+             " good suggestions to start from are TISSUE, CONDITION, or CELL_LINE")
 
 # Build filters dictionary dynamically
-from pandas.api.types import is_numeric_dtype
+
 filters = {}
 for col in selected_columns:
     data = restricted_meta[col]
@@ -71,8 +84,12 @@ filtered_df = restricted_meta[mask]
 st.write(f"You selected {filtered_df.shape[0]} datasets our of the {restricted_meta.shape[0]} available!")
 
 # Convert to list and filter absolute path based on selected studies
-selected_runs = [run + ".bw" for run in filtered_df["Run"].to_list()]
-filtered_bigwigs = [item for item in bigwigs if any(substring in item for substring in selected_runs)]
+if analysis.genomic_upload == False and analysis.tx_upload == False:
+    selected_runs = [run + ".bw" for run in filtered_df["Run"].to_list()]
+    filtered_bigwigs = [item for item in bigwigs if any(substring in item for substring in selected_runs)]
+elif analysis.genomic_upload == True or analysis.tx_upload == True:
+    selected_runs = [run + ".bw" for run in filtered_df["Run"].to_list()]
+    filtered_bigwigs = selected_runs
 
 if st.button("Next"):
     # Assign the filtered absolute paths to the analysis item

@@ -29,7 +29,10 @@ txid_start_checkpoint(current_mode, analysis)
 
 # Extract coverage info and transcript sequence. Includes loader.
 if current_mode.loading_tx_cov:
-    all_ranges, strandedness = txid_data_extraction(current_mode, st.session_state.gr)
+    all_ranges, strandedness = txid_data_extraction(current_run = current_mode,
+                                                    bigwig_files = analysis.filters.selected_studies,
+                                                    gr = st.session_state.gr)
+
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
 
@@ -41,11 +44,12 @@ if current_mode.tx_cov_extracted:
         format_txid_df_download(current_mode)
 
     # If the sequence is not available and is "File Upload Mode", retrieve sequence from it.
-    if current_mode.transcript_sequence == "" and analysis.tx_upload == True:
+    if current_mode.transcript_sequence is None and analysis.tx_upload == True:
         st.write("You are currently in: Ensembl Transcript ID - File Upload mode")
         try:
             current_mode.transcript_sequence = ''.join(current_mode.all_studies_df['Sequence'])
             current_mode.all_studies_df.drop(columns='Sequence', inplace=True)
+            st.info("Retrieved sequence from the uploaded file!")
         except KeyError:
             st.error("The File Uploaded does not come from RiboMARTA ('Sequence' column is missing).")
 

@@ -209,7 +209,8 @@ def upload_selection():
                     genomic_merged_ranges=genomic_merged_ranges)
             )
             # clean the keys
-            st.switch_page("pages/page_4.py")
+            st.switch_page("pages/metadata_filter.py")
+            #st.switch_page("pages/page_4.py")
 
 
     if st.session_state.get("tx_upload", False) is True:
@@ -251,7 +252,8 @@ def upload_selection():
                     utr3_length=utr3_length,
                     tx_cov_extracted=tx_cov_extracted)
             )
-            st.switch_page("pages/page_2.py")
+            st.switch_page("pages/metadata_filter.py")
+            #st.switch_page("pages/page_2.py")
 
 
 def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
