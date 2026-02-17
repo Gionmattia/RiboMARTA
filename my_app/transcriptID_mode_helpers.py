@@ -33,14 +33,68 @@ def extract_tx_pyranges(gr, txid):
 
 
 # Function to format the transcript ranges, for extraction of coverage from BigWigs
-def regions_dataframe_formatter(transcript_ranges, return_individual_regions = False):
+# def regions_dataframe_formatter(transcript_ranges, return_individual_regions = False):
+#     """
+#     :param transcript_ranges: a pyranges.pyranges_main.PyRanges object
+#     :param return_individual_regions: whether to return individual regions (3', 5', cds) dataframe coordinates or as a single one
+#     :return: a singe dataframe, with the coordinates for each exon fragment making up CDS and utrs or the dataframes with coordinates for utr5, CDS, and utr3 separately.
+#
+#     Regarding this aspect: On the + strand, we have everything in growing order of coordinates, but on - strand it is the opposite.
+#     So we need to explain the tool how to deal with those fragments when extracting them.
+#
+#     The "Region" tag is necessary to name each range differently, so that the _extract_one() helper can use these tags as key when
+#     building the dictionary of coverages per exonic fragment.
+#     """
+#
+#     # First, convert object to a dataframe, for manipulation
+#     my_ranges = transcript_ranges.as_df()[['Chromosome', 'Feature', 'Start', 'End', 'transcript_id', 'gene_name', 'exon_number', 'exon_id', "Strand"]]
+#
+#     # Check strandedness of the transcript features is unique (It should be, but errors in annotation happen).
+#     if my_ranges["Strand"].nunique() != 1:
+#         raise AssertionError("Transcript should be on one strand, but the selected one seems to have elements on both/none strands.")
+#     else:
+#         strandedness = my_ranges["Strand"].unique()
+#
+#     # Extract features coordinates, divided between CDS, utr5 and utr3
+#     utr5_ranges_df = my_ranges[my_ranges["Feature"]== "five_prime_utr"].copy()
+#     cds_ranges_df = my_ranges[(my_ranges["Feature"]== "CDS") | (my_ranges["Feature"]== "stop_codon") ].copy()
+#     utr3_ranges_df = my_ranges[my_ranges["Feature"]== "three_prime_utr"  ].copy()
+#
+#     # Resets the index, based on the order of features
+#     utr5_ranges_df = utr5_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
+#     cds_ranges_df = cds_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
+#     utr3_ranges_df = utr3_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
+#
+#     # Applies the index to the "Region" tag (used by _extract_one() later)
+#     utr5_ranges_df["Region"] = utr5_ranges_df["Feature"] + "|" + utr5_ranges_df.index.astype(str)
+#     cds_ranges_df["Region"] = cds_ranges_df["Feature"] + "|" + cds_ranges_df.index.astype(str)
+#     utr3_ranges_df["Region"] = utr3_ranges_df["Feature"] + "|" + utr3_ranges_df.index.astype(str)
+#
+#     # Output
+#     # If returning the coordinates as a single dataframe, it's important to order them based on strand they are on
+#     if return_individual_regions == False:
+#
+#         if strandedness == "+":
+#             all_ranges = pd.concat([utr5_ranges_df, cds_ranges_df, utr3_ranges_df])
+#         elif strandedness == "-":
+#             all_ranges = pd.concat([utr3_ranges_df, cds_ranges_df, utr5_ranges_df,])
+#
+#         assert all_ranges["Start"].is_monotonic_increasing, "Something when wrong when concatenating utrs and cds coordinates based on polarity of the strand. Check regions_dataframe_formatter"
+#
+#         return all_ranges, strandedness
+#
+#     # Returns coordinates as separate dataframes for utr5, cds, and utr3
+#     elif return_individual_regions == True:
+#
+#         return utr5_ranges_df, cds_ranges_df, utr3_ranges_df, strandedness
+
+
+# Function to format the transcript ranges, for extraction of coverage from BigWigs
+def regions_df_formatter(transcript_ranges):
     """
     :param transcript_ranges: a pyranges.pyranges_main.PyRanges object
     :param return_individual_regions: whether to return individual regions (3', 5', cds) dataframe coordinates or as a single one
-    :return: a singe dataframe, with the coordinates for each exon fragment making up CDS and utrs or the dataframes with coordinates for utr5, CDS, and utr3 separately.
-
-    Regarding this aspect: On the + strand, we have everything in growing order of coordinates, but on - strand it is the opposite.
-    So we need to explain the tool how to deal with those fragments when extracting them.
+    :return: tuple, a singe dataframe, with the coordinates for each exon fragment. The strandedness of the feature extracted.
 
     The "Region" tag is necessary to name each range differently, so that the _extract_one() helper can use these tags as key when
     building the dictionary of coverages per exonic fragment.
@@ -56,62 +110,135 @@ def regions_dataframe_formatter(transcript_ranges, return_individual_regions = F
         strandedness = my_ranges["Strand"].unique()
 
     # Extract features coordinates, divided between CDS, utr5 and utr3
-    utr5_ranges_df = my_ranges[my_ranges["Feature"]== "five_prime_utr"].copy()
-    cds_ranges_df = my_ranges[(my_ranges["Feature"]== "CDS") | (my_ranges["Feature"]== "stop_codon") ].copy()
-    utr3_ranges_df = my_ranges[my_ranges["Feature"]== "three_prime_utr"  ].copy()
+    ranges_df = my_ranges[my_ranges["Feature"]== "exon"].copy()
 
     # Resets the index, based on the order of features
-    utr5_ranges_df = utr5_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
-    cds_ranges_df = cds_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
-    utr3_ranges_df = utr3_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
+    ranges_df = ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
 
     # Applies the index to the "Region" tag (used by _extract_one() later)
-    utr5_ranges_df["Region"] = utr5_ranges_df["Feature"] + "|" + utr5_ranges_df.index.astype(str)
-    cds_ranges_df["Region"] = cds_ranges_df["Feature"] + "|" + cds_ranges_df.index.astype(str)
-    utr3_ranges_df["Region"] = utr3_ranges_df["Feature"] + "|" + utr3_ranges_df.index.astype(str)
+    ranges_df["Region"] = ranges_df["Feature"] + "|" + ranges_df["exon_number"]
 
-    # Output
-    # If returning the coordinates as a single dataframe, it's important to order them based on strand they are on
-    if return_individual_regions == False:
+    assert ranges_df["Start"].is_monotonic_increasing, "Something when wrong when extracting regions. Check regions_dataframe_formatter"
 
-        if strandedness == "+":
-            all_ranges = pd.concat([utr5_ranges_df, cds_ranges_df, utr3_ranges_df])
-        elif strandedness == "-":
-            all_ranges = pd.concat([utr3_ranges_df, cds_ranges_df, utr5_ranges_df,])
+    return ranges_df, strandedness
 
-        assert all_ranges["Start"].is_monotonic_increasing, "Something when wrong when concatenating utrs and cds coordinates based on polarity of the strand. Check regions_dataframe_formatter"
-
-        return all_ranges, strandedness
-
-    # Returns coordinates as separate dataframes for utr5, cds, and utr3
-    elif return_individual_regions == True:
-
-        return utr5_ranges_df, cds_ranges_df, utr3_ranges_df, strandedness
+# Function to derive lengths of CDS and UTRs from ranges
+# def extract_features_length(all_ranges):
+#     """
+#
+#     :param all_ranges: A dataframe with the ranges for each region (CDS, utrs)
+#     :return: the length of the three regions
+#     """
+#     #Calculate length of each individual feature
+#     all_ranges["length"] = all_ranges["End"] - all_ranges["Start"]
+#
+#     # Calculate total length of mRNA
+#     mRNA_length = all_ranges["length"].sum()
+#
+#     # Calculate length by grouped feature (CDS, utrs)
+#     features_breakdown = all_ranges.groupby("Feature")["length"].sum()
+#     cds_length = features_breakdown["CDS"] + features_breakdown["stop_codon"]
+#     utr5_length = features_breakdown["five_prime_utr"]
+#     utr3_length = features_breakdown["three_prime_utr"]
+#
+#     # Sanity check
+#     assert cds_length + utr5_length + utr3_length == mRNA_length
+#
+#     return utr5_length, cds_length, utr3_length
 
 
 # Function to derive lengths of CDS and UTRs from ranges
-def extract_features_length(all_ranges):
+def extract_features_length(ranges, strandedness):
     """
 
     :param all_ranges: A dataframe with the ranges for each region (CDS, utrs)
     :return: the length of the three regions
     """
-    #Calculate length of each individual feature
-    all_ranges["length"] = all_ranges["End"] - all_ranges["Start"]
 
-    # Calculate total length of mRNA
-    mRNA_length = all_ranges["length"].sum()
+    # Extract Feature informations available.
+    df = ranges.as_df()
 
+    features = df["Feature"].unique()
+    # Calculate length of each individual feature
+    df["length"] = df["End"] - df["Start"]
     # Calculate length by grouped feature (CDS, utrs)
-    features_breakdown = all_ranges.groupby("Feature")["length"].sum()
-    cds_length = features_breakdown["CDS"] + features_breakdown["stop_codon"]
-    utr5_length = features_breakdown["five_prime_utr"]
-    utr3_length = features_breakdown["three_prime_utr"]
+    features_breakdown = df.groupby("Feature")["length"].sum()
 
-    # Sanity check
-    assert cds_length + utr5_length + utr3_length == mRNA_length
+    # Retrieve lengths based on presence of features on annotation (defaults to None)
+    cds_len = features_breakdown.get("CDS", None)
+    stop_len = features_breakdown.get("stop_codon", None)
+    utr5_len = features_breakdown.get("five_prime_utr", None)
+    utr3_len = features_breakdown.get("three_prime_utr", None)
 
-    return utr5_length, cds_length, utr3_length
+    # Combine stop codon to cds
+    cds_length = cds_len + stop_len
+
+    # If utr length is missing (because not annotated) retrieves it from the genomic coordinates.
+    if (utr5_len is None or utr3_len is None) and ("start_codon" in features and "stop_codon" in features):
+        # padding changes depending on forward/reverse strand:
+        if strandedness == "+":
+            utr5_len = retrieve_5_pad(df, strandedness)
+            utr3_len = retrieve_3_pad(df, strandedness)
+        if strandedness == "-":
+            utr5_len = retrieve_3_pad(df, strandedness)
+            utr3_len = retrieve_5_pad(df, strandedness)
+
+    return utr5_len, cds_length, utr3_len
+
+
+#  helper function for extract_features_lengths
+def retrieve_5_pad(ranges_df, strandedness):
+    df = ranges_df[~ranges_df["Feature"].isin(["transcript", "CDS", "five_prime_utr", "three_prime_utr"])].copy()
+
+    if strandedness == "+":
+        # Retrieve start position (target)
+        target = df[df["Feature"] == "start_codon"]["Start"].iloc[0]
+        # Extract all exons starting before the start codon
+        relevant_exons = df[df['Start'] <= target].copy()
+        # Use clip to have a "roof value"
+        relevant_exons['Clipped_End'] = relevant_exons['End'].clip(upper=target)
+        # retrieve position
+        left_pad = (relevant_exons['Clipped_End'] - relevant_exons['Start']).sum()
+
+    elif strandedness == "-":
+        # Retrieve start position (target)
+        target = df[df["Feature"] == "stop_codon"]["Start"].iloc[0]
+
+        # Extract all exons starting before the start codon
+        relevant_exons = df[df['Start'] <= target].copy()
+        # Use clip to have a "roof value"
+        relevant_exons['Clipped_End'] = relevant_exons['End'].clip(upper=target)
+        # retrieve position
+        left_pad = (relevant_exons['Clipped_End'] - relevant_exons['Start']).sum()
+
+    return left_pad
+
+#  helper function for extract_features_lengths
+def retrieve_3_pad(ranges_df, strandedness):
+    df = ranges_df[~ranges_df["Feature"].isin(["transcript", "CDS", "five_prime_utr", "three_prime_utr"])].copy()
+
+    if strandedness == "+":
+        # Retrieve start position (target)
+        target = df[df["Feature"] == "stop_codon"]["End"].iloc[0]
+        # Extract all exons starting before the start codon
+        relevant_exons = df[df['End'] >= target].copy()
+        # Use clip to have a "roof value"
+        relevant_exons['Clipped_Start'] = relevant_exons['Start'].clip(lower=target)
+        # retrieve position
+        right_pad = (relevant_exons['End'] - relevant_exons['Clipped_Start']).sum()
+
+    elif strandedness == "-":
+        # Retrieve start position (target)
+        target = df[df["Feature"] == "start_codon"]["End"].iloc[0]
+
+        # Extract all exons starting before the start codon
+        relevant_exons = df[df['End'] >= target].copy()
+        # Use clip to have a "roof value"
+        relevant_exons['Clipped_Start'] = relevant_exons['Start'].clip(lower=target)
+        # retrieve position
+        right_pad = (relevant_exons['End'] - relevant_exons['Clipped_Start']).sum()
+
+    return right_pad
 
 
 # Function to extract coverage for a single transcript from a single bigwig
@@ -206,10 +333,13 @@ def txid_data_extraction(current_run, bigwig_files, gr):
             st.stop()
 
         # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
-        all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
+        #all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
+        all_ranges, strandedness = regions_df_formatter(transcript_ranges)
         # 3  Retrieve features (CDS, UTRs) lengths
+        #         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
+        #             all_ranges)
         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
-            all_ranges)
+            transcript_ranges, strandedness)
         # 4 Extract coverage from given bigwigs
         current_run.all_studies_df = extract_from_multiple_bigwigs(bigwig_files,
                                                                    all_ranges,
