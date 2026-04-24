@@ -664,7 +664,7 @@ def compile_results_factor(trace_negbin, inputs_dict):
 
 # Checks how much of the  posterior probability mass for theta_run[i] falls within the ROPE boundary
 # That's the boundary where we say "it's practically zero" for the efficiency. We limit at 1%.
-def flag_practical_zero_runs(trace_negbin, inputs_dict, rope_upper=0.01):
+def flag_practical_zero_runs(trace_negbin, inputs_dict, rope_upper=0.01, mass_threshold = 0.95):
     """
     Quantify the posterior mass of theta_run within the ROPE interval [0, rope_upper]
     and provide an interpretation.
@@ -686,7 +686,9 @@ def flag_practical_zero_runs(trace_negbin, inputs_dict, rope_upper=0.01):
     theta_samples = trace_negbin.posterior['theta_run'].values
 
     # Bins for interpretation:
-    bins = [-np.inf, 0.05, 0.95, np.inf]
+    a = 1 - mass_threshold
+    b = mass_threshold
+    bins = [-np.inf, a, b, np.inf]
     labels = ["Efficiency credibly non-zero",
               "Inconclusive - cannot discriminate from data",
               "Efficiency too low, practically zero"
@@ -713,7 +715,7 @@ def flag_practical_zero_runs(trace_negbin, inputs_dict, rope_upper=0.01):
     return results_df
 
 
-def compile_results_run(trace_negbin, inputs_dict):
+def compile_results_run(trace_negbin, inputs_dict, mass_threshold = 0.95, rope_upper = 0.01):
     run_efficiency_samples = trace_negbin.posterior['theta_run'].values  # shape: (chains, draws, n_tissues)
 
     # Calculate summary statistics for each tissue
@@ -744,7 +746,8 @@ def compile_results_run(trace_negbin, inputs_dict):
     merged = pd.merge(results, df, on="Run", how="left")
 
     # Find null runs (where 95% prob mass for theta_run is within ROPE boundary)
-    null_runs = flag_practical_zero_runs(trace_negbin, inputs_dict)
+    null_runs = flag_practical_zero_runs(trace_negbin = trace_negbin, inputs_dict = inputs_dict,
+                                         mass_threshold=mass_threshold, rope_upper = rope_upper)
     merged = pd.merge(merged, null_runs, on="Run", how="left")
 
     # Flags datasets/runs where the CI width is twice the median CI width for that tissue.
@@ -798,7 +801,7 @@ def factor_plot(df, inputs_dict, outpath=None):
     return
 
 
-def runs_plot(df, outpath=None):
+def runs_plot(df, mass_threshold = 0.95, outpath=None):
     # Sort by level first, then by Mean RTA within each level
     df = df.sort_values(['level', 'Mean RTA']).reset_index(drop=True)
 
@@ -857,9 +860,9 @@ def runs_plot(df, outpath=None):
         Line2D([0], [0], marker='x', color='gray', linestyle='none',
                markersize=7, label='Inconclusive from data'),
         Line2D([0], [0], marker='^', color='gray', linestyle='none',
-               markersize=7, label=f'Probably zero (%)'),
+               markersize=7, label=f'Probably zero ({mass_threshold*100}%)'),
         Line2D([0], [0], marker='o', color='gray', linestyle='none',
-               markersize=7, label=f'Likely non-zero (%)'),
+               markersize=7, label=f'Likely non-zero ({mass_threshold*100}%)'),
     ]
 
     # Run names on x-axis
@@ -903,7 +906,7 @@ def runs_plot(df, outpath=None):
     return
 
 
-def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, min_members=10, belief = "standard"):
+def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, min_members=10, belief = "standard", mass_threshold = 0.95, rope_upper = 0.01):
     # Keep only datasets where baseline is expressed.
     _, good_runs = test_baseline_vs_noise(df, coordinates, random_state)
     df = df[good_runs].copy()
@@ -939,7 +942,7 @@ def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, mi
 
     # Compiles the table. One also flags run outliers (Wide_CI_Flag)
     res = compile_results_factor(trace_negbin, inputs_dict)
-    runs = compile_results_run(trace_negbin, inputs_dict)
+    runs = compile_results_run(trace_negbin = trace_negbin, inputs_dict = inputs_dict, mass_threshold = mass_threshold, rope_upper = rope_upper)
 
     # Save res and runs
     full_path = os.path.join(outpath, f"{factor}_RTA_estimates.csv")
@@ -950,6 +953,6 @@ def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, mi
 
     # Makes plots and saves
     factor_plot(res, inputs_dict, outpath)
-    runs_plot(runs, outpath = outpath)
+    runs_plot(runs, mass_threshold = mass_threshold, outpath = outpath)
 
     return res, runs
