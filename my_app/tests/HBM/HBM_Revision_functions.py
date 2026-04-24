@@ -817,7 +817,18 @@ def runs_plot(df, outpath=None):
     levels = df['level'].unique()
     cmap = plt.get_cmap('tab10')
     level_colors = {lv: cmap(i % 10) for i, lv in enumerate(levels)}
-    colors = df['level'].map(level_colors)
+
+    # Assign marker shape based on ROPE_interpretation
+    def resolve_marker(interp):
+        if isinstance(interp, str):
+            interp_lower = interp.lower()
+            if 'inconclusive' in interp_lower:
+                return 'x'
+            if 'practically zero' in interp_lower:
+                return '^'
+        return 'o'  # default shape for everything else (triangle)
+
+    df['marker'] = df['ROPE_interpretation'].apply(resolve_marker)
 
     # Plot
     fig, ax = plt.subplots(figsize=(max(10, len(df) * 0.35), 6))
@@ -825,13 +836,30 @@ def runs_plot(df, outpath=None):
     ci_lower = df['95% CI Lower'].values
     ci_upper = df['95% CI Upper'].values
 
+    # Plot each (level, marker) combination separately so shapes come through
     for lv in levels:
-        mask = df['level'] == lv
-        ax.errorbar(df.loc[mask, 'x_pos'], df.loc[mask, 'Mean RTA'],
-                    yerr=[means[mask] - ci_lower[mask], ci_upper[mask] - means[mask]],
-                    fmt='o', markersize=7, capsize=4, capthick=1.5,
-                    color=level_colors[lv], ecolor=level_colors[lv],
-                    alpha=0.85, label=lv, linestyle='none')
+        for marker in df.loc[df['level'] == lv, 'marker'].unique():
+            mask = (df['level'] == lv) & (df['marker'] == marker)
+            if not mask.any():
+                continue
+            # Only label the "main" marker in the legend to avoid duplicates
+            label = lv if marker == df.loc[df['level'] == lv, 'marker'].mode().iloc[0] else None
+            ax.errorbar(df.loc[mask, 'x_pos'], df.loc[mask, 'Mean RTA'],
+                        yerr=[means[mask] - ci_lower[mask], ci_upper[mask] - means[mask]],
+                        fmt=marker, markersize=7, capsize=4, capthick=1.5,
+                        color=level_colors[lv], ecolor=level_colors[lv],
+                        alpha=0.85, label=label, linestyle='none')
+
+    # Add shape legend entries (one per interpretation category)
+    from matplotlib.lines import Line2D
+    shape_handles = [
+        Line2D([0], [0], marker='x', color='gray', linestyle='none',
+               markersize=7, label='Inconclusive from data'),
+        Line2D([0], [0], marker='^', color='gray', linestyle='none',
+               markersize=7, label='Probably zero (95%)'),
+        Line2D([0], [0], marker='o', color='gray', linestyle='none',
+               markersize=7, label='Likely non-zero (95%)'),
+    ]
 
     # Run names on x-axis
     ax.set_xticks(df['x_pos'])
@@ -857,7 +885,12 @@ def runs_plot(df, outpath=None):
     ax.set_ylabel('RTA', fontsize=12)
     ax.set_title('Run-Level RTA Estimates by Group (95% Credible Intervals)', fontsize=14)
     ax.grid(True, alpha=0.3, axis='y')
-    ax.legend(loc='best', fontsize=9, framealpha=0.9)
+
+    # Combined legend: level colours + shape meanings
+    level_handles, level_labels = ax.get_legend_handles_labels()
+    ax.legend(handles=level_handles + shape_handles,
+              loc='best', fontsize=9, framealpha=0.9)
+
     plt.tight_layout()
 
     if outpath is not None:
@@ -918,4 +951,4 @@ def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, mi
     factor_plot(res, inputs_dict, outpath)
     runs_plot(runs, outpath)
 
-    return
+    return res, runs
