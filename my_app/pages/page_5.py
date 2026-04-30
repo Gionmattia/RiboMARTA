@@ -149,11 +149,12 @@ if current_mode.txid_analysis_done is True:
             # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
             meta_option = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.txid_results_meta.columns[:5]) # select first 5
+                current_mode.txid_results_meta.columns[:]) # select first 5
 
             d_plot = new_diamond_plotter(current_mode.txid_results_meta,
                                      meta=meta_option,
-                                     logs = False)
+                                     logs = False,
+                                     show_nonsignificant = True)
             st.plotly_chart(d_plot, use_container_width=True)
 
             if st.button("Store in the report", key = "diamond plot"):
@@ -165,12 +166,13 @@ if current_mode.txid_analysis_done is True:
             # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
             meta_option_bis = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.txid_results_meta.columns[:5],
+                current_mode.txid_results_meta.columns[:],
                 key = "meta_dplot_bis") # select first 5
 
             d_plot_bis = diamond_plotter(current_mode.txid_results_meta,
                                      meta=meta_option_bis,
-                                     logs = True)
+                                     logs = True,
+                                    ) # Can give errors if True for non-significant results (CI goes below allwod for logs)
             st.plotly_chart(d_plot_bis,
                             use_container_width=True,
                             key = "figure_d_bis")
@@ -193,13 +195,17 @@ if current_mode.txid_analysis_done is True:
                                       current_mode.txid_ranges)
             st.plotly_chart(ml_plot, use_container_width=True)
 
+            if st.button("Store in the report", key = "ml_plot"):
+                analysis.user_plots.append(ml_plot)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+
         with tab6:
             st.write("Here you can visualise all the data aggregated (regardless of the significance of the RTA), depending on the metadata available.")
 
             # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
             st.session_state.agg_meta_option = st.selectbox(
                 "Select the medatadata field to use for the aggregation",
-                current_mode.txid_results_meta.columns[:5])
+                current_mode.txid_results_meta.columns[:])
 
             # Now to select the individual condition or conditions
             aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
@@ -218,6 +224,10 @@ if current_mode.txid_analysis_done is True:
                                           coordinates = current_mode.txid_ranges)
 
             st.plotly_chart(agg_meta_plot, use_container_width=True)
+
+            if st.button("Store in the report", key = "agg_line_plot"):
+                analysis.user_plots.append(ml_plot)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     #with st.expander("Diamond Plot"):
         # Insert here function to merge results with metadata...

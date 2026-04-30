@@ -119,6 +119,7 @@ class TranscriptIDMode:
     utr3_length: int = None
     all_studies_df: pd.DataFrame = None
     transcript_sequence: str = None
+    mappability_df: pd.DataFrame = None
     tx_ga_plot: go.Figure = None
     triplet_ga_plot: go.Figure = None
     norm_triplet_ga_plot: go.Figure = None
@@ -151,6 +152,7 @@ class AnalysisStatus:
     quirky_id: str = None
     organism: str = ""
     full_dataset_list: list = None
+    mappability_path: str = None #Default is None
 
     # Studies selection
     filters: MetadataFilters = field(default_factory=MetadataFilters)
@@ -375,7 +377,14 @@ def srr_lookup_sidebar2(data, current_run, analysis):
         try:
             analysis.flagged_datasets.remove(srr)
         except:
-            st.sidebar.write(f"{str(srr)} already NOT in your cart!")
+            st.sidebar.write(f"{str(srr)} NOT among flagged ones!")
+    if analysis.flagged_datasets:
+        st.sidebar.subheader("Flagged Datasets")
+        for dataset in analysis.flagged_datasets:
+            st.sidebar.write(dataset)
+    else:
+        st.sidebar.write("No datasets flagged! 🎉")
+
 
 
 def quirky_id_checkpoint():

@@ -4,6 +4,7 @@ from app_helpers import *
 from module0 import *
 from transcriptID_mode_helpers import *
 from transcriptID_mode_helpers2 import *
+from STP_helpers import *
 
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
@@ -57,29 +58,28 @@ if current_mode.tx_cov_extracted:
 ### Display the data once extracted | Allow for ranges selection ###
 if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence != "":
 
-    # computes global aggregate
-    ga_df_raw = global_aggregate(current_mode.all_studies_df)
-    ga_df_norm = global_aggregate(current_mode.all_studies_df, normalize=True)
-
-    # Generate plots if they don't exist (lazy initialization via direct checks)
-    if current_mode.tx_ga_plot is None:
-        # Single transcript plot of global aggregate. No frames or ORF plots
-        current_mode.tx_ga_plot = plot_global_aggregate_with_zero(ga_df_raw,
-                                                                 current_mode.utr5_length,
-                                                                 current_mode.cds_length,
-                                                                 current_mode.txid)
+    # # computes global aggregate
+    # ga_df_norm = global_aggregate(current_mode.all_studies_df, normalize=True)
+    #
+    # # Generate plots if they don't exist (lazy initialization via direct checks)
+    # if current_mode.tx_ga_plot is None:
+    #     # Single transcript plot of global aggregate. No frames or ORF plots
+    #     current_mode.tx_ga_plot = plot_global_aggregate_with_zero(ga_df_raw,
+    #                                                              current_mode.utr5_length,
+    #                                                              current_mode.cds_length,
+    #                                                              current_mode.txid)
 
     if current_mode.triplet_ga_plot is None:
-        current_mode.triplet_ga_plot = plot_ga_with_frames(current_mode,
-                                                          ga_df_raw,
-                                                          y_column = "Global Aggregate smoothed",
-                                                          smoothing = True)
+        current_mode.triplet_ga_plot = plot_ga_with_frames2(current_mode,
+                                                            current_mode.all_studies_df,
+                                                            y_column = "Global Aggregate smoothed",
+                                                            normalize=False)
 
     if current_mode.norm_triplet_ga_plot is None:
-        current_mode.norm_triplet_ga_plot = plot_ga_with_frames(current_mode,
-                                                               ga_df_norm,
-                                                               y_column = "Global Aggregate smoothed",
-                                                               smoothing = True)
+        current_mode.norm_triplet_ga_plot = plot_ga_with_frames2(current_mode,
+                                                                 current_mode.all_studies_df,
+                                                                 y_column = "Global Aggregate smoothed",
+                                                                 normalize=True)
 
     # Expanders to render the plots, if present
     ga_plots_UI_render(current_mode, analysis)

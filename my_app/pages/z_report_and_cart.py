@@ -92,6 +92,7 @@ markdown_content = report_content = f"""
 {run.quirky_id}
 #### Organism Selected: 
 {run.organism}
+#### Mappability
 #### Metadata Filters adopted: 
 {filters_report}
 \n Selected studies: {len(srr_list)} 

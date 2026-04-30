@@ -33,63 +33,6 @@ def extract_tx_pyranges(gr, txid):
 
 
 # Function to format the transcript ranges, for extraction of coverage from BigWigs
-# def regions_dataframe_formatter(transcript_ranges, return_individual_regions = False):
-#     """
-#     :param transcript_ranges: a pyranges.pyranges_main.PyRanges object
-#     :param return_individual_regions: whether to return individual regions (3', 5', cds) dataframe coordinates or as a single one
-#     :return: a singe dataframe, with the coordinates for each exon fragment making up CDS and utrs or the dataframes with coordinates for utr5, CDS, and utr3 separately.
-#
-#     Regarding this aspect: On the + strand, we have everything in growing order of coordinates, but on - strand it is the opposite.
-#     So we need to explain the tool how to deal with those fragments when extracting them.
-#
-#     The "Region" tag is necessary to name each range differently, so that the _extract_one() helper can use these tags as key when
-#     building the dictionary of coverages per exonic fragment.
-#     """
-#
-#     # First, convert object to a dataframe, for manipulation
-#     my_ranges = transcript_ranges.as_df()[['Chromosome', 'Feature', 'Start', 'End', 'transcript_id', 'gene_name', 'exon_number', 'exon_id', "Strand"]]
-#
-#     # Check strandedness of the transcript features is unique (It should be, but errors in annotation happen).
-#     if my_ranges["Strand"].nunique() != 1:
-#         raise AssertionError("Transcript should be on one strand, but the selected one seems to have elements on both/none strands.")
-#     else:
-#         strandedness = my_ranges["Strand"].unique()
-#
-#     # Extract features coordinates, divided between CDS, utr5 and utr3
-#     utr5_ranges_df = my_ranges[my_ranges["Feature"]== "five_prime_utr"].copy()
-#     cds_ranges_df = my_ranges[(my_ranges["Feature"]== "CDS") | (my_ranges["Feature"]== "stop_codon") ].copy()
-#     utr3_ranges_df = my_ranges[my_ranges["Feature"]== "three_prime_utr"  ].copy()
-#
-#     # Resets the index, based on the order of features
-#     utr5_ranges_df = utr5_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
-#     cds_ranges_df = cds_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
-#     utr3_ranges_df = utr3_ranges_df.sort_values(by = "Start", ascending = True).reset_index(drop = True)
-#
-#     # Applies the index to the "Region" tag (used by _extract_one() later)
-#     utr5_ranges_df["Region"] = utr5_ranges_df["Feature"] + "|" + utr5_ranges_df.index.astype(str)
-#     cds_ranges_df["Region"] = cds_ranges_df["Feature"] + "|" + cds_ranges_df.index.astype(str)
-#     utr3_ranges_df["Region"] = utr3_ranges_df["Feature"] + "|" + utr3_ranges_df.index.astype(str)
-#
-#     # Output
-#     # If returning the coordinates as a single dataframe, it's important to order them based on strand they are on
-#     if return_individual_regions == False:
-#
-#         if strandedness == "+":
-#             all_ranges = pd.concat([utr5_ranges_df, cds_ranges_df, utr3_ranges_df])
-#         elif strandedness == "-":
-#             all_ranges = pd.concat([utr3_ranges_df, cds_ranges_df, utr5_ranges_df,])
-#
-#         assert all_ranges["Start"].is_monotonic_increasing, "Something when wrong when concatenating utrs and cds coordinates based on polarity of the strand. Check regions_dataframe_formatter"
-#
-#         return all_ranges, strandedness
-#
-#     # Returns coordinates as separate dataframes for utr5, cds, and utr3
-#     elif return_individual_regions == True:
-#
-#         return utr5_ranges_df, cds_ranges_df, utr3_ranges_df, strandedness
-
-
-# Function to format the transcript ranges, for extraction of coverage from BigWigs
 def regions_df_formatter(transcript_ranges):
     """
     :param transcript_ranges: a pyranges.pyranges_main.PyRanges object
@@ -122,30 +65,6 @@ def regions_df_formatter(transcript_ranges):
 
     return ranges_df, strandedness
 
-# Function to derive lengths of CDS and UTRs from ranges
-# def extract_features_length(all_ranges):
-#     """
-#
-#     :param all_ranges: A dataframe with the ranges for each region (CDS, utrs)
-#     :return: the length of the three regions
-#     """
-#     #Calculate length of each individual feature
-#     all_ranges["length"] = all_ranges["End"] - all_ranges["Start"]
-#
-#     # Calculate total length of mRNA
-#     mRNA_length = all_ranges["length"].sum()
-#
-#     # Calculate length by grouped feature (CDS, utrs)
-#     features_breakdown = all_ranges.groupby("Feature")["length"].sum()
-#     cds_length = features_breakdown["CDS"] + features_breakdown["stop_codon"]
-#     utr5_length = features_breakdown["five_prime_utr"]
-#     utr3_length = features_breakdown["three_prime_utr"]
-#
-#     # Sanity check
-#     assert cds_length + utr5_length + utr3_length == mRNA_length
-#
-#     return utr5_length, cds_length, utr3_length
-
 
 # Function to derive lengths of CDS and UTRs from ranges
 def extract_features_length(ranges, strandedness):
@@ -164,24 +83,40 @@ def extract_features_length(ranges, strandedness):
     # Calculate length by grouped feature (CDS, utrs)
     features_breakdown = df.groupby("Feature")["length"].sum()
 
-    # Retrieve lengths based on presence of features on annotation (defaults to None)
-    cds_len = features_breakdown.get("CDS", None)
-    stop_len = features_breakdown.get("stop_codon", None)
+    # Retrieve lengths based on presence of features on annotation (defaults to 0 or None)
+    cds_len   = features_breakdown.get("CDS", 0)
+    stop_len  = features_breakdown.get("stop_codon", 0)
     utr5_len = features_breakdown.get("five_prime_utr", None)
     utr3_len = features_breakdown.get("three_prime_utr", None)
 
     # Combine stop codon to cds
     cds_length = cds_len + stop_len
 
-    # If utr length is missing (because not annotated) retrieves it from the genomic coordinates.
-    if (utr5_len is None or utr3_len is None) and ("start_codon" in features and "stop_codon" in features):
-        # padding changes depending on forward/reverse strand:
-        if strandedness == "+":
-            utr5_len = retrieve_5_pad(df, strandedness)
-            utr3_len = retrieve_3_pad(df, strandedness)
-        if strandedness == "-":
-            utr5_len = retrieve_3_pad(df, strandedness)
-            utr3_len = retrieve_5_pad(df, strandedness)
+    # Fall back to coordinate-based UTR inference when annotation lacks explicit UTR features.
+    # Handle each UTR independently — they can be missing separately.
+    if "start_codon" in features and "stop_codon" in features:
+        if utr5_len is None:
+            utr5_len = (retrieve_5_pad(df, strandedness) if strandedness == "+"
+                        else retrieve_3_pad(df, strandedness))
+        if utr3_len is None:
+            utr3_len = (retrieve_3_pad(df, strandedness) if strandedness == "+"
+                        else retrieve_5_pad(df, strandedness))
+
+    # # If utr length is missing (because not annotated) retrieves it from the genomic coordinates.
+    # if (utr5_len is None or utr3_len is None) and ("start_codon" in features and "stop_codon" in features):
+    #     # padding changes depending on forward/reverse strand:
+    #     if strandedness == "+":
+    #         utr5_len = retrieve_5_pad(df, strandedness)
+    #         utr3_len = retrieve_3_pad(df, strandedness)
+    #     if strandedness == "-":
+    #         utr5_len = retrieve_3_pad(df, strandedness)
+    #         utr3_len = retrieve_5_pad(df, strandedness)
+
+    # Final safety: if we still couldn't resolve them, set to 0 and warn.
+    # if utr5_len is None:
+    #     utr5_len = 0
+    # if utr3_len is None:
+    #     utr3_len = 0
 
     return utr5_len, cds_length, utr3_len
 
@@ -352,336 +287,6 @@ def txid_data_extraction(current_run, bigwig_files, gr):
     return all_ranges, strandedness
 
 
-# Introducing smoothing function:
-def smoother(df: pd.DataFrame, smoothing:bool = True):
-    """
-    Calculates the frame over the global aggregate, then smoothes by it.
-    Also adds column "X" used by plotting function "subplot_single_transcript_plot"
-
-    :param df: pandas.DataFrame
-        DataFrame containing a 'Global Aggregate' column
-    :param smoothing: logical. Default is true. If false, data is not smoothed.
-    :return df: pandas.DataFrame
-        DataFrame with the smoothed Global Aggregate
-    :return k: int. The k-mer value (k) applied to smooth peaks, if smoothing == True.
-    """
-    # Copies the position to column "X". Used to calculate Frame and for visualisation later
-    df["X"] = df.index
-
-    df["X"] = df["X"].astype(int)
-    # Assign frame to each position
-    df["Frame"] = (df["X"] % 3) + 1
-
-    if smoothing == True:
-        # Code to smooth cov by frame. Adjust based on transcript length
-        transcript_len = len(df.index)
-        if transcript_len < 3500:
-            k = 3
-        elif transcript_len < 6000:
-            k = 5
-        elif transcript_len < 10000:
-            k = 9
-        else:
-            k = 13
-
-        k2 = k * 3
-        for i in range(0, len(df), k2):
-            # Select the slice of 9 rows using iloc
-            chunk = df.iloc[i:i + k2]
-            # out of those, groupby Frame, calculate the mean
-            chunk_averages = chunk.groupby('Frame')['Global Aggregate'].transform("mean")
-            # store the new values as a new column
-            df.loc[chunk.index, "Global Aggregate smoothed"] = chunk_averages
-
-        return df, k
-
-    elif smoothing == False:
-        # No smoothing, indicated as k = 1
-        k=1
-
-        return df, k
-
-# Helper. Adds a vertical line to a plot, with a label on top.
-def _add_vline_and_label(p, x, max_y, text):
-    """
-    Helper function. Adds a vertical line and a label to the given Bokeh plot.
-    Used to mark start/stop codons on single transcript plots
-
-    :param p: bokeh.plotting.Figure
-    :param x : int/float - x position for the line and label
-    :param y_position : int/float - y position for the label
-    :param text : str - label for the line
-
-    """
-    vline = Span(
-        location=x,
-        dimension="height",
-        line_color="black",
-        line_width=2,
-        line_dash="dashed"
-    )
-    label = Label(
-        x=x,
-        y= max_y + max_y * 0.5,
-        text=text,
-        text_font_size="11pt",
-        text_color="black",
-        text_align="center",
-        x_offset=0,
-        y_offset= -20,
-        y_units = "data",
-        background_fill_color="white",
-        background_fill_alpha=1.0
-    )
-    p.add_layout(vline)
-    p.add_layout(label)
-
-
-# New function to make Single transcript plot. Shows also frame info.
-def subplot_single_transcript_plot(
-        df: pd.DataFrame,
-        x_range: FactorRange,
-        y_axis: str,
-        utr5_length: int,
-        cds_length: int,
-        txid: str = "",
-        k: int = 1
-) -> figure:    #  (df, y_axis, x_range, k, start=0, stop=0, txid = ""):
-    """
-    Create a frame-aware transcript coverage plot with ORF boundaries marked.
-
-    Plots coverage data colored by reading frame (1, 2, 3) with vertical lines
-    marking the start and stop codons.
-
-    Args:
-        df: DataFrame with columns 'X' (position), 'Frame' (1-3), and
-            'Global Aggregate' (coverage values)
-        x_range: Shared FactorRange for x-axis (ensures alignment with ORF plots)
-        y_axis: Name of the column in df to use for y-axis values
-        utr5_length: Length of 5' UTR (marks CDS start position)
-        cds_length: Length of CDS region
-        txid: Transcript identifier for plot title
-        k: Smoothing window size (for title only, to inform user)
-
-    Returns:
-        Bokeh figure object with interactive frame-colored coverage plot
-    """
-    # Ensure 'Frame' is string for color mapping
-    df = df.copy()
-    df['Frame'] = df['Frame'].astype(str)
-
-    # Color map
-    frame_color_map = {
-        "1": "#48cf4b",
-        "2": "#68ace3",
-        "3": "#e66343"
-    }
-
-    # Define y-axis limits
-    max_y = df[y_axis].max()
-    min_y = -1 * df[y_axis].quantile(0.10)
-
-    # Build plot title
-    if k > 1:
-        title = f"Global Aggregate for {txid}, smoothed by k = {k}"
-    else:
-        title = f"Global Aggregate for {txid}"
-
-    p = figure(
-        x_range=x_range,
-        y_range = (min_y, max_y * 1.5),
-        sizing_mode="stretch_both",
-        background_fill_color="white",
-        x_axis_label="Position on the transcript (nt)",
-        y_axis_label="Aggregate Counts",
-        title= title
-    )
-
-    # Remove gridlines and set white background (like theme_minimal + tweaks)
-    p.xgrid.grid_line_color = None
-    p.ygrid.grid_line_color = None
-    p.outline_line_color = None
-
-    # Plot each frame as an area (overlay, not stacked)
-    for frame, group in df.groupby('Frame'):
-        group_sorted = group.sort_values('X')
-        source = ColumnDataSource(group_sorted)
-
-        # Area fill
-        p.varea(
-            x="X", y1=0, y2=y_axis,
-            source=source,
-            fill_color=frame_color_map.get(frame, "#cccccc"),
-            fill_alpha=0.6,
-            legend_label=f"Frame {frame}",
-        )
-
-        # invisible hover bars
-        p.vbar(
-            x="X",
-            top=y_axis,
-            bottom=0,
-            width=1,
-            source=source,
-            fill_color=frame_color_map.get(frame, "#cccccc"),
-            fill_alpha=0,
-            hover_fill_color=frame_color_map.get(frame, "#cccccc"),
-            hover_fill_alpha=0.4,
-            line_color=None
-        )
-
-    # Style axes text
-    p.yaxis.axis_label_text_font_size = "13pt"
-    p.xaxis.axis_label_text_font_size = "13pt"
-    p.yaxis.major_label_text_font_size = "13pt"
-    p.xaxis.major_label_text_font_size = "13pt"
-
-    # Configure legend and placement
-    p.legend.title = "Frame"
-    p.legend.location = "top_center"
-    p.legend.orientation = "horizontal"
-    p.legend.click_policy = "hide"
-
-    hover = HoverTool(
-        tooltips=[
-            ("Position", "@X"),
-            ("Frame", "@Frame"),
-            ("Value", f"@{{{y_axis}}}"),
-        ],
-        # Use 'vline' to snap tooltip to the nearest x-value (optional)
-        mode='vline'
-    )
-    p.add_tools(hover)
-
-    # Hide x-axis labels (nucleotides are too clutter-y)
-    p.xaxis.major_label_text_font_size = '0pt'
-    p.xaxis.major_tick_line_color = None
-    p.xaxis.minor_tick_line_color = None
-
-    # Define ranges to limit plot pan
-    p.y_range.bounds = ( min_y, max_y * 1.5)
-    max_x = max(map(int, x_range.factors)) * 1.5
-    min_x = min(map(int, x_range.factors)) - max_x * 0.2
-    p.x_range.bounds = (min_x, max_x)
-
-    # Compute start?stop codon positions
-    start_pos = utr5_length
-    stop_pos = utr5_length + cds_length
-
-    # Add lines to highlight Start/Stop codons
-    _add_vline_and_label(p, start_pos, df[y_axis].max() ,"Start")
-    _add_vline_and_label(p, stop_pos, df[y_axis].max()  ,"Stop")
-
-    return p
-
-
-
-def old_subplot_single_transcript_plot(df, y_axis, x_range, k, start=0, stop=0, txid = ""):
-    """
-    Creates the single transcript plot, each frame coloured differently.
-
-    :param df: -> input dataframe. Must have columns "Frame", "X" (position over transcript).
-    :param y_axis: -> str, the name of the column with the data to be plotted on y axis
-    :param x_range: -> x values, a factorRange object from Blokeh (to put different plots on same X together).
-    :param start: -> int, position of START codon.
-    :param stop: -> int, position of STOP codon.
-
-    """
-    # Ensure 'frame' is str for color mapping and legend
-    df['Frame'] = df['Frame'].astype(str)
-
-    # Color map to match R code
-    frame_color_map = {
-        "1": "#48cf4b",
-        "2": "#68ace3",
-        "3": "#e66343"
-    }
-
-    max_y = df[y_axis].max()
-
-    if k != 1:
-        title = f"Global Aggregate for {txid}, smoothed by k = {k}"
-    else:
-        title = f"Global Aggregate for {txid}"
-
-    p = figure(
-        x_range=x_range,
-        y_range = ( -1* df[y_axis].quantile(0.10), max_y * 1.5),
-        sizing_mode="stretch_both",
-        background_fill_color="white",
-        x_axis_label="Position on the transcript (nt)",
-        y_axis_label="Normalised Aggregate Counts",
-        title= title
-    )
-
-    # Remove gridlines and set white background (like theme_minimal + tweaks)
-    p.xgrid.grid_line_color = None
-    p.ygrid.grid_line_color = None
-    p.outline_line_color = None
-
-    # Plot each frame as an area (overlay, not stacked)
-    for frame, group in df.groupby('Frame'):
-        group_sorted = group.sort_values('X')
-        source = ColumnDataSource(group_sorted)
-        p.varea(
-            x="X", y1=0, y2=y_axis,
-            source=source,
-            fill_color=frame_color_map.get(frame, "#cccccc"),
-            fill_alpha=0.6,
-            legend_label=f"Frame {frame}",
-        )
-
-        p.vbar(
-            x="X",
-            top=y_axis,
-            bottom=0,
-            width=1,
-            source=source,
-            fill_color=frame_color_map.get(frame, "#cccccc"),
-            fill_alpha=0,  # invisible until hover
-            hover_fill_color=frame_color_map.get(frame, "#cccccc"),
-            hover_fill_alpha=0.4,  # semi-transparent on hover
-            line_color=None
-        )
-
-    # Style axes text (like axis.text.y = element_text(size=13))
-    p.yaxis.axis_label_text_font_size = "13pt"
-    p.xaxis.axis_label_text_font_size = "13pt"
-    p.yaxis.major_label_text_font_size = "13pt"
-    p.xaxis.major_label_text_font_size = "13pt"
-
-    # Set legend title and placement
-    p.legend.title = "Frame"
-    p.legend.location = "top_center"
-    p.legend.orientation = "horizontal"
-    p.legend.click_policy = "hide"
-
-    hover = HoverTool(
-        tooltips=[
-            ("Position", "@X"),
-            ("Frame", "@Frame"),
-            ("Value", f"@{y_axis}"),
-        ],
-        # Use 'vline' to snap tooltip to the nearest x-value (optional)
-        mode='vline'
-    )
-    p.add_tools(hover)
-    p.xaxis.major_label_text_font_size = '0pt'
-    p.xaxis.major_tick_line_color = None
-    p.xaxis.minor_tick_line_color = None
-
-    # Define ranges to limit plot pan
-    p.y_range.bounds = ( -1* df[y_axis].quantile(0.10), max_y*1.5)
-    max_x = max(map(int, x_range.factors)) * 1.5
-    min_x = min(map(int, x_range.factors)) - max_x * 0.2
-    p.x_range.bounds = (min_x, max_x)
-
-    # Add lines to highlight Start/Stop codons
-    _add_vline_and_label(p, start, df[y_axis].max() ,"Start")
-    _add_vline_and_label(p, stop, df[y_axis].max()  ,"Stop")
-
-    return p
-
 # Helper - Functions to create ORFplot
 def get_sequence(fasta, df, strandedness):
     full_seq = ""
@@ -699,127 +304,6 @@ def get_sequence(fasta, df, strandedness):
     elif strandedness == "-":
         full_seq = str(Seq(full_seq).reverse_complement())
         return full_seq
-
-# Helper - Map codons
-def _map_type(codon):
-    if codon == "ATG":
-        return "ATG"
-    elif codon in ["CTG", "GTG", "TTG"] : #, "GTG", "TTG"]:
-        return "CTG"
-    elif codon in ["TGA", "TAA", "TAG"]:
-        return "stop codon"
-    else:
-        return None
-
-# Helper - finds codon in a given frame
-def _find_codons(seq, frame, codons):
-    rows = []
-    for i in range(frame - 1, len(seq) - 2, 3):
-        codon = str(seq[i:i + 3])
-        # if codon in codons:  # This way everything is mapped, regardless of given list
-        rows.append({
-            "codon": codon,
-            "position": i,
-            "Frame": int(frame),
-            "type": _map_type(codon)
-        })
-    locations = pd.DataFrame(rows)
-
-    return locations
-
-
-def compute_codons_by_frame(sequence):
-    codons = ["ATG", "CTG", "GTG", "TTG", "TGA", "TAA", "TAG"]
-    frame_1 = _find_codons(sequence, 1, codons)
-    frame_2 = _find_codons(sequence, 2, codons)
-    frame_3 = _find_codons(sequence, 3, codons)
-
-    temp = pd.concat([frame_1, frame_2, frame_3], ignore_index=True)
-    all_reading_frames = temp.sort_values(by="position", ascending = True).reset_index(drop = True)
-
-    return all_reading_frames
-
-
-# Function to make one ORFplot for a given frame
-def ORF_plotter(df, frame, x_range=None):
-    # Masking as in your code
-    plot_df = df.copy()
-
-    mask = plot_df['Frame'] != frame
-    plot_df.loc[mask, 'type'] = None
-
-    # Convert to strings for categorical axes
-    plot_df['type'] = plot_df['type'].astype(str)
-    plot_df['position'] = plot_df['position'].astype(str)
-    if x_range is None:
-        x_range = plot_df['position'].tolist()
-
-    frame_color_map = {
-        1: "#48cf4b",
-        2: "#68ace3",
-        3: "#e66343"
-    }
-
-    bg_colour = frame_color_map[frame]
-
-    # Bokeh requires a color list for the bars, so we map colors
-    codon_color_map = {
-        "ATG": "white",
-        "stop codon": "black",
-        "CTG": "#e3e3e3",
-        "None": bg_colour,
-        "nan": bg_colour,  # in case you get 'nan' from None/NaN conversion
-    }
-    # Fill bar colors accordingly
-    plot_df['color'] = plot_df['type'].map(lambda x: codon_color_map.get(x, bg_colour))
-
-    # Set up ColumnDataSource
-    source = ColumnDataSource(plot_df)
-
-    # Figure setup
-    p = figure(
-        x_range=x_range,
-        y_range=(0, 1),
-        height=75, width=700, title=f"Frame {frame}",
-        toolbar_location="right",
-        tools="wheel_zoom, reset"
-    )
-    bars = p.vbar(
-        x='position',
-        top=1,
-        width=0.9,
-        color='color',
-        source=source,
-        name="bars"
-    )
-
-    # Add interactive hover tooltip
-    hover = HoverTool(
-        tooltips=[
-            ("Position", "@position"),
-            ("Codon Type", "@type"),
-            # Add other fields as you want, e.g. ("Value", "@value")
-        ],
-        renderers=[bars]
-    )
-    pan = PanTool(dimensions="width")
-    p.add_tools(pan)
-    p.toolbar.active_drag = pan
-    p.add_tools(hover)
-
-    p.y_range.bounds = (0, 1)
-
-    # Hide y-axis
-    p.yaxis.visible = False
-    p.xaxis.visible = False
-    p.yaxis.major_label_text_font_size = '0pt'
-    p.yaxis.minor_tick_line_color = None
-    p.yaxis.major_tick_line_color = None
-
-    # Hide grid lines if desired
-    p.ygrid.grid_line_color = None
-
-    return p
 
 
 # Make global aggregate plot (used in TranscriptID mode)

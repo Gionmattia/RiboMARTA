@@ -232,10 +232,6 @@ def diamond_plotter(df, meta="TISSUE", logs = False):
 
 
 # Function to make diamond plot with CI whiskers by selected metadata field
-import numpy as np
-
-
-# Function to make diamond plot with CI whiskers by selected metadata field
 def new_diamond_plotter(df, meta="TISSUE", logs=False, jitter_amount=0.4, show_nonsignificant=False):
     """
     Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
@@ -450,7 +446,7 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coor
         x=(coordinates["x_slice"][0] + coordinates["x_slice"][1]) / 2,
         y= 1,
         yref="paper",
-        text="1st Region",
+        text="Baseline",
         showarrow=False,
         font=dict(size=11, color="black"),
         bgcolor="#FFDFA0",
@@ -460,7 +456,7 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coor
         x=(coordinates["y_slice"][0] + coordinates["y_slice"][1]) / 2,
         y= 1,
         yref="paper",
-        text="2nd Region",
+        text="Target",
         showarrow=False,
         font=dict(size=11, color="black"),
         bgcolor="#FFDFA0",
@@ -525,7 +521,7 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coor
     )
 
     fig.update_layout(
-        title="Raw Counts Plot",
+        title=f"Raw Counts Plot for {str(run_option).replace('[','').replace(']','')}",
         xaxis_title= "Position on Transcript",
         yaxis_title= "Raw counts",
         plot_bgcolor="#daecf1"
@@ -724,7 +720,7 @@ def agg_line_plot(agg_output_df,  utr5_length = 0, cds_length = 0, aggregations 
     )
 
     fig.update_layout(
-        title="Aggregated Counts Plot",
+        title=f"Aggregated Counts for {str(aggregations).replace('[','').replace(']','')}",
         xaxis_title= "Position on Transcript",
         yaxis_title= "Normalised counts (aggregated by tissue)",
         plot_bgcolor="#daecf1"

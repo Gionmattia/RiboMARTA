@@ -9,6 +9,10 @@ Date: 25-08-2025
 """
 
 import os
+
+import streamlit.elements.widgets.selectbox
+import streamlit.runtime.session_manager
+
 from app_helpers import *
 
 # Organism Loader - Provides interface and code to load organism.
@@ -42,6 +46,8 @@ def organism_loader_interface():
         with st.spinner(f"Loading data for {st.session_state.selected_organism}..."):
             st.session_state.gtf_path = organism_config["gtf_path"]
             st.session_state.metadata = pd.read_csv(organism_config["metadata_path"])
+            st.session_state.mappability_path = organism_config.get("mappability_path")
+
             bigwigs_dir = organism_config["bigwigs_dir"]
             st.session_state.fasta_path = organism_config["fasta_path"]
             st.session_state.bigwig_files = [
@@ -108,6 +114,7 @@ def genomic_coordinates_selection():
         st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
             quirky_id=st.session_state.quirky_id,
             organism=st.session_state.selected_organism,
+            mappability_path=st.session_state.mappability_path,
             genomic_mode=GenomicCoordinatesMode(
                 active=True,
                 genomic_ranges=genomic_ranges
@@ -141,6 +148,7 @@ def ensembl_txid_selection():
         st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
             quirky_id = st.session_state.quirky_id,
             organism = st.session_state.selected_organism,
+            mappability_path= st.session_state.mappability_path,
             transcript_mode=TranscriptIDMode(
                 active=True,
                 txid = txid

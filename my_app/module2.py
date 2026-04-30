@@ -606,7 +606,7 @@ def integrate_metadata(results: pd.DataFrame,
         pd.DataFrame: merged dataframe, with results and metadata for each SRR (Run).
     """
     # Creates a slim version of the metadata
-    slim_meta = metadata[["Run", "TISSUE", "CELL_LINE", "Strain", "Genotype", "Growth_Condition", "Info", "SampleName", "sample_source", "BioSample"]].copy()
+    slim_meta = metadata.copy()
     # assigns the column "Run" as the index
     slim_meta.set_index("Run", inplace=True)
     # merge the two dataframes on index, keep only indexes in results
