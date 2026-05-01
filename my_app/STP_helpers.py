@@ -16,7 +16,7 @@ FRAME_COLORS = {1: "#48cf4b", 2: "#68ace3", 3: "#e66343"}
 CODON_COLORS = {"ATG": "white", "stop codon": "black", "CTG": "#e3e3e3"}
 
 # Introducing smoothing function:
-def smoother(df: pd.DataFrame, smoothing:bool = True):
+def plot_smoother(df: pd.DataFrame, smoothing:bool = True):
     """
     Calculates the frame over the global aggregate, then smoothes by it.
     Also adds column "X" used by plotting function "subplot_single_transcript_plot"
@@ -128,14 +128,6 @@ def _add_vline_and_label(p, x, max_y, text):
     )
     p.add_layout(vline)
     p.add_layout(label)
-
-
-
-analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
-st.write("#### Check global variable")
-st.write(st.session_state.mappability_path)
-st.write("#### Check analysis variable - Defaults to None")
-st.write(analysis.mappability_path)
 
 
 def subplot_single_transcript_plot2(
@@ -380,7 +372,7 @@ def plot_ga_with_frames2(
     """
     # Prepare data
     ga_df = global_aggregate(all_studies_df, normalize = normalize)
-    processed_df, k = smoother(ga_df, smoothing)
+    processed_df, k = plot_smoother(ga_df, smoothing)
 
     # Build shared numeric x-range
     x_min = int(processed_df["X"].min())

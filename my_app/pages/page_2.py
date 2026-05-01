@@ -36,6 +36,7 @@ if current_mode.loading_tx_cov:
 
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
+    current_mode.all_studies_df_backup = current_mode.all_studies_df.copy()
 
 # Checks whether the coverage has been extracted, before proceeding
 if current_mode.tx_cov_extracted:
@@ -86,31 +87,94 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
 
     # Ranges selection for analysis
-    if st.button("Select Ranges"):
-        current_mode.show_ranges_selectors = True
+    # if st.button("Select Ranges"):
+    #     current_mode.show_ranges_selectors = True
+    with st.expander(" Select Ranges"):
 
-    if current_mode.show_ranges_selectors:
-        col1, col2, col3 = st.columns([5, 5, 5])
+    #if current_mode.show_ranges_selectors:
+        col1, col2, col3, col4 = st.columns([4, 4, 4, 8])
         full_mRNA_length = current_mode.utr5_length + current_mode.cds_length + current_mode.utr3_length
 
         with col1:
-            st.write("Select First Region")
+            st.write("##### Baseline Region")
+            st.write("\n")
             current_mode.x_slice = ranges_selector(full_mRNA_length, "x")
 
         with col2:
-            st.write("Select Second Region")
+            st.write("##### Target Region")
+            st.write("\n")
             current_mode.y_slice = ranges_selector(full_mRNA_length, "y")
 
         with col3:
-            st.write("Select Noise Region")
+            st.write("##### Noise Control Region")
+            st.write("\n")
             current_mode.n_slice = ranges_selector(full_mRNA_length, "n")
 
-        st.markdown("<br><br>", unsafe_allow_html=True)
+        with col4:
+            st.write("##### Guidelines:")
+            st.write(""" When possible, pick a region 25nt away from start/stop sites: if Start is at position 80, pick 
+            105 (min recommended is 12).""")
+            st.write("""
+            ***Baseline*** is a region which should be translated, to use as a reference. \n
+            ***Target*** is the region you are interested in analysing. You will assess its RTA when using the baseline 
+            region activity as reference. \n
+            ***Noise Control*** is a region where there should be no translation happening (conceptually akin to a negative 
+            control). Pick a region with good mappability in the 3'UTR, possibly between stop codons.
+            """)
+
+        #st.markdown("<br><br>", unsafe_allow_html=True)
+
+    with st.expander("Select Smoothing Option"):
+        # col1, col2, col3 = st.columns([5, 5, 5])
+        # with col1:
+        #     on = st.toggle("Activate feature")
+        #     if st.button("No Smoothing (App Default choice)", key = "no_smoothing"):
+        #         current_mode.smoothing_option = None
+        #     if st.button("Mappability Smoothing (Proportional)", key = "map_prop_smoothing"):
+        #         current_mode.smoothing_option = "Mappability - Proportional"
+        #     if st.button("Mappability Smoothing (Aggressive)", key = "map_agg_smoothing"):
+        #         current_mode.smoothing_option = "Mappability - Aggressive"
+
+        choice = st.radio(
+            "",
+            options=["No Smoothing",
+                     "Mappability Smoothing (Proportional)",
+                     "Mappability Smoothing (Aggressive)",
+                     "Criminal Smoothing (Experimental)"],
+            horizontal=True,  # makes it look more toggle-like
+            captions=["Default option. No smoothing is applied.",
+                      "Smoothes the coverage per position by their mappability value (see plot).",
+                      "Considers all non-1 mappability positions as 0. Aggressive.",
+                      "Per transcript region, finds extreme positions and smoothes them. Z-score 4 is a good start."],
+        )
+
+
+        if choice == "Criminal Smoothing (Experimental)":
+            z_score_threshold = st.slider("z_score_threshold", 1, 10)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.caption("Abrasive (removes a lot)")
+            with c2:
+                st.caption("<div style='text-align:right'>Permissive (allows peaks) </div>", unsafe_allow_html=True)
+
+        if st.button("Restore Data (un-smooth)"):
+            if current_mode.all_studies_df.equals(current_mode.all_studies_df_backup):
+                st.write("Your dataframe is already consisting of raw counts!")
+            else:
+                current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
+                st.write("Data has been restored to raw counts!")
+        # Add command to backup copy all_studies_df
+        # Needs button to reset smoothing! (reassign original all_studies_df
 
 
     if st.button("Next"):
         current_mode.txid_ranges = {"x_slice": current_mode.x_slice,
                                    "y_slice": current_mode.y_slice,
                                    "n_slice": current_mode.n_slice}
+
+        current_mode.smoothing_option = choice
+        current_mode.smoothing_criminal_thresh = z_score_threshold
+
+
         st.switch_page("pages/page_5.py")
 

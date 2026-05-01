@@ -111,13 +111,13 @@ class TranscriptIDMode:
     # Step 2 - Flags. Coverage extraction and extracted -> used to manage flow/UI
     loading_tx_cov: bool = False
     tx_cov_extracted: bool = False
-    show_ranges_selectors: bool = False
 
     # Step 3 - Annotation-derived metrics | Data Retrieved | Plots rendered
     utr5_length: int = None
     cds_length: int = None
     utr3_length: int = None
     all_studies_df: pd.DataFrame = None
+    all_studies_df_backup: pd.DataFrame = None
     transcript_sequence: str = None
     mappability_df: pd.DataFrame = None
     tx_ga_plot: go.Figure = None
@@ -128,6 +128,8 @@ class TranscriptIDMode:
     x_slice: tuple = None
     y_slice: tuple = None
     n_slice: tuple = None
+    smoothing_option: bool = False
+    smoothing_criminal_thresh: int = 4
     txid_ranges: dict = None # Redundant?
     ci: int = None
     N: int = None

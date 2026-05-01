@@ -102,7 +102,7 @@ def ga_plots_UI_render(current_run, analysis):
     :param current_run: the class AnalysisStatus instance for the current analysis
     :return:
     """
-    with st.expander("Global Aggregate Plots"):
+    #with st.expander("Global Aggregate Plots"):
         # tab1, tab2, tab3 = st.tabs(["Simple Aggregate", "Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
         # with tab1:
         #     st.write("#### Simple Global Aggregate plot")
@@ -113,30 +113,30 @@ def ga_plots_UI_render(current_run, analysis):
         #              "It's an easy-on-the eyes visualisation, less informative but useful for an initial exploration.")
             # if current_run.tx_ga_plot is not None:
             #     st.plotly_chart(current_run.tx_ga_plot, use_container_width=True)
-        tab2, tab3 = st.tabs(["Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
-        with tab2:
-            st.write("####  Raw Global Aggregate & ORF plot")
-            st.write("Below you can see a Single Transcript plot for your data.")
-            st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
-                     "(the sum of raw counts from each study, in that position), smoothed by a window of size k for easy exploration.")
-            st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
-                     "has been added.")
-            if current_run.triplet_ga_plot is not None:
-                streamlit_bokeh(current_run.triplet_ga_plot, use_container_width=False)
-                if st.button("Store in the report", key="triplet_ga_plot"):
-                    analysis.user_plots.append(current_run.triplet_ga_plot)
-                    st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+    tab2, tab3 = st.tabs(["Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
+    with tab2:
+        st.write("####  Raw Global Aggregate & ORF plot")
+        st.write("Below you can see a Single Transcript plot for your data.")
+        st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
+                 "(the sum of raw counts from each study, in that position), smoothed by a window of size k for easy exploration.")
+        st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
+                 "has been added.")
+        if current_run.triplet_ga_plot is not None:
+            streamlit_bokeh(current_run.triplet_ga_plot, use_container_width=False)
+            if st.button("Store in the report", key="triplet_ga_plot"):
+                analysis.user_plots.append(current_run.triplet_ga_plot)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        with tab3:
-            st.write("#### Normalised Global Aggregate & ORF plot")
-            st.write("The x-axis represents the position on the transcript, while the y-axis represents the Normalised Global Aggregate"
-                     "(each count in a position was normalised by the total counts of its study. The the normalised values have been summed to generate"
-                     "the Normalised Global Aggregate), smoothed by a window of size k for easy exploration."
-                     "The normalisation treats all studies as equivalent, regardless of the number of total counts."
-                     "(ie. low-count studies contribute to the plot in the same way as high-count studies).")
-            st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
-                     "has been added.")
-            if current_run.norm_triplet_ga_plot is not None:
-                streamlit_bokeh(current_run.norm_triplet_ga_plot, use_container_width=False)
+    with tab3:
+        st.write("#### Normalised Global Aggregate & ORF plot")
+        st.write("The x-axis represents the position on the transcript, while the y-axis represents the Normalised Global Aggregate"
+                 "(each count in a position was normalised by the total counts of its study. The the normalised values have been summed to generate"
+                 "the Normalised Global Aggregate), smoothed by a window of size k for easy exploration."
+                 "The normalisation treats all studies as equivalent, regardless of the number of total counts."
+                 "(ie. low-count studies contribute to the plot in the same way as high-count studies).")
+        st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
+                 "has been added.")
+        if current_run.norm_triplet_ga_plot is not None:
+            streamlit_bokeh(current_run.norm_triplet_ga_plot, use_container_width=False)
 
 
