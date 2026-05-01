@@ -102,17 +102,7 @@ def ga_plots_UI_render(current_run, analysis):
     :param current_run: the class AnalysisStatus instance for the current analysis
     :return:
     """
-    #with st.expander("Global Aggregate Plots"):
-        # tab1, tab2, tab3 = st.tabs(["Simple Aggregate", "Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
-        # with tab1:
-        #     st.write("#### Simple Global Aggregate plot")
-        #     st.write("Below you can see a Single Transcript plot for your data.")
-        #     st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
-        #              "(the sum of raw counts from each study, in that position).")
-        #     st.write("This plot is a simplified visualisation, with no information on ORFs or reading frames."
-        #              "It's an easy-on-the eyes visualisation, less informative but useful for an initial exploration.")
-            # if current_run.tx_ga_plot is not None:
-            #     st.plotly_chart(current_run.tx_ga_plot, use_container_width=True)
+
     tab2, tab3 = st.tabs(["Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
     with tab2:
         st.write("####  Raw Global Aggregate & ORF plot")

@@ -1,10 +1,12 @@
 # page_2.py
 import streamlit as st
+from smoothing_helpers import *
 from app_helpers import *
 from module0 import *
 from transcriptID_mode_helpers import *
 from transcriptID_mode_helpers2 import *
 from STP_helpers import *
+from streamlit_bokeh import streamlit_bokeh
 
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
@@ -122,30 +124,25 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             control). Pick a region with good mappability in the 3'UTR, possibly between stop codons.
             """)
 
-        #st.markdown("<br><br>", unsafe_allow_html=True)
 
     with st.expander("Select Smoothing Option"):
-        # col1, col2, col3 = st.columns([5, 5, 5])
-        # with col1:
-        #     on = st.toggle("Activate feature")
-        #     if st.button("No Smoothing (App Default choice)", key = "no_smoothing"):
-        #         current_mode.smoothing_option = None
-        #     if st.button("Mappability Smoothing (Proportional)", key = "map_prop_smoothing"):
-        #         current_mode.smoothing_option = "Mappability - Proportional"
-        #     if st.button("Mappability Smoothing (Aggressive)", key = "map_agg_smoothing"):
-        #         current_mode.smoothing_option = "Mappability - Aggressive"
 
-        choice = st.radio(
-            "",
-            options=["No Smoothing",
+        # Failsafe - If no mappability is given, no smoothing is done
+        if current_mode.mappability_df is None:
+            valid_options = ["No Smoothing", "Criminal Smoothing (Experimental)"]
+        else:
+            valid_options = ["No Smoothing",
                      "Mappability Smoothing (Proportional)",
                      "Mappability Smoothing (Aggressive)",
-                     "Criminal Smoothing (Experimental)"],
+                     "Criminal Smoothing (Experimental)"]
+        choice = st.radio(
+            "",
+            options= valid_options,
             horizontal=True,  # makes it look more toggle-like
             captions=["Default option. No smoothing is applied.",
                       "Smoothes the coverage per position by their mappability value (see plot).",
-                      "Considers all non-1 mappability positions as 0. Aggressive.",
-                      "Per transcript region, finds extreme positions and smoothes them. Z-score 4 is a good start."],
+                      "Sets all non-1 mappability positions to 0-counts.",
+                      "Per transcript region, finds extremes and smoothes them. Z-score 4 is a good start."],
         )
 
 
@@ -157,24 +154,24 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             with c2:
                 st.caption("<div style='text-align:right'>Permissive (allows peaks) </div>", unsafe_allow_html=True)
 
-        if st.button("Restore Data (un-smooth)"):
-            if current_mode.all_studies_df.equals(current_mode.all_studies_df_backup):
-                st.write("Your dataframe is already consisting of raw counts!")
-            else:
-                current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
-                st.write("Data has been restored to raw counts!")
-        # Add command to backup copy all_studies_df
-        # Needs button to reset smoothing! (reassign original all_studies_df
+        if st.button("Smooth it!"):
+            current_mode.smoothing_option = choice
+            if choice == "Criminal Smoothing (Experimental)":
+                current_mode.smoothing_criminal_thresh = z_score_threshold
+            # overwrites all_studies_df (ndr backup still safe) to add smoothing options
+            data_smoother(current_mode, current_mode.smoothing_option)
+
+            after_smooth_plot = plot_ga_with_frames2(current_mode, current_mode.all_studies_df,
+                                                     y_column="Global Aggregate smoothed",
+                                                     normalize=False)
+
+            streamlit_bokeh(after_smooth_plot, use_container_width=False)
 
 
     if st.button("Next"):
         current_mode.txid_ranges = {"x_slice": current_mode.x_slice,
                                    "y_slice": current_mode.y_slice,
                                    "n_slice": current_mode.n_slice}
-
-        current_mode.smoothing_option = choice
-        current_mode.smoothing_criminal_thresh = z_score_threshold
-
 
         st.switch_page("pages/page_5.py")
 
