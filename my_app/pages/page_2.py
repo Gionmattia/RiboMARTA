@@ -136,7 +136,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                      "Mappability Smoothing (Aggressive)",
                      "Criminal Smoothing (Experimental)"]
         choice = st.radio(
-            "",
+            "_",
+            label_visibility="collapsed",
             options= valid_options,
             horizontal=True,  # makes it look more toggle-like
             captions=["Default option. No smoothing is applied.",

@@ -67,6 +67,11 @@ if run.genomic_mode.active == True:
 
 elif run.transcript_mode.active == True:
     mode = "Ensembl Transcript ID"
+    if run.transcript_mode.smoothing_option == "Criminal Smoothing (Experimental)":
+        z_score_threshold = run.transcript_mode.smoothing_criminal_thresh
+    else:
+        z_score_threshold =  "No z-score approach used to smooth the data (Smooth Criminal)"
+
     inputs_recap = f"""
     Mode: {mode}
     
@@ -76,6 +81,10 @@ elif run.transcript_mode.active == True:
         baseline: {run.transcript_mode.x_slice}
         target: {run.transcript_mode.y_slice}
         noise region: {run.transcript_mode.n_slice}
+        
+    Smoothing:
+        Smoothing option: {run.transcript_mode.smoothing_option}
+        z-score threshold (Smooth Criminal only): {z_score_threshold}
 
     Parameters:
         ci: {run.transcript_mode.ci}
@@ -85,6 +94,7 @@ elif run.transcript_mode.active == True:
 
     results = run.transcript_mode.txid_results_meta
 
+
 # Constructing the markdown string
 markdown_content = report_content = f"""
 ## {report_title}
@@ -92,7 +102,8 @@ markdown_content = report_content = f"""
 {run.quirky_id}
 #### Organism Selected: 
 {run.organism}
-#### Mappability
+#### Mappability track available:
+{run.transcript_mode.mappability_df is not None}
 #### Metadata Filters adopted: 
 {filters_report}
 \n Selected studies: {len(srr_list)} 

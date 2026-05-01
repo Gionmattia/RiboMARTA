@@ -9,7 +9,6 @@ st.set_page_config(layout="wide")
 
 if "analysis_runs" not in st.session_state:
     st.session_state.analysis_runs ={}
-
 st.title("Welcome to RiboMARTA")
 col1, col2 = st.columns([1,4])
 with col1:

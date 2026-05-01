@@ -10,7 +10,8 @@ current_mode = analysis.transcript_mode
 def data_smoother(current_mode, option: str = "No Smoothing"):
     # Resets dataframe to original, untouched version
     current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
-    assert current_mode.all_studies_df.index.equals(current_mode.mappability_df.index), "Index mismatch between studies and mappability"
+    if current_mode.mappability_df is not None:
+        assert current_mode.all_studies_df.index.equals(current_mode.mappability_df.index), "Index mismatch between studies and mappability"
 
     if option == "No Smoothing":
         return
