@@ -83,8 +83,15 @@ class GenomicCoordinatesMode:
     # Step 3 - Flag. Regions Extracted | Slices stored.
     regions_extracted: bool = False
     genomic_slices: list = None
+    mappabilities: list = None
     genomic_merged: pd.DataFrame = None
+    genomic_merged_backup: pd.DataFrame = None
     genomic_merged_ranges: dict = None
+    genomic_merged_mappability_df: pd.DataFrame = None
+    genomic_merged_mappability_ranges: dict = None
+    smoothing_option: bool = False
+    smoothing_criminal_thresh: int = 4
+
 
     # Step 4 - Analysis Parameters stored.
     ci: int = None

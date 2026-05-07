@@ -407,4 +407,135 @@ def plot_ga_with_frames2(
 
     return combined_plot
 
+# Makes transcript plot for genco mode
+def colorless_transcript_plot(
+    df: pd.DataFrame,
+    y_axis: str,
+    k: int = 1,
+    mappability_df: pd.DataFrame = None,
+) -> figure:
+    """
+    Simple coverage plot. Uses vbar glyphs (one per frame) so hover
+    snaps cleanly to nucleotide positions.
+    """
+    df = df.copy()
 
+    y_upper = df[y_axis].max()
+    y_lower = min(-1 * df[y_axis].quantile(0.10), -0.05 * y_upper)
+
+    title = (
+        f"Global Aggregate, smoothed by k = {k}"
+        if k > 1 else f"Global Aggregate"
+    )
+
+    x_range = Range1d(start=df["Position"].min(), end=df["Position"].max())
+
+    p = figure(
+        x_range=x_range,
+        y_range=Range1d(start=y_lower, end=y_upper * 1.2),
+        sizing_mode="stretch_width",
+        height=700,
+        background_fill_color="white",
+        border_fill_color="white",
+        x_axis_label="Position on the region (nt)",
+        y_axis_label="Aggregate Counts",
+        title=title,
+        tools="pan,wheel_zoom,box_zoom,reset,save",
+        active_scroll="wheel_zoom",
+    )
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+    p.outline_line_color = None
+
+    # We plot tas area the various frames, but use an invisible bar for the hover functionality
+    legend_items = []
+    hover_renderers = []
+
+    source = ColumnDataSource(df)
+
+    area = p.varea(
+            x="Position", y1=0, y2=y_axis,
+            source=source,
+            fill_color="gray",
+            fill_alpha=0.5,
+        )
+
+        # Invisible hover bars
+    hover_bar = p.vbar(
+            x="Position", top=y_axis, bottom=0, width=1,
+            source=source,
+            fill_color="gray",
+            fill_alpha=0,
+            hover_fill_color="gray",
+            hover_fill_alpha=0.4,
+            line_color=None,
+        )
+    hover_renderers.append(hover_bar)
+
+    legend_items.append((f"Coverage", [area]))
+
+    # Optional mappability overlay on secondary y-axis
+    if mappability_df is not None:
+
+        p.extra_y_ranges = {"mappability": Range1d(start=0, end=1)}
+
+        mapp_line = p.line(
+            x="Position",
+            y="Mappability",
+            source=ColumnDataSource(mappability_df),
+            line_color="black",
+            line_dash="dotted",
+            line_width=1.5,
+            y_range_name="mappability",
+        )
+
+        p.add_layout(
+            LinearAxis(
+                y_range_name="mappability",
+                axis_label="Mappability",
+                axis_label_text_color="gray",
+                major_label_text_color="gray",
+                axis_line_color="gray",
+            ),
+            "right",
+        )
+
+        legend_items.append(("Mappability", [mapp_line]))
+
+
+    # Legend OUTSIDE the plot area, above the title
+    legend = Legend(items=legend_items, orientation="horizontal", click_policy="hide")
+    p.add_layout(legend, "above")
+
+    # Hover — vline mode now works because we have vbar glyphs with x positions
+    hover = HoverTool(
+        tooltips=[
+            ("Position", "@Position"),
+            ("Value", f"@{{{y_axis}}}{{0.00}}"),
+        ],
+        mode="vline",
+        renderers = hover_renderers,
+    )
+    p.add_tools(hover)
+
+    # Typography - Size
+    p.title.text_font_size = "14pt"
+    p.xaxis.axis_label_text_font_size = "13pt"
+    p.xaxis.major_label_text_font_size = "14pt"
+    p.yaxis.axis_label_text_font_size = "13pt"
+    p.yaxis.major_label_text_font_size = "14pt"
+    # Typography - Colour
+    p.title.text_color = "black"
+    p.xaxis.axis_label_text_color = "black"
+    p.yaxis.axis_label_text_color = "black"
+    p.xaxis.major_label_text_color = "black"
+    p.yaxis.major_label_text_color = "black"
+    p.legend.label_text_color = "black"
+    p.legend.background_fill_color = "white"
+
+    # Limit pan and zoom
+    p.y_range.bounds = (y_lower, y_upper * 1.5)
+    p.x_range.bounds = (x_range.start, x_range.end)
+    p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
+
+    return p

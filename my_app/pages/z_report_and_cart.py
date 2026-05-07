@@ -49,6 +49,13 @@ if run.filters.selected_studies is not None:
 # Check whether analysis was genomic or transcriptomic and stores info
 if run.genomic_mode.active == True:
     mode = "Genomic Coordinates"
+
+    if run.genomic_mode.smoothing_option == "Criminal Smoothing (Experimental)":
+        z_score_threshold = run.genomic_mode.smoothing_criminal_thresh
+    else:
+        z_score_threshold =  "No z-score approach used to smooth the data (Smooth Criminal)"
+
+
     inputs_recap = f"""
     Mode: {mode}
     
@@ -61,6 +68,10 @@ if run.genomic_mode.active == True:
         ci: {run.genomic_mode.ci}
         N: {run.genomic_mode.N}
         n_jobs: {run.genomic_mode.n_jobs}
+        
+    Smoothing:
+        Smoothing option: {run.genomic_mode.smoothing_option}
+        z-score threshold (Smooth Criminal only): {z_score_threshold}
     """
 
     results = run.genomic_mode.results_meta

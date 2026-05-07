@@ -1,6 +1,6 @@
 [theme]
-primaryColor = "#0B8909"          # your orange — used for active/clicked states
+primaryColor = "#3BB15B"          # your orange — used for active/clicked states
 backgroundColor = "#000000"        # main background (black)
-secondaryBackgroundColor = "#1a1a1a"  # sidebar, expanders, input backgrounds
+secondaryBackgroundColor = "#0B8909" #   #1a1a1a"  # sidebar, expanders, input backgrounds
 textColor = "#FFFFFF"              # body text
 font = "sans serif"

@@ -3,11 +3,79 @@ import pandas as pd
 import numpy as np
 from scipy.stats import zscore
 
-analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
-current_mode = analysis.transcript_mode
+# analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
+# current_mode = analysis.transcript_mode
+def genco_data_smoother(current_mode, option: str = "No Smoothing"):
+    # Resets dataframe to original, untouched version
+    current_mode.genomic_merged = current_mode.genomic_merged_backup.copy()
+
+    if option == "No Smoothing":
+        return
+
+    elif option == "Mappability Smoothing (Proportional)": # Mappability Smoothing (Proportional)
+
+        # do prop smoothing
+        df = current_mode.genomic_merged
+        map_df = current_mode.genomic_merged_mappability_df
+
+        # Save position column
+        position = df["Position"]
+        data_cols = df.drop(columns="Position")
+
+        # Smooth data
+        smoothed = data_cols.mul(map_df["Mappability"], axis=0)
+
+        # Reassemble
+        prop_smoothed_df =  pd.concat([position, smoothed], axis=1)
+
+        # reassign
+        current_mode.genomic_merged = prop_smoothed_df
+        return
+
+    elif option == "Mappability Smoothing (Aggressive)": #Mappability Smoothing (Aggressive)
+
+        # do smoothing
+        df = current_mode.genomic_merged
+        map_df = current_mode.genomic_merged_mappability_df.copy()
+        map_df.loc[map_df['Mappability'] < 1, 'Mappability'] = 0
+
+        # Save position column
+        position = df["Position"]
+        data_cols = df.drop(columns="Position")
+
+        # Multiply only the data columns
+        smoothed = data_cols.mul(map_df["Mappability"], axis=0)
+
+        agg_smoothed_df = pd.concat([position, smoothed], axis=1)
+        # reassign
+        current_mode.genomic_merged = agg_smoothed_df
+        return
+
+    elif option == "Criminal Smoothing (Experimental)":  # Criminal Smoothing (Experimental)
+
+        z_thresh = current_mode.smoothing_criminal_thresh
+
+        # Using the slices, which have already been stored individually
+        df_x = current_mode.genomic_slices[0].copy()
+        df_y = current_mode.genomic_slices[1].copy()
+        df_n = current_mode.genomic_slices[2].copy()
+
+        # run smooth criminal 3 times (one per slice)
+        annie_x = smooth_criminal(df_x, z_thresh)
+        annie_y = smooth_criminal(df_y,z_thresh)
+        annie_n = smooth_criminal(df_n, z_thresh)
+
+        # reassemble
+        criminal_smoothed_df = pd.concat([annie_x, annie_y, annie_n])
+
+        # reassign to genomic merged
+        current_mode.genomic_merged = criminal_smoothed_df
+        return
+
+
 
 # Calls the appropriate smoothing function, depending on the option given
-def data_smoother(current_mode, option: str = "No Smoothing"):
+def txid_data_smoother(current_mode, option: str = "No Smoothing"):
     # Resets dataframe to original, untouched version
     current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
     if current_mode.mappability_df is not None:

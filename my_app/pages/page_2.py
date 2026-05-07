@@ -8,6 +8,62 @@ from transcriptID_mode_helpers2 import *
 from STP_helpers import *
 from streamlit_bokeh import streamlit_bokeh
 
+import streamlit as st
+
+st.markdown("""
+<style>
+/* ===== EXPANDERS ===== */
+/* New versions */
+div[data-testid="stExpander"] {
+    background-color: #2b2b2b !important;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+div[data-testid="stExpander"] > details {
+    background-color: #2b2b2b !important;
+}
+
+div[data-testid="stExpander"] > details > summary {
+    background-color: #2b2b2b !important;
+    color: #fafafa !important;
+    padding: 0.5rem 1rem;
+}
+
+div[data-testid="stExpander"] > details[open] > summary {
+    background-color: #333333 !important;
+}
+
+/* Content inside expander */
+div[data-testid="stExpanderDetails"] {
+    background-color: #2b2b2b !important;
+    padding: 1rem;
+}
+
+/* ===== TABS ===== */
+button[data-baseweb="tab"] {
+    background-color: #2b2b2b !important;
+    color: #fafafa !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #404040 !important;
+    color: #ffffff !important;
+}
+
+div[data-baseweb="tab-panel"] {
+    background-color: #2b2b2b !important;
+    padding: 1rem;
+    border-radius: 0 0 8px 8px;
+}
+
+div[data-baseweb="tab-list"] {
+    background-color: transparent !important;
+    gap: 4px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
 
@@ -160,7 +216,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             if choice == "Criminal Smoothing (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
             # overwrites all_studies_df (ndr backup still safe) to add smoothing options
-            data_smoother(current_mode, current_mode.smoothing_option)
+            txid_data_smoother(current_mode, current_mode.smoothing_option)
 
             after_smooth_plot = plot_ga_with_frames2(current_mode, current_mode.all_studies_df,
                                                      y_column="Global Aggregate smoothed",
