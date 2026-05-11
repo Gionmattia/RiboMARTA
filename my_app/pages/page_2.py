@@ -11,7 +11,51 @@ from streamlit_bokeh import streamlit_bokeh
 import streamlit as st
 
 st.markdown("""
+
+
 <style>
+    /* 1. The Base Button Style (Targeting 1st and 2nd) */
+    div[data-testid="stButton"]:nth-of-type(1) > button,
+    div[data-testid="stButton"]:nth-of-type(2) > button,
+    div[data-testid="stDownloadButton"] > button {
+        background-color: #000000;
+        color: #ffffff;
+        border: 2px solid #555555;
+        border-radius: 10px;
+        padding: 0.5em 1em;
+        transition: all 0.3s ease;
+    }
+
+    /* 2. The Hover State (Targeting 1st and 2nd) */
+    div[data-testid="stButton"]:nth-of-type(1) > button:hover,
+    div[data-testid="stButton"]:nth-of-type(2) > button:hover,
+    div[data-testid="stDownloadButton"] > button:hover  {
+        border-color: #FFA500;
+        color: #FFA500;
+        background-color: #1a1a1a;
+    }
+
+    /* 3. The Clicked/Active State (Targeting 1st and 2nd) */
+    div[data-testid="stButton"]:nth-of-type(1) > button:active,
+    div[data-testid="stButton"]:nth-of-type(2) > button:active,
+    div[data-testid="stDownloadButton"] > button:active {
+        background-color: #FFA500;
+        color: #ffffff;
+        border-color: #FFA500;
+    }
+
+    /* 4. Focus State (Targeting 1st and 2nd) */
+    div[data-testid="stButton"]:nth-of-type(1) > button:focus:not(:active),
+    div[data-testid="stButton"]:nth-of-type(2) > button:focus:not(:active),
+    div[data-testid="stDownloadButton"] button:focus:not(:active) >
+     {
+        border-color: #FFA500;
+        color: #FFA500;
+        box-shadow: none;
+    }
+
+        
+
 /* ===== EXPANDERS ===== */
 /* New versions */
 div[data-testid="stExpander"] {
@@ -21,17 +65,20 @@ div[data-testid="stExpander"] {
 }
 
 div[data-testid="stExpander"] > details {
-    background-color: #2b2b2b !important;
+    background-color: #f0aa2d !important;
 }
 
-div[data-testid="stExpander"] > details > summary {
-    background-color: #2b2b2b !important;
-    color: #fafafa !important;
-    padding: 0.5rem 1rem;
+div[data-testid="stExpander"] > details > summary,
+div[data-testid="stExpander"] > details > summary p,
+div[data-testid="stExpander"] > details > summary span {
+    background-color: #f0aa2d !important;
+    color: #000000 !important;
+    padding: 0.17rem 0.5rem;
+    font-size: 1.15rem !important;
 }
 
 div[data-testid="stExpander"] > details[open] > summary {
-    background-color: #333333 !important;
+    background-color: #f0aa2d !important;
 }
 
 /* Content inside expander */
@@ -42,24 +89,59 @@ div[data-testid="stExpanderDetails"] {
 
 /* ===== TABS ===== */
 button[data-baseweb="tab"] {
-    background-color: #2b2b2b !important;
-    color: #fafafa !important;
+    background-color: #f0aa2d !important;
+    color: #000000 !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+}
+button[data-baseweb="tab"] p {
+    font-size: 1.1rem !important;
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #404040 !important;
-    color: #ffffff !important;
+    background-color: #f0aa2d !important;
+    color: #000000 !important;
+}
+
+div[data-baseweb="tab-highlight"] {
+    background-color: #f0c694 !important;
+    height: 0.45rem !important;
 }
 
 div[data-baseweb="tab-panel"] {
     background-color: #2b2b2b !important;
-    padding: 1rem;
+    padding: 1.5rem;
     border-radius: 0 0 8px 8px;
 }
 
 div[data-baseweb="tab-list"] {
     background-color: transparent !important;
     gap: 4px;
+}
+/* Unselected radio - default state (outer ring) */
+div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
+    border: 2px solid #888888 !important;
+    background-color: transparent !important;
+    box-sizing: border-box !important;
+}
+/* Unselected radio - hover state (outer ring) */
+div[data-testid="stRadio"] label[data-baseweb="radio"]:hover:not(:has(input:checked)) > div:first-child {
+    border: 2px solid #d0a454 !important;
+    background-color: rgba(30, 144, 255, 0.1) !important;
+    box-sizing: border-box !important;
+}
+/* Outer ring of the selected radio */
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+    border: 2px solid #d0a454 !important;
+    background-color: transparent !important;
+    box-sizing: border-box !important;
+}
+/* Inner dot of the selected radio */
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
+    border: 2px solid #d0a454 !important;
+    background-color: #d0a454 !important;
+    box-sizing: border-box !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -117,16 +199,6 @@ if current_mode.tx_cov_extracted:
 ### Display the data once extracted | Allow for ranges selection ###
 if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence != "":
 
-    # # computes global aggregate
-    # ga_df_norm = global_aggregate(current_mode.all_studies_df, normalize=True)
-    #
-    # # Generate plots if they don't exist (lazy initialization via direct checks)
-    # if current_mode.tx_ga_plot is None:
-    #     # Single transcript plot of global aggregate. No frames or ORF plots
-    #     current_mode.tx_ga_plot = plot_global_aggregate_with_zero(ga_df_raw,
-    #                                                              current_mode.utr5_length,
-    #                                                              current_mode.cds_length,
-    #                                                              current_mode.txid)
 
     if current_mode.triplet_ga_plot is None:
         current_mode.triplet_ga_plot = plot_ga_with_frames2(current_mode,
@@ -144,9 +216,6 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
     ga_plots_UI_render(current_mode, analysis)
 
 
-    # Ranges selection for analysis
-    # if st.button("Select Ranges"):
-    #     current_mode.show_ranges_selectors = True
     with st.expander(" Select Ranges"):
 
     #if current_mode.show_ranges_selectors:
