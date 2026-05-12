@@ -11,7 +11,12 @@ from streamlit_bokeh import streamlit_bokeh
 import streamlit as st
 
 st.markdown("""
-
+/*
+Radiant - #f0c694
+Kernel of Truth - #f0aa2d
+Autumn Beach - #d0a454
+papaya Playa - #d0a454
+*/
 
 <style>
     /* 1. The Base Button Style (Targeting 1st and 2nd) */

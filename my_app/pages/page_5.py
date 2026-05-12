@@ -151,11 +151,18 @@ if current_mode.txid_analysis_done is True:
                 "To visualise the diamond plot, select the medatadata column to use",
                 current_mode.txid_results_meta.columns[:]) # select first 5
 
-            d_plot = new_diamond_plotter(current_mode.txid_results_meta,
+            if st.checkbox("Plot Non Significant"):
+                d_plot = new_diamond_plotter(current_mode.txid_results_meta,
                                      meta=meta_option,
                                      logs = False,
                                      show_nonsignificant = True)
-            st.plotly_chart(d_plot, use_container_width=True)
+                st.plotly_chart(d_plot, use_container_width=True)
+            else:
+                d_plot = new_diamond_plotter(current_mode.txid_results_meta,
+                                     meta=meta_option,
+                                     logs = False,
+                                     show_nonsignificant = False)
+                st.plotly_chart(d_plot, use_container_width=True)
 
             if st.button("Store in the report", key = "diamond plot"):
                 analysis.user_plots.append(d_plot)
@@ -188,12 +195,15 @@ if current_mode.txid_analysis_done is True:
 
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
                                         current_mode.txid_results_meta.index)
+
             ml_plot = multi_line_plot(current_mode.all_studies_df,
                                       current_mode.utr5_length,
                                       current_mode.cds_length,
                                       run_option,
                                       current_mode.txid_ranges)
-            st.plotly_chart(ml_plot, use_container_width=True)
+            st.plotly_chart(ml_plot, use_container_width=True,
+            key=f"ml_plot_{run_option}"  # or any stable unique string
+                            )
 
             if st.button("Store in the report", key = "ml_plot"):
                 analysis.user_plots.append(ml_plot)
