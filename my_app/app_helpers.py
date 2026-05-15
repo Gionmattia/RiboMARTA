@@ -94,9 +94,11 @@ class GenomicCoordinatesMode:
 
 
     # Step 4 - Analysis Parameters stored.
+    alpha: float = None
     ci: int = None
     N: int = None
     n_jobs: int = None
+    seed: int = None
 
     # Step 5 - Flag. Analysis done | Results and metadata stored.
     genco_analysis_done: bool = False
@@ -138,9 +140,11 @@ class TranscriptIDMode:
     smoothing_option: bool = False
     smoothing_criminal_thresh: int = 4
     txid_ranges: dict = None # Redundant?
+    alpha: float = None
     ci: int = None
     N: int = None
     n_jobs: int = None
+    seed: int = None
 
     # Step 5 - Flag for legacy analysis | Legacy Results
     txid_analysis_done: bool = False

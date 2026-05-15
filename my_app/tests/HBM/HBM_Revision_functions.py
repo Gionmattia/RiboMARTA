@@ -364,9 +364,9 @@ def format_data(df, factor):
     return inputs_dictionary
 
 
-def assemble_model(inputs_dict, lengths, belief="standard"):
+def assemble_model(inputs_dict, lengths, belief="moderate"):
     # Checks "belief" option:
-    valid_beliefs = {"standard", "rare", "elevated", "agnostic"}
+    valid_beliefs = {"moderate", "rare", "elevated", "unsure"}
     if belief not in valid_beliefs:
         raise ValueError(f"belief must be one of {valid_beliefs}, got '{belief}'")
 
@@ -387,7 +387,7 @@ def assemble_model(inputs_dict, lengths, belief="standard"):
         ## LAYER 2: "Level" parameters (for chosen FACTOR, levels have parameters).
 
         # Model efficiency on logit scale
-        if belief == "standard":  # Efficiencies between 1-30% (median 10%, CI 1.5-44%), like frameshifting events
+        if belief == "moderate":  # Efficiencies between 1-30% (median 10%, CI 1.5-44%), like frameshifting events
             mu_factor_logit = pm.Normal('mu_factor_logit',
                                         mu=-2.2,
                                         sigma=1.0,
@@ -398,13 +398,13 @@ def assemble_model(inputs_dict, lengths, belief="standard"):
                                         mu=-4.6,
                                         sigma=1.5,
                                         shape=n_levels)
-        elif belief == "elevated":  # Efficiencies typically 1-40% (median 10%, CI 1-53%), like selcys insertions,
+        elif belief == "elevated":  # Efficiencies typically higher median ~27% with a 95% prior interval of approximately [4%, 80%], like selcys insertions,
             mu_factor_logit = pm.Normal('mu_factor_logit',
-                                        mu=-2.2,
+                                        mu=-1.0,
                                         sigma=1.2,
                                         shape=n_levels)
 
-        elif belief == "agnostic":  # Efficiencies typically 1-40% (median 10%, CI 1-53%), like selcys insertions,
+        elif belief == "unsure":  # Efficiencies typically 1-40% (median 10%, CI 1-53%), like selcys insertions,
             mu_factor_logit = pm.Normal('mu_factor_logit',
                                         mu=-3.5,
                                         sigma=2.0,
@@ -574,49 +574,166 @@ def traceplots_checks(trace_negbin, outpath=None):
 
 # Prior Predictive checks
 def prior_predictive_checks(model, inputs_dict, outpath=None):
+    """
+    Prior predictive check on efficiencies (probability scale).
+    Samples mu_factor_logit and theta_run from the prior, applies invlogit,
+    and reports a single mu_factor summary (shared prior) + per-level theta_run.
+    """
     with model:
-        prior_pred = pm.sample_prior_predictive(samples=1000, random_seed=42)
+        prior_pred = pm.sample_prior_predictive(samples=2000, random_seed=42)
 
-    Y = inputs_dict["Y"]
-    sim_y = prior_pred.prior_predictive["Y_obs"].values.flatten()
+    # Extract prior draws and transform to (0,1)
+    mu_logit = prior_pred.prior["mu_factor_logit"].values          # (chain, draw, n_levels)
+    theta_run_logit = prior_pred.prior["theta_run_logit"].values   # (chain, draw, n_runs)
 
-    report = (
-    "===== DATA SUMMARY STATISTICS =====\n\n"
-    "== Prior Predictive Simulated Data ==\n"
-    f"Min: {sim_y.min():.3f}\n"
-    f"Max: {sim_y.max():.3f}\n"
-    "== Real Data (Y) ==\n"
-    
-    f"Y min: {Y.min()}\n"
-    f"Y max: {Y.max()}\n"
-    "== Median Comparisons ==\n"
-    f"Prior predictive median: {np.median(sim_y):.1f}\n"
-    f"Real data median: {np.median(Y):.1f}\n\n"
-    "    ===== INTERPRETATION =====\n"
-    "Priors should be wider than the observed data - this is so to avoid ruling out plausible values.\n"
-    "A prior predictive maximum around 3-5X times the observed one is informative, but loose enough not to constrain data.\n"
-    "The prior predictive median should be within roughly 3× of the observed median.\n"
-    "A larger gap suggests the prior is centered on the wrong scale.\n"
-    )
+    mu_prob = 1 / (1 + np.exp(-mu_logit))
+    theta_prob = 1 / (1 + np.exp(-theta_run_logit))
 
+    levels = inputs_dict["levels"]
+    run_levels_idx = inputs_dict["run_levels_idx"]
+    n_levels = inputs_dict["n_levels"]
+
+    # --- Pooled mu_factor summary (shared prior across levels) ---
+    mu_pooled = mu_prob.flatten()
+    mu_med = np.median(mu_pooled)
+    mu_lo, mu_hi = np.percentile(mu_pooled, [2.5, 97.5])
+
+    # --- Per-level theta_run summary ---
+    lines = ["===== PRIOR PREDICTIVE ON EFFICIENCIES (probability scale) =====\n"]
+    lines.append("Tissue-level prior (mu_factor, shared across all levels):")
+    lines.append(f"  median = {mu_med:.4f}    95% CI = [{mu_lo:.4f}, {mu_hi:.4f}]\n")
+
+    lines.append("Run-level prior (theta_run) by level:")
+    lines.append(f"{'Level':<20} {'median':>10} {'95% CI':>25}")
+    lines.append("-" * 57)
+
+    for i, lv in enumerate(levels):
+        run_mask = run_levels_idx == i
+        theta_samples = theta_prob[:, :, run_mask].flatten()
+        th_med = np.median(theta_samples)
+        th_lo, th_hi = np.percentile(theta_samples, [2.5, 97.5])
+        lines.append(
+            f"{str(lv):<20} {th_med:>10.4f} "
+            f"{f'[{th_lo:.4f}, {th_hi:.4f}]':>25}"
+        )
+
+    lines.append("\n===== INTERPRETATION =====")
+    lines.append("mu_factor: prior on tissue-level (typical) efficiency. Shared across levels by construction;")
+    lines.append("  reported once. Should match the 'belief' setting.")
+    lines.append("theta_run: prior on run-level efficiency (mu_factor + run offset * sigma_factor).")
+    lines.append("Expect theta_run to be wider than mu_factor - that is partial pooling at work.")
+    lines.append("If theta_run is dramatically wider (e.g. CI spans ~0 to ~1), sigma_factor's prior may be too loose.")
+
+    report = "\n".join(lines)
     print(report)
 
+    # --- Faceted plot: one panel per level ---
+    n_cols = min(3, n_levels)
+    n_rows = int(np.ceil(n_levels / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 3 * n_rows),
+                             sharex=True, squeeze=False)
+
+    for i, lv in enumerate(levels):
+        ax = axes[i // n_cols, i % n_cols]
+        run_mask = run_levels_idx == i
+        theta_samples = theta_prob[:, :, run_mask].flatten()
+
+        ax.hist(mu_pooled, bins=50, density=True, alpha=0.6,
+                color='steelblue', label='mu_factor (shared)')
+        ax.hist(theta_samples, bins=50, density=True, alpha=0.4,
+                color='orange', label='theta_run (runs in tissue)')
+        ax.set_title(str(lv), fontsize=10)
+        ax.set_xlim(0, 1)
+        ax.set_xlabel('Efficiency')
+        if i == 0:
+            ax.legend(fontsize=8)
+
+    for j in range(n_levels, n_rows * n_cols):
+        axes[j // n_cols, j % n_cols].axis('off')
+
+    fig.suptitle('Prior predictive - efficiencies by level', y=1.00, fontsize=13)
+    plt.tight_layout()
+
     if outpath is not None:
-        # assumes outpath is a path
-        full_path = os.path.join(outpath, "Prior_predictive_checks.txt")
-        with open(full_path, "a") as f:
+        txt_path = os.path.join(outpath, "Prior_predictive_checks.txt")
+        with open(txt_path, "w") as f:
             f.write(report)
-        print(f"  Saved to: {full_path}")
+        fig_path = os.path.join(outpath, "Prior_predictive_efficiencies.png")
+        fig.savefig(fig_path, dpi=150, bbox_inches='tight')
+        print(f"  Saved to: {txt_path}")
+        print(f"  Saved to: {fig_path}")
 
-
+    plt.show()
     return
+# def prior_predictive_checks(model, inputs_dict, outpath=None):
+#     with model:
+#         prior_pred = pm.sample_prior_predictive(samples=1000, random_seed=42)
+#
+#     Y = inputs_dict["Y"]
+#     sim_y = prior_pred.prior_predictive["Y_obs"].values.flatten()
+#
+#     report = (
+#     "===== DATA SUMMARY STATISTICS =====\n\n"
+#     "== Prior Predictive Simulated Data ==\n"
+#     f"Min: {sim_y.min():.3f}\n"
+#     f"Max: {sim_y.max():.3f}\n"
+#     "== Real Data (Y) ==\n"
+#
+#     f"Y min: {Y.min()}\n"
+#     f"Y max: {Y.max()}\n"
+#     "== Median Comparisons ==\n"
+#     f"Prior predictive median: {np.median(sim_y):.1f}\n"
+#     f"Real data median: {np.median(Y):.1f}\n\n"
+#     "    ===== INTERPRETATION =====\n"
+#     "Priors should be wider than the observed data - this is so to avoid ruling out plausible values.\n"
+#     "A prior predictive maximum around 3-5X times the observed one is informative, but loose enough not to constrain data.\n"
+#     "The prior predictive median should be within roughly 3× of the observed median.\n"
+#     "A larger gap suggests the prior is centered on the wrong scale.\n"
+#     )
+#
+#     print(report)
+#
+#     if outpath is not None:
+#         # assumes outpath is a path
+#         full_path = os.path.join(outpath, "Prior_predictive_checks.txt")
+#         with open(full_path, "a") as f:
+#             f.write(report)
+#         print(f"  Saved to: {full_path}")
+#
+#
+#     return
 
 
-def posterior_predictive_check(model, trace_negbin, random_seed=42, outpath=None):
+def posterior_predictive_check(model, trace_negbin, inputs_dict, random_seed=42, outpath=None):
     with model:
         ppc = pm.sample_posterior_predictive(trace_negbin, random_seed=random_seed)
 
         az.plot_ppc(ppc, num_pp_samples=100)
+
+        # Also does some numerical checks
+        print("======== POSTERIOR PREDICTIVE CHECKS ========")
+        # Flatten chains and draws into a single axis of replicates
+        y_rep = ppc.posterior_predictive["Y_obs"].values  # (chains, draws, n_obs)
+        y_rep = y_rep.reshape(-1, y_rep.shape[-1])  # (n_samples, n_obs)
+        y_obs = inputs_dict["Y"]  # (n_obs,)
+
+        # Define test statistics
+        test_stats = {
+            "mean": np.mean,
+            "sd": np.std,
+            "min": np.min,
+            "max": np.max,
+            "q25": lambda x: np.quantile(x, 0.25),
+            "median": np.median,
+            "q75": lambda x: np.quantile(x, 0.75),
+        }
+
+        # Bayesian p-values
+        for name, T in test_stats.items():
+            T_obs = T(y_obs)
+            T_rep = np.array([T(row) for row in y_rep])
+            p_bayes = np.mean(T_rep >= T_obs)
+            print(f"{name:8s}  T(y_obs)={T_obs:>10.2f}   p_B={p_bayes:.3f}")
 
     if outpath is not None:
         full_path = os.path.join(outpath, "posterior_predictive_check.png")
@@ -679,7 +796,7 @@ def flag_practical_zero_runs(trace_negbin, inputs_dict, rope_upper=0.01, mass_th
     inputs_dict : dict
     rope_upper : float
         Upper bound of the Region of Practical Equivalence to zero.
-        Default 0.01 (suitable for 'standard' and 'elevated' belief regimes).
+        Default 0.01 (suitable for 'moderate' and 'elevated' belief regimes).
         Consider lowering (e.g. 0.003) for the 'rare' regime ?
         mass_threshold: float (probability we want for the posterior mass to be labelled)
     """
@@ -906,7 +1023,7 @@ def runs_plot(df, mass_threshold = 0.95, outpath=None):
     return
 
 
-def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, min_members=10, belief = "standard", mass_threshold = 0.95, rope_upper = 0.01):
+def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, min_members=10, belief = "moderate", mass_threshold = 0.95, rope_upper = 0.01):
     # Keep only datasets where baseline is expressed.
     _, good_runs = test_baseline_vs_noise(df, coordinates, random_state)
     df = df[good_runs].copy()
@@ -938,7 +1055,8 @@ def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, mi
     # Run checks - trace plots
     traceplots_checks(trace_negbin, outpath)
     # Run checks - Posterior Predictive
-    posterior_predictive_check(model, trace_negbin, random_state, outpath)
+    posterior_predictive_check(model = model, trace_negbin = trace_negbin, inputs_dict = inputs_dict,
+                               random_seed = random_state, outpath = outpath)
 
     # Compiles the table. One also flags run outliers (Wide_CI_Flag)
     res = compile_results_factor(trace_negbin, inputs_dict)
@@ -955,4 +1073,20 @@ def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, mi
     factor_plot(res, inputs_dict, outpath)
     runs_plot(runs, mass_threshold = mass_threshold, outpath = outpath)
 
-    return res, runs
+# Used to define which tissues have the least information (sparse)
+    # df_check = pd.DataFrame({
+    #     'tissue': np.asarray(inputs_dict['levels'])[inputs_dict['levels_idx']],
+    #     'X': inputs_dict['X'],
+    #     'Y': inputs_dict['Y']
+    # })
+    # df_check['total'] = df_check['X'] + df_check['Y']
+    #
+    # # Two views of "sparsity"
+    # df_check.groupby('tissue').agg(
+    #     n_runs=('total', 'size'),
+    #     median_counts=('total', 'median'),
+    #     total_counts=('total', 'sum')
+    # ).sort_values('n_runs')
+
+    return res, runs, summary #, df_check
+

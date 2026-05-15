@@ -65,9 +65,11 @@ if run.genomic_mode.active == True:
         noise region: {run.genomic_mode.genomic_ranges[2]}
     
     Parameters:
+        alpha: {run.genomic_mode.alpha}
         ci: {run.genomic_mode.ci}
         N: {run.genomic_mode.N}
         n_jobs: {run.genomic_mode.n_jobs}
+        seed: {run.genomic_mode.seed}
         
     Smoothing:
         Smoothing option: {run.genomic_mode.smoothing_option}
@@ -98,9 +100,11 @@ elif run.transcript_mode.active == True:
         z-score threshold (Smooth Criminal only): {z_score_threshold}
 
     Parameters:
+        alpha: {run.transcript_mode.alpha}
         ci: {run.transcript_mode.ci}
         N: {run.transcript_mode.N}
         n_jobs: {run.transcript_mode.n_jobs}
+        seed: {run.transcript_mode.seed}
     """
 
     results = run.transcript_mode.txid_results_meta
@@ -154,7 +158,7 @@ def create_zip_report(markdown_content, user_plots, results):
                     plot_html = f"<h1>Error saving plot</h1><p>{str(e)}</p>"
             zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
         # 3) Save results
-        csv_results = results.to_csv(index=False)
+        csv_results = results.to_csv(index=True)
         zf.writestr("results.csv", csv_results)
 
         return buffy

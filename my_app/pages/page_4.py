@@ -48,13 +48,17 @@ else:
     """)
 
 with st.expander("Change options"):
-    col1, col2, col3 = st.columns([2, 2, 2])
+    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
     with col1:
-        current_mode.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
+        current_mode.alpha = st.number_input("Choose alpha", min_value=0.01, max_value=0.99, value=0.05)
     with col2:
-        current_mode.N = st.number_input("Choose number permutations", min_value=10, max_value=100000, value=10000)
+        current_mode.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
     with col3:
+        current_mode.N = st.number_input("Choose number of permutations", min_value=10, max_value=100000, value=10000)
+    with col4:
         current_mode.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
+    with col5:
+        current_mode.seed = st.number_input("Choose random seed", min_value=1, max_value = 100, value=None)
 
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
@@ -62,10 +66,12 @@ if st.button("Run Analysis"):
 
 
     df = df.drop(columns=["Position"])
-    current_mode.genco_results = run_permutation_analysis(df, coordinates,  # DOUBLE CHECK THIS
-                                            ci = current_mode.ci,
-                                            N = current_mode.N,
-                                            n_jobs = current_mode.n_jobs)
+    current_mode.genco_results, current_mode.seed = run_permutation_analysis(df, coordinates,
+                                                                            alpha = current_mode.alpha,
+                                                                            ci = current_mode.ci,
+                                                                            N = current_mode.N,
+                                                                            n_jobs = current_mode.n_jobs,
+                                                                            random_seed = current_mode.seed)
 
     current_mode.results_meta = integrate_metadata(current_mode.genco_results, # DOUBLE CHECK THIS
                                                     st.session_state.metadata)
