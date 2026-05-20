@@ -11,13 +11,6 @@ from streamlit_bokeh import streamlit_bokeh
 import streamlit as st
 
 st.markdown("""
-/*
-Radiant - #f0c694
-Kernel of Truth - #f0aa2d
-Autumn Beach - #d0a454
-papaya Playa - #d0a454
-*/
-
 <style>
     /* 1. The Base Button Style (Targeting 1st and 2nd) */
     div[data-testid="stButton"]:nth-of-type(1) > button,
@@ -209,6 +202,13 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         current_mode.triplet_ga_plot = plot_ga_with_frames2(current_mode,
                                                             current_mode.all_studies_df,
                                                             y_column = "Global Aggregate smoothed",
+                                                            normalize=False)
+
+    if current_mode.triplet_ga_plot_raw is None:
+        current_mode.triplet_ga_plot_raw = plot_ga_with_frames2(current_mode,
+                                                            current_mode.all_studies_df,
+                                                            smoothing = False,
+                                                            y_column = "Global Aggregate",
                                                             normalize=False)
 
     if current_mode.norm_triplet_ga_plot is None:

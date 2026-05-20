@@ -27,17 +27,22 @@ def txid_mode_intro():
     Renders Marta and a brief description of txid mode.
     :return:
     """
-    col1, col2 = st.columns([4, 1])
+    col1, col2 = st.columns([4, 2])
     with col1:
-        st.write("Welcome to the Transcript ID Analysis page.")
-        st.write("""1) By clicking on "Load Transcript", you will be shown a plot with the aggregate Ribo-Seq footprints 
-        across all the available studies. You are also allowed to download the data as a .csv, if you wish so.""")
-        st.write(
+        st.markdown("Welcome to the Transcript ID Analysis page.")
+        st.markdown("""1) By clicking on "Load Transcript", you will be shown a plot with the aggregate inferred A-sites of 
+        the Ribosome-Protected Footprints (RPFs), across the available studies. You are also allowed to download the data as a .csv, if you wish so.
+        
+        **BEWARE** The positions on the transcript plots are shown as 0-indexed (the first nt positon is numbered 0, 
+        instead of 1) for internal consistency. 
+        
+        """)
+        st.markdown(
             """2) Once the plots are visualised, you can click on 'Select Ranges' to specify the areas of the transcript
              you want to compare in the analysis. You will be asked to select a baseline, a target, and a noise region.""")
-        st.write(
-            """3) Finally, you can decide whether you want to take into consideration the region's reading frames 
-            (frame-aware analysis) or not.""")
+        st.markdown(
+            """3) Finally, you can decide whether you want to take into consideration the regions' mappability track (the dotted line
+             above the plots) through the use of a Smoothing Option.""")
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("martas/explaining_marta.png", width=180)
@@ -64,7 +69,7 @@ def txid_start_checkpoint(current_run, analysis):
     # Allows to extract the tx coverage, if not in Upload Mode.
     else:
         if analysis.tx_upload == False:
-            if st.button("Load Transcript"):
+            if st.button("Load Transcript"): # If not in tx upload, loads
                 current_run.loading_tx_cov = True
                 # and also loads mappability track
                 if analysis.mappability_path is not None:
@@ -72,6 +77,8 @@ def txid_start_checkpoint(current_run, analysis):
                     mappability_df["X"] = mappability_df.index
                     other_col = [c for c in mappability_df.columns if c not in ['Position', 'X']][0]
                     current_run.mappability_df = mappability_df.rename(columns={other_col: 'Mappability'})
+        elif analysis.tx_upload == True: # if tx upload mode, stores a backup
+            current_run.all_studies_df_backup = current_run.all_studies_df.copy()
 
 
 def format_txid_df_download(current_run):
@@ -103,7 +110,7 @@ def ga_plots_UI_render(current_run, analysis):
     :return:
     """
 
-    tab2, tab3 = st.tabs(["Raw Global Aggregate & ORF plot", "Normalised Global Aggregate & ORF plot"])
+    tab2, tab3, tab4 = st.tabs(["Raw Global Aggregate (smoothed)", "Raw Global Aggregate (unsmoothed)",  "Normalised Global Aggregate"])
     with tab2:
         st.write("####  Raw Global Aggregate & ORF plot")
         st.write("Below you can see a Single Transcript plot for your data.")
@@ -118,6 +125,20 @@ def ga_plots_UI_render(current_run, analysis):
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     with tab3:
+        st.write("####  Raw Global Aggregate & ORF plot")
+        st.write("Below you can see a Single Transcript plot for your data.")
+        st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
+                 "(the sum of raw counts from each study, in that position). Values are kept raw and without smoothing,"
+                 "to allow easier visualisation of periodicity patterns when zooming in.")
+        st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
+                 "has been added.")
+        if current_run.triplet_ga_plot_raw is not None:
+            streamlit_bokeh(current_run.triplet_ga_plot_raw, use_container_width=False)
+            if st.button("Store in the report", key="triplet_ga_plot_raw"):
+                analysis.user_plots.append(current_run.triplet_ga_plot_raw)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+
+    with tab4:
         st.write("#### Normalised Global Aggregate & ORF plot")
         st.write("The x-axis represents the position on the transcript, while the y-axis represents the Normalised Global Aggregate"
                  "(each count in a position was normalised by the total counts of its study. The the normalised values have been summed to generate"

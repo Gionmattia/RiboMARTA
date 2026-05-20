@@ -19,13 +19,13 @@ from TranscriptID_results_helpers import multi_line_plot
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
 ADJECTIVES = [
      "bicurious", "clever", "sleepy", "stressed", "caffeinated", "cozy", "furious", "quirky", "cheeky", "flirty", "questioning",
-    "longing", "carnal", "communist", "turbocapitalist", "geeky"
-    # "accurate", "active", "adamant", "closeted", "curious",
-    # "calm", "eager", "fancy", "festive", "jolly", "kind", "lively", "silly", "zany", "brave",
+    "longing", "carnal", "communist", "turbocapitalist", "geeky",
+    "accurate", "active", "adamant", "closeted", "curious", "sketchy",
+    "calm", "eager", "fancy", "festive", "jolly", "kind", "lively", "silly", "zany", "brave",
 ]
 NOUNS = [
-    "Kant", "Plato", "Socrates", "Newton", "Michelangelo", "Galileo", "Spartacus",
-    "Descartes", "Pythagoras", "DaVinci", "Cleopatra", "Hannibal", "Pascal", "Loki", "Thor"
+    "Kant", "Plato", "Socrates", "Newton", "Michelangelo", "Galileo", "Spartacus", "Diogenes", "Caesar", "Augustus",
+    "Descartes", "Pythagoras", "DaVinci", "Cleopatra", "Hannibal", "Pascal", "Loki", "Thor", "Achilles", "Odysseus"
 ]
 
 # Function to generate the analysis ID. Will be stored in custom class.
@@ -131,6 +131,7 @@ class TranscriptIDMode:
     mappability_df: pd.DataFrame = None
     tx_ga_plot: go.Figure = None
     triplet_ga_plot: go.Figure = None
+    triplet_ga_plot_raw: go.Figure = None
     norm_triplet_ga_plot: go.Figure = None
 
     # Step 4 - User-selected regions | Analysis Parameters

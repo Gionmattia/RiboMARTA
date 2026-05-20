@@ -14,7 +14,7 @@ st.write("# Analysis Report")
 st.write("Please select which analysis you want the report for")
 # Choose the analysis run to visualise
 chosen_run = st.pills(
-    "Select the analsys run you want the report for",
+    "Select the analysis run you want the report for:",
     options=st.session_state.analysis_runs.keys(),
     selection_mode="single",
 )
@@ -127,7 +127,7 @@ markdown_content = report_content = f"""
 #### Datasets Processed (SRR):
 {selected_studies}
 #### Datasets Flagged:
-{run.flagged_datasets}
+{run.flagged_datasets if len(run.flagged_datasets) is not 0 else "No Datasets flagged"}
 """
 
 st.write(markdown_content)
@@ -158,11 +158,18 @@ def create_zip_report(markdown_content, user_plots, results):
                     plot_html = f"<h1>Error saving plot</h1><p>{str(e)}</p>"
             zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
         # 3) Save results
-        csv_results = results.to_csv(index=True)
-        zf.writestr("results.csv", csv_results)
+        if results is not None:
+            csv_results = results.to_csv(index=True)
+            zf.writestr("results.csv", csv_results)
 
         return buffy
 
+col1, col2, col3 = st.columns([2, 2, 2])
+with col1:
+    filename = st.text_input("Select name for download file", "analysis_results")
+    filename = f"{filename}.zip"
+
+    st.write(f"Your results will be saved as {filename}")
 
 if st.button("Prepare Download Bundle"):
     zip_data = create_zip_report(markdown_content, run.user_plots, results)
@@ -170,7 +177,7 @@ if st.button("Prepare Download Bundle"):
     st.download_button(
         label="Download All Files (.zip)",
         data=zip_data,
-        file_name="analysis_results.zip",
+        file_name=filename,
         mime="application/zip"
     )
 

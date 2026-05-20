@@ -149,7 +149,9 @@ def subplot_single_transcript_plot2(
     df["Frame"] = df["Frame"].astype(int)
 
     y_upper = df[y_axis].max()
+    y_upper = max(y_upper, 10) # If a transcript has 0 counts, then we set the max y on the plot to 10 (for visualisation)
     y_lower = min(-1 * df[y_axis].quantile(0.10), -0.05 * y_upper)
+    y_lower = min(y_lower, -0.05)  # Ading safety line to not encour into "-0.0" bug. We keep some margin, but avoid -0.0
 
     title = (
         f"Global Aggregate for {txid}, smoothed by k = {k}"
@@ -181,24 +183,39 @@ def subplot_single_transcript_plot2(
         if sub.empty:
             continue
         source = ColumnDataSource(sub)
-        renderer = p.varea(
-            x="X", y1=0, y2=y_axis,
-            source=source,
-            fill_color=FRAME_COLORS[frame],
-            fill_alpha=0.5,
-        )
 
-        # Invisible hover bars
-        hover_bar = p.vbar(
-            x="X", top=y_axis, bottom=0, width=1,
-            source=source,
-            fill_color=FRAME_COLORS[frame],
-            fill_alpha=0,
-            hover_fill_color=FRAME_COLORS[frame],
-            hover_fill_alpha=0.4,
-            line_color=None,
-        )
-        hover_renderers.append(hover_bar)
+        if k == 1:
+            # Histogram mode: one bar per nucleotide (easier to observe triplet periodicity)
+            renderer = p.vbar(
+                x="X", top=y_axis, bottom=0, width=1,
+                source=source,
+                fill_color=FRAME_COLORS[frame],
+                fill_alpha=0.6,
+                line_color=None,
+            )
+            # The renderer itself is hoverable, no need for a separate invisible bar
+            hover_renderers.append(renderer)
+        else:
+
+            # Smoothed mode: area plot
+            renderer = p.varea(
+                x="X", y1=0, y2=y_axis,
+                source=source,
+                fill_color=FRAME_COLORS[frame],
+                fill_alpha=0.5,
+            )
+
+            # Invisible hover bars
+            hover_bar = p.vbar(
+                x="X", top=y_axis, bottom=0, width=1,
+                source=source,
+                fill_color=FRAME_COLORS[frame],
+                fill_alpha=0,
+                hover_fill_color=FRAME_COLORS[frame],
+                hover_fill_alpha=0.4,
+                line_color=None,
+            )
+            hover_renderers.append(hover_bar)
 
         legend_items.append((f"Frame {frame}", [renderer]))
 

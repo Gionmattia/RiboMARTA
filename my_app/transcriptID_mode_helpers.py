@@ -84,13 +84,13 @@ def extract_features_length(ranges, strandedness):
     features_breakdown = df.groupby("Feature")["length"].sum()
 
     # Retrieve lengths based on presence of features on annotation (defaults to 0 or None)
-    cds_len   = features_breakdown.get("CDS", 0)
+    cds_length   = features_breakdown.get("CDS", 0)
     stop_len  = features_breakdown.get("stop_codon", 0)
     utr5_len = features_breakdown.get("five_prime_utr", None)
     utr3_len = features_breakdown.get("three_prime_utr", None)
 
     # Combine stop codon to cds
-    cds_length = cds_len + stop_len
+    #cds_length = cds_len + stop_len
 
     # Fall back to coordinate-based UTR inference when annotation lacks explicit UTR features.
     # Handle each UTR independently — they can be missing separately.
