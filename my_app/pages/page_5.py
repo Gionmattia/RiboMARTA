@@ -5,6 +5,9 @@ import pandas as pd
 from TranscriptID_results_helpers import *
 from transcriptID_mode_helpers2 import *
 from app_helpers import *
+from STP_helpers import *
+
+from streamlit_bokeh import streamlit_bokeh
 
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
@@ -262,31 +265,47 @@ if current_mode.txid_analysis_done is True:
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
 
-        tab3, tab3_log, tab4, tab4_log,tab5, tab6 = st.tabs(
-            ["Box plot (RTAs)", "Box plot (logs)",
-             "Diamond plot (RTA)", "Diamond plot (logs)",
-             "Single Transcript Plot", "Aggregated Plots"])
+        tab3, tab4, tab5, tab5_bis, tab6 = st.tabs(
+            ["Box plot (RTAs)", "Diamond plot (RTA)",
+             "Single Transcript Plot", "Single Transcript Plot (new)",
+             "Aggregated Plots"])
 
         with tab3:
-            fig2 = plot_rta_boxplot(results_df = current_mode.txid_results)
+            plot_logs = False
+            box_colour = "#00bf7d"
+            data = current_mode.txid_results
+            col1, col2, col3 = st.columns([2, 2, 6])
+            with col1:
+                if st.checkbox("Plot Log(2) values"):
+                    plot_logs = True
+                    box_colour = "#c44601"
+
+            with col2:
+                if st.checkbox("Plot significant RTAs only"):
+                    st.write("something")
+                    data = current_mode.txid_results[current_mode.txid_results["significant"] == True]
+
+            fig2 = plot_rta_boxplot(results_df = data,
+                                    box_fill = box_colour,
+                                    logs = plot_logs)
             st.plotly_chart(fig2)
 
             if st.button("Store in the report", key = "rta_boxplot"):
                 analysis.user_plots.append(fig2)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        with tab3_log:
-            # plot the results
-            fig2_bis = plot_rta_boxplot(results_df = current_mode.txid_results,
-                                        logs =  True,
-                                        box_fill = "#c44601")
-
-            st.plotly_chart(fig2_bis,
-                            key = "figure_2_bis")
-
-            if st.button("Store in the report", key = "log_rta_boxplot"):
-                analysis.user_plots.append(fig2_bis)
-                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+        # with tab3_log: # Removed. I can wrap this much more easily
+        #     # plot the results
+            # fig2_bis = plot_rta_boxplot(results_df = current_mode.txid_results,
+            #                             logs =  True,
+            #                             box_fill = "#c44601")
+            #
+            # st.plotly_chart(fig2_bis,
+            #                 key = "figure_2_bis")
+            #
+            # if st.button("Store in the report", key = "log_rta_boxplot"):
+            #     analysis.user_plots.append(fig2_bis)
+            #     st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     # Adds plot with breakdowns by metadata
         with tab4:
@@ -296,47 +315,57 @@ if current_mode.txid_analysis_done is True:
                 "To visualise the diamond plot, select the medatadata column to use",
                 current_mode.txid_results_meta.columns[:]) # select first 5
 
-            if st.checkbox("Plot Non Significant"):
-                d_plot = new_diamond_plotter(current_mode.txid_results_meta,
-                                     meta=meta_option,
-                                     logs = False,
-                                     show_nonsignificant = True)
-                st.plotly_chart(d_plot, use_container_width=True)
-            else:
-                d_plot = new_diamond_plotter(current_mode.txid_results_meta,
-                                     meta=meta_option,
-                                     logs = False,
-                                     show_nonsignificant = False)
-                st.plotly_chart(d_plot, use_container_width=True)
+            show_nonsignificant =  False
+            plot_logs_d = False
+
+            col1, col2, col3 = st.columns([2, 2, 6])
+            with col1:
+                if st.checkbox("Plot Non Significant"):
+                    show_nonsignificant = True
+
+            with col2:
+                if st.checkbox("Plot Log(2) values", key = "diamond_plot_"):
+                    plot_logs_d = True
+
+            d_plot = new_diamond_plotter(current_mode.txid_results_meta,
+                                 meta=meta_option,
+                                 logs = plot_logs_d,
+                                 show_nonsignificant = show_nonsignificant)
+            st.plotly_chart(d_plot, use_container_width=True)
+
+            # else:
+            #     d_plot = new_diamond_plotter(current_mode.txid_results_meta,
+            #                          meta=meta_option,
+            #                          logs = False,
+            #                          show_nonsignificant = False)
+            #     st.plotly_chart(d_plot, use_container_width=True)
 
             if st.button("Store in the report", key = "diamond plot"):
                 analysis.user_plots.append(d_plot)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        with tab4_log:
-
-            # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
-            meta_option_bis = st.selectbox(
-                "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.txid_results_meta.columns[:],
-                key = "meta_dplot_bis") # select first 5
-
-            d_plot_bis = diamond_plotter(current_mode.txid_results_meta,
-                                     meta=meta_option_bis,
-                                     logs = True,
-                                    ) # Can give errors if True for non-significant results (CI goes below allwod for logs)
-            st.plotly_chart(d_plot_bis,
-                            use_container_width=True,
-                            key = "figure_d_bis")
-
-            if st.button("Store in the report", key = "log diamond plot"):
-                analysis.user_plots.append(d_plot_bis)
-                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+        # with tab4_log:
+        #     st.write("feature removed")
+            # # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
+            # meta_option_bis = st.selectbox(
+            #     "To visualise the diamond plot, select the medatadata column to use",
+            #     current_mode.txid_results_meta.columns[:],
+            #     key = "meta_dplot_bis") # select first 5
+            #
+            # d_plot_bis = diamond_plotter(current_mode.txid_results_meta,
+            #                          meta=meta_option_bis,
+            #                          logs = True,
+            #                         ) # Can give errors if True for non-significant results (CI goes below allwod for logs)
+            # st.plotly_chart(d_plot_bis,
+            #                 use_container_width=True,
+            #                 key = "figure_d_bis")
+            #
+            # if st.button("Store in the report", key = "log diamond plot"):
+            #     analysis.user_plots.append(d_plot_bis)
+            #     st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
         with tab5:
-            st.write("Here you can visualise an individual Run of interest")
-
-            # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
+            st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
 
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
                                         current_mode.txid_results_meta.index)
@@ -351,6 +380,23 @@ if current_mode.txid_analysis_done is True:
                             )
 
             if st.button("Store in the report", key = "ml_plot"):
+                analysis.user_plots.append(ml_plot)
+                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+
+
+        with tab5_bis:
+            st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
+
+            run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+                                        current_mode.txid_results_meta.index,
+                                        key = "new_multiline_stp_key")
+
+            ml_plot2 = plot_stp_with_frames(current_run=current_mode, all_studies_df=current_mode.all_studies_df,
+                                        run_option=run_option, normalize=False)
+
+            streamlit_bokeh(ml_plot2, use_container_width=False)
+
+            if st.button("Store in the report", key = "ml_plot2"):
                 analysis.user_plots.append(ml_plot)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 

@@ -10,6 +10,7 @@ import pandas as pd
 from bokeh.models import LinearAxis
 from app_helpers import AnalysisStatus
 from bokeh.layouts import column
+from bokeh.models import BoxAnnotation
 from streamlit_bokeh import streamlit_bokeh
 
 # Frame colors used everywhere — single source of truth
@@ -554,5 +555,219 @@ def colorless_transcript_plot(
     p.y_range.bounds = (y_lower, y_upper * 1.5)
     p.x_range.bounds = (x_range.start, x_range.end)
     p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
+
+    return p
+
+
+
+#### NEW HELPERS FOR COLOURLESS STP (Used in page 5 - tab5) ###
+
+def plot_stp_with_frames(
+    current_run: AnalysisStatus,
+    all_studies_df: pd.DataFrame,
+    run_option: list = None,
+    normalize: bool = False,
+) -> column:
+    """
+    Per-study global aggregate plot with ORF tracks beneath, sharing a
+    linked x-axis. Raw counts, no smoothing.
+    """
+
+    df = all_studies_df.copy()
+    df = df.drop(columns = "Position")
+    df["X"] = df.index
+
+    x_min = int(df["X"].min())
+    x_max = int(df["X"].max())
+    margin = max(1, int((x_max - x_min) * 0.01))
+    shared_x_range = Range1d(start=x_min - margin, end=x_max + margin)
+
+    coordinates = {"x_slice": current_run.x_slice, "y_slice": current_run.y_slice, "n_slice": current_run.n_slice}
+
+    transcript_plot = subplot_single_transcript_plot(
+        df=df,
+        x_range=shared_x_range,
+        utr5_length=current_run.utr5_length,
+        cds_length=current_run.cds_length,
+        txid=current_run.txid,
+        run_option=run_option,
+        mappability_df=current_run.mappability_df,
+        coordinates = coordinates
+    )
+
+    orf_info = compute_codons_by_frame(current_run.transcript_sequence)
+    orf_plots = [ORF_plotter2(orf_info, frame, shared_x_range) for frame in (1, 2, 3)]
+
+    combined_plot = column(
+        transcript_plot, *orf_plots,
+        sizing_mode="stretch_width", height=925,
+    )
+    return combined_plot
+
+from bokeh.palettes import Category10, Category20
+
+def _add_region_box(p, start, end, label=None, color="#d4d4d4", alpha=0.35):
+    """Shade a background region spanning the full plot height (like the
+    sandpaper regions in the old Plotly plot)."""
+    box = BoxAnnotation(
+        left=start,
+        right=end,
+        fill_color=color,
+        fill_alpha=alpha,
+        line_width=0,
+        level="underlay",  # sits behind the glyphs
+    )
+    p.add_layout(box)
+    if label is not None:
+        lbl = Label(
+            x=(start + end) / 2,
+            y=0,
+            y_units="screen",
+            y_offset=-4,
+            text=label,
+            text_font_size="10pt",
+            text_color="black",
+            text_align="center",
+            background_fill_color=color,
+            background_fill_alpha=0.3,
+            padding=3,
+        )
+        p.add_layout(lbl)
+
+def subplot_single_transcript_plot(
+    df: pd.DataFrame,
+    x_range: Range1d,
+    utr5_length: int,
+    cds_length: int,
+    txid: str = "",
+    run_option: list = None,
+    mappability_df: pd.DataFrame = None,
+    coordinates: dict = None,
+) -> figure:
+    """
+    Per-study coverage plot. Each SRR/study column is drawn as its own
+    coloured bar trace (raw counts, no smoothing, no frame colouring).
+    Expects wide format: an 'X' column plus one count column per study.
+    """
+    df = df.copy()
+
+    # Identify study columns (everything except X / Mappability)
+    reserved = {"X", "Mappability"}
+    study_cols = [c for c in df.columns if c not in reserved]
+    if run_option is not None:
+        study_cols = [c for c in study_cols if c in run_option]
+
+    # Colour palette sized to the number of studies
+    n = len(study_cols)
+    if n <= 10:
+        palette = Category10[max(3, n)]
+    else:
+        palette = (Category20[20] * (n // 20 + 1))[:n]
+
+    # Y bounds across all plotted studies
+    if study_cols:
+        y_upper = max(df[study_cols].max().max(), 10)
+    else:
+        y_upper = 10
+    y_lower = min(-0.05 * y_upper, -0.05)  # avoid the -0.0 bounds bug
+
+    p = figure(
+        x_range=x_range,
+        y_range=Range1d(start=y_lower, end=y_upper * 1.2),
+        sizing_mode="stretch_width",
+        height=700,
+        background_fill_color="white",
+        border_fill_color="white",
+        x_axis_label="Position on the transcript (nt)",
+        y_axis_label="Raw Counts",
+        title=f"Raw Counts for {txid}",
+        tools="pan,wheel_zoom,box_zoom,reset,save",
+        active_scroll="wheel_zoom",
+    )
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+    p.outline_line_color = None
+
+    # One bar trace per study
+    legend_items = []
+    hover_renderers = []
+    for i, col in enumerate(study_cols):
+        sub = df[["X", col]].sort_values("X")
+        source = ColumnDataSource(sub)
+        renderer = p.vbar(
+            x="X", top=col, bottom=0, width=1,
+            source=source,
+            fill_color=palette[i % len(palette)],
+            fill_alpha=0.6,
+            hover_fill_alpha=0.9,
+            line_color=None,
+        )
+        legend_items.append((col, [renderer]))
+        hover_renderers.append(renderer)
+
+    # Optional mappability overlay on secondary y-axis
+    if mappability_df is not None:
+        p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
+        mapp_line = p.line(
+            x="X", y="Mappability",
+            source=ColumnDataSource(mappability_df),
+            line_color="gray", line_dash="dotted", line_width=1.5,
+            y_range_name="mappability",
+        )
+        p.add_layout(
+            LinearAxis(
+                y_range_name="mappability",
+                axis_label="Mappability",
+                axis_label_text_color="gray",
+                major_label_text_color="gray",
+                axis_line_color="gray",
+            ),
+            "right",
+        )
+        legend_items.append(("Mappability", [mapp_line]))
+
+    # Start/Stop labels
+    start_pos = utr5_length
+    stop_pos = utr5_length + cds_length
+    _add_vline_and_label(p, start_pos, y_upper * 1.1, "Start")
+    _add_vline_and_label(p, stop_pos, y_upper * 1.1, "Stop")
+
+    if coordinates is not None:
+        region_labels = {
+            "x_slice": "Baseline",
+            "y_slice": "Target",
+            "n_slice": "Noise Region",
+        }
+        for key, (start, end) in coordinates.items():
+            _add_region_box(p, start, end, label=region_labels.get(key))
+
+
+    legend = Legend(items=legend_items, orientation="horizontal", click_policy="hide")
+    p.add_layout(legend, "above")
+
+    hover = HoverTool(
+        tooltips=[("Position", "@X"), ("Counts", "$y{0.00}")],
+        mode="vline",
+        renderers=hover_renderers,
+    )
+    p.add_tools(hover)
+
+    # Typography
+    p.title.text_font_size = "14pt"
+    p.xaxis.axis_label_text_font_size = "13pt"
+    p.xaxis.major_label_text_font_size = "14pt"
+    p.yaxis.axis_label_text_font_size = "13pt"
+    p.yaxis.major_label_text_font_size = "14pt"
+    p.title.text_color = "black"
+    p.xaxis.axis_label_text_color = "black"
+    p.yaxis.axis_label_text_color = "black"
+    p.xaxis.major_label_text_color = "black"
+    p.yaxis.major_label_text_color = "black"
+    p.legend.label_text_color = "black"
+    p.legend.background_fill_color = "white"
+
+    # Limit pan and zoom
+    p.y_range.bounds = (y_lower, y_upper * 1.5)
+    p.x_range.bounds = (x_range.start, x_range.end)
 
     return p

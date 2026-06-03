@@ -263,6 +263,12 @@ def _compute_observed_ratios(
     reg_y = df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]]
     reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]]
 
+    # Compute Total Counts per study
+    tot_x = reg_x.sum(axis=0)
+    tot_y = reg_y.sum(axis=0)
+    tot_n = reg_n.sum(axis=0)
+    tot = tot_x + tot_y + tot_n
+
     # Compute averages per each srr, on each different slice.
     x_avg = reg_x.mean(axis=0)
     y_avg = reg_y.mean(axis=0)
@@ -277,6 +283,7 @@ def _compute_observed_ratios(
         "y avg": y_avg,
         "n avg": n_avg,
         "RTA": rta,
+        "Tot Counts": tot,
     })
 
     # Convert to arrays for permutation testing.
@@ -398,6 +405,7 @@ def compute_pvalues_and_ci(
         "x avg": ratios_df["x avg"],
         "y avg": ratios_df["y avg"],
         "n avg": ratios_df["n avg"],
+        "Tot Counts": ratios_df["Tot Counts"],
         'RTA': ratios_df["RTA"],
         'log2RTA': np.log2(ratios_df["RTA"]),
         'p-value': pvals,

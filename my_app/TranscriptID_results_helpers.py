@@ -22,6 +22,7 @@ def plot_rta_boxplot(results_df,
     with hover labels, custom box color, and controlled box width.
     """
     #
+
     if logs == True:
         y_column = "log2RTA"
         plot_title = "Boxplot of log2 RTAs across datasets"
@@ -30,7 +31,7 @@ def plot_rta_boxplot(results_df,
     else:
         y_column = "RTA"
         plot_title = "Boxplot of observed RTAs across datasets"
-        min_y_range, max_y_range = 0, 1
+        min_y_range, max_y_range = 0, max(1, results_df[y_column].max() + 0.05)  # Should use a np.max and select either 1.15 or the highest among the data)
 
     filtered = results_df[y_column].dropna()
     y_vals = filtered.values
@@ -122,113 +123,113 @@ def plot_rta_boxplot(results_df,
 
 
 # Function to make diamond plot my selected metadata field (defo is TISSUE)
-def diamond_plotter(df, meta="TISSUE", logs = False):
-    """
-    Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
-    Significant values are diamonds, while non-significant are circles.
-    """
-    tissues = df[meta].unique()
-    pastel_colors = px.colors.qualitative.Pastel
-    tissue_color_map = {t: pastel_colors[i % len(pastel_colors)] for i, t in enumerate(tissues)}
-
-    if logs == True:
-        y_column = "log2RTA"
-        plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
-        #min_y_range, max_y_range = results_df[y_column].min() - 0.25, results_df[y_column].max() + 0.25
-
-    else:
-        y_column = "RTA"
-        plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
-        #min_y_range, max_y_range = 0, 1
-
-
-    fig = go.Figure()
-
-    # Circles (significant == False)
-    mask_circle = df['significant'] == False
-    for tissue in tissues:
-        df_t = df[mask_circle & (df[meta] == tissue)]
-        fig.add_trace(go.Scatter(
-            x=df_t[meta],
-            y=df_t[y_column],
-            mode='markers',
-            marker=dict(
-                symbol='circle',
-                color=tissue_color_map[tissue],
-                size=8,
-                line=dict(width=1, color='white')
-            ),
-            customdata=df_t.index,
-            hovertemplate='Tissue: %{x}<br>RTA: %{y}<br>Run: %{customdata}<extra></extra>',
-            showlegend=False  # <--- don't show legend here
-        ))
-
-    # Diamonds (significant == True)
-    mask_diamond = df['significant'] == True
-    for tissue in tissues:
-        df_t = df[mask_diamond & (df[meta] == tissue)]
-        fig.add_trace(go.Scatter(
-            x=df_t[meta],
-            y=df_t[y_column],
-            mode='markers',
-            marker=dict(
-                symbol='diamond',
-                color=tissue_color_map[tissue],
-                size=13,
-                line=dict(width=1, color='white')
-            ),
-            customdata=df_t.index,
-            hovertemplate='Tissue: %{x}<br>RTA: %{y}<br>Run: %{customdata}<extra></extra>',
-            showlegend=False  # <--- don't show legend here
-        ))
-
-    # --- Add "fake" traces for legend ---
-    fig.add_trace(go.Scatter(
-        x=[None], y=[None],
-        mode='markers',
-        marker=dict(symbol='diamond', color='gray', size=13, line=dict(width=1, color='gray')),
-        legendgroup='sig',
-        showlegend=True,
-        name='s.'
-    ))
-    fig.add_trace(go.Scatter(
-        x=[None], y=[None],
-        mode='markers',
-        marker=dict(symbol='circle', color='gray', size=8, line=dict(width=1, color='gray')),
-        legendgroup='nonsig',
-        showlegend=True,
-        name='n.s.'
-    ))
-
-    # Background, grid, and reference lines
-    fig.update_layout(
-        margin = dict(b=70),
-        plot_bgcolor='#daecf1',
-        paper_bgcolor='white',
-        title=dict(text = plot_title, font = dict(color="black")),
-        legend_title_text='Significance:',
-        legend = dict(font = dict(color = "black"), title_font = dict(color="black"))
-    )
-
-    # axis-level updates:
-    fig.update_xaxes(
-        automargin=False,
-        title_text=meta.lower(),
-        title_font=dict(color='black'),
-        tickfont=dict(color='black'),
-        showgrid=True, gridcolor='white',
-        tickangle=45
-    )
-    fig.update_yaxes(
-        title_text= y_column,
-        title_font=dict(color='black'),
-        tickfont=dict(color='black'),
-        showgrid=True, gridcolor='white'
-    )
-
-    fig.add_hline(y=0, line_color='white', line_dash='solid', line_width=1)
-
-    return fig
+# def diamond_plotter(df, meta="TISSUE", logs = False):
+#     """
+#     Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
+#     Significant values are diamonds, while non-significant are circles.
+#     """
+#     tissues = df[meta].unique()
+#     pastel_colors = px.colors.qualitative.Pastel
+#     tissue_color_map = {t: pastel_colors[i % len(pastel_colors)] for i, t in enumerate(tissues)}
+#
+#     if logs == True:
+#         y_column = "log2RTA"
+#         plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
+#         #min_y_range, max_y_range = results_df[y_column].min() - 0.25, results_df[y_column].max() + 0.25
+#
+#     else:
+#         y_column = "RTA"
+#         plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
+#         #min_y_range, max_y_range = 0, 1
+#
+#
+#     fig = go.Figure()
+#
+#     # Circles (significant == False)
+#     mask_circle = df['significant'] == False
+#     for tissue in tissues:
+#         df_t = df[mask_circle & (df[meta] == tissue)]
+#         fig.add_trace(go.Scatter(
+#             x=df_t[meta],
+#             y=df_t[y_column],
+#             mode='markers',
+#             marker=dict(
+#                 symbol='circle',
+#                 color=tissue_color_map[tissue],
+#                 size=8,
+#                 line=dict(width=1, color='white')
+#             ),
+#             customdata=df_t.index,
+#             hovertemplate='Tissue: %{x}<br>RTA: %{y}<br>Run: %{customdata}<extra></extra>',
+#             showlegend=False  # <--- don't show legend here
+#         ))
+#
+#     # Diamonds (significant == True)
+#     mask_diamond = df['significant'] == True
+#     for tissue in tissues:
+#         df_t = df[mask_diamond & (df[meta] == tissue)]
+#         fig.add_trace(go.Scatter(
+#             x=df_t[meta],
+#             y=df_t[y_column],
+#             mode='markers',
+#             marker=dict(
+#                 symbol='diamond',
+#                 color=tissue_color_map[tissue],
+#                 size=13,
+#                 line=dict(width=1, color='white')
+#             ),
+#             customdata=df_t.index,
+#             hovertemplate='Tissue: %{x}<br>RTA: %{y}<br>Run: %{customdata}<extra></extra>',
+#             showlegend=False  # <--- don't show legend here
+#         ))
+#
+#     # --- Add "fake" traces for legend ---
+#     fig.add_trace(go.Scatter(
+#         x=[None], y=[None],
+#         mode='markers',
+#         marker=dict(symbol='diamond', color='gray', size=13, line=dict(width=1, color='gray')),
+#         legendgroup='sig',
+#         showlegend=True,
+#         name='s.'
+#     ))
+#     fig.add_trace(go.Scatter(
+#         x=[None], y=[None],
+#         mode='markers',
+#         marker=dict(symbol='circle', color='gray', size=8, line=dict(width=1, color='gray')),
+#         legendgroup='nonsig',
+#         showlegend=True,
+#         name='n.s.'
+#     ))
+#
+#     # Background, grid, and reference lines
+#     fig.update_layout(
+#         margin = dict(b=70),
+#         plot_bgcolor='#daecf1',
+#         paper_bgcolor='white',
+#         title=dict(text = plot_title, font = dict(color="black")),
+#         legend_title_text='Significance:',
+#         legend = dict(font = dict(color = "black"), title_font = dict(color="black"))
+#     )
+#
+#     # axis-level updates:
+#     fig.update_xaxes(
+#         automargin=False,
+#         title_text=meta.lower(),
+#         title_font=dict(color='black'),
+#         tickfont=dict(color='black'),
+#         showgrid=True, gridcolor='white',
+#         tickangle=45
+#     )
+#     fig.update_yaxes(
+#         title_text= y_column,
+#         title_font=dict(color='black'),
+#         tickfont=dict(color='black'),
+#         showgrid=True, gridcolor='white'
+#     )
+#
+#     fig.add_hline(y=0, line_color='white', line_dash='solid', line_width=1)
+#
+#     return fig
 
 
 # Function to make diamond plot with CI whiskers by selected metadata field
@@ -256,14 +257,18 @@ def new_diamond_plotter(df, meta="TISSUE", logs=False, jitter_amount=0.4, show_n
 
     if logs == True:
         y_column = "log2RTA"
-        ci_lower = "log2RTA_ci_lower_95%"  # You'll need to add these columns if using logs
+        df["log2RTA_ci_lower_95%"] = np.log2(df["RTA_ci_lower_95%"])
+        df["log2RTA_ci_upper_95%"] = np.log2(df["RTA_ci_upper_95%"])
+        ci_lower = "log2RTA_ci_lower_95%"
         ci_upper = "log2RTA_ci_upper_95%"
         plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
+        tot_counts = "Tot Counts"
     else:
         y_column = "RTA"
         ci_lower = "RTA_ci_lower_95%"
         ci_upper = "RTA_ci_upper_95%"
         plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
+        tot_counts = "Tot Counts"
 
     fig = go.Figure()
 
@@ -312,11 +317,17 @@ def new_diamond_plotter(df, meta="TISSUE", logs=False, jitter_amount=0.4, show_n
                     size=8,
                     line=dict(width=1, color='white')
                 ),
-                customdata=np.column_stack((df_t[meta], df_t.index, df_t[ci_lower].round(2), df_t[ci_upper].round(2))),
+                customdata=np.column_stack((df_t[meta], # customdata[0]
+                                            df_t.index, # customdata[1]
+                                            df_t[ci_lower].round(2), # customdata[2]
+                                            df_t[ci_upper].round(2), # customdata[3]
+                                            df_t[tot_counts])),  # customdata[4]
+
                 hovertemplate='Tissue: %{customdata[0]}<br>'
                               'RTA: %{y:.2f}<br>'
                               'CI: %{customdata[2]} - %{customdata[3]}<br>'
-                              'Run: %{customdata[1]}<extra></extra>',
+                              'Run: %{customdata[1]}<br>'
+                              'Tot Counts: %{customdata[4]}<extra></extra>',
                 showlegend=False
             ))
 
@@ -334,11 +345,16 @@ def new_diamond_plotter(df, meta="TISSUE", logs=False, jitter_amount=0.4, show_n
                 size=13,
                 line=dict(width=1, color='white')
             ),
-            customdata=np.column_stack((df_t[meta], df_t.index, df_t[ci_lower].round(2), df_t[ci_upper].round(2))),
+            customdata=np.column_stack((df_t[meta],  # customdata[0]
+                                        df_t.index,  # customdata[1]
+                                        df_t[ci_lower].round(2),  # customdata[2]
+                                        df_t[ci_upper].round(2),  # customdata[3]
+                                        df_t[tot_counts])),  # customdata[4]
             hovertemplate='Tissue: %{customdata[0]}<br>'
                           'RTA: %{y:.2f}<br>'
                           'CI: %{customdata[2]} - %{customdata[3]}<br>'
-                          'Run: %{customdata[1]}<extra></extra>',
+                          'Run: %{customdata[1]}<br>'
+                          'Tot Counts: %{customdata[4]}<extra></extra>',
             showlegend=False
         ))
 
@@ -529,10 +545,8 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coor
     fig.update_yaxes(
         showgrid=True,
         gridcolor="lightgray",
-        # ...other y-axis settings...
     )
 
-    #fig.show()
     return fig
 
 
