@@ -92,7 +92,7 @@ def _permute_values(
 def test_x_region(
         diffs_df: pd.DataFrame,
         perms_array: np.ndarray,
-        ci: int = 95
+        alpha: float = 0.05
 ) -> tuple[pd.DataFrame, list[str]]:
     """
     Compute p-values and identify significant runs via permutation test.
@@ -103,7 +103,7 @@ def test_x_region(
     Args:
         diffs_df: DataFrame with observed differences, must contain 'abs_xn_diff' column
         perms_array: Array of shape (N, n_runs) with null distribution
-        ci: Confidence level for FDR correction (default: 95)
+        alpha: Significance threshold for FDR correction (default: 0.05)
 
     Returns:
         results: DataFrame with columns ['x avg', 'n avg', 'padj_bh', 'reject']
@@ -124,7 +124,7 @@ def test_x_region(
     pvals = (greater + 1) / (N + 1)  # Changed from  (greater + 0.5) / (N + 1)
 
     # FDR correction for multiple testing
-    reject, pvals_bh, _, _ = multipletests(pvals, alpha=1 - (ci / 100), method='fdr_bh')
+    reject, pvals_bh, _, _ = multipletests(pvals, alpha= alpha, method='fdr_bh')
 
     # Compile results
     results = pd.DataFrame({
@@ -144,7 +144,7 @@ def test_baseline_vs_noise(
         coordinates: dict[str, tuple[int, int]],
         N: int = 10000,
         random_state: int | None = None,
-        ci: int = 95
+        alpha: float = 0.05
 ) -> tuple[pd.DataFrame, list[str]]:
     """
     Test if baseline region (x) differs significantly from noise region (n).
@@ -161,7 +161,7 @@ def test_baseline_vs_noise(
                     (start, end) tuples defining region boundaries
         N: Number of permutations for null distribution (default: 1000)
         random_state: Seed for reproducibility (default: None)
-        ci: Confidence level for statistical testing (default: 95)
+        alpha: Significance threshold for FDR correction (default: 0.05)
 
     Returns:
         results: DataFrame with columns ['x avg', 'n avg', 'padj_bh', 'reject']
@@ -176,7 +176,7 @@ def test_baseline_vs_noise(
     perms_array = _permute_values(reg_x, reg_n, N, random_state=random_state)
 
     # does the actual test, computing the p-values and adjusting them
-    results, good_runs = test_x_region(diffs_df, perms_array, ci=ci)
+    results, good_runs = test_x_region(diffs_df, perms_array, alpha=alpha)
 
     return results, good_runs
 
@@ -366,7 +366,7 @@ def format_data(df, factor):
 
 def assemble_model(inputs_dict, lengths, belief="moderate"):
     # Checks "belief" option:
-    valid_beliefs = {"moderate", "rare", "elevated", "unsure"}
+    valid_beliefs = {"moderate", "rare", "frequent", "uncertain"}
     if belief not in valid_beliefs:
         raise ValueError(f"belief must be one of {valid_beliefs}, got '{belief}'")
 
@@ -398,13 +398,13 @@ def assemble_model(inputs_dict, lengths, belief="moderate"):
                                         mu=-4.6,
                                         sigma=1.5,
                                         shape=n_levels)
-        elif belief == "elevated":  # Efficiencies typically higher median ~27% with a 95% prior interval of approximately [4%, 80%], like selcys insertions,
+        elif belief == "frequent":  # Efficiencies typically higher median ~27% with a 95% prior interval of approximately [4%, 80%], like selcys insertions,
             mu_factor_logit = pm.Normal('mu_factor_logit',
                                         mu=-1.0,
                                         sigma=1.2,
                                         shape=n_levels)
 
-        elif belief == "unsure":  # Efficiencies typically 1-40% (median 10%, CI 1-53%), like selcys insertions,
+        elif belief == "uncertain":  # weakly informative - if the user suspecyts recoding but genueily does nto know much about the rate.
             mu_factor_logit = pm.Normal('mu_factor_logit',
                                         mu=-3.5,
                                         sigma=2.0,
@@ -516,7 +516,7 @@ def check_mcmc_diagnostics(trace_negbin, n_chains=4, rhat_threshold=1.01, ess_mi
     print(report)
 
     if outpath is not None:
-        full_path = os.path.join(outpath, "model_diagnostics.txt")
+        full_path = os.path.join(outpath, "model_convergence_diagnostics.txt")
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(report + "\n\n")
             f.write("=== Full summary ===\n")
@@ -565,7 +565,7 @@ def traceplots_checks(trace_negbin, outpath=None):
 
     if outpath is not None:
         # assumes outpath is a path
-        full_path = os.path.join(outpath, "trace_plots.png")
+        full_path = os.path.join(outpath, "convergence_trace_plots.png")
         figs2.savefig(full_path, bbox_inches="tight", dpi=150)
         print(f"  Saved to: {full_path}")
     plt.close(figs2)
@@ -600,7 +600,7 @@ def prior_predictive_checks(model, inputs_dict, outpath=None):
 
     # --- Per-level theta_run summary ---
     lines = ["===== PRIOR PREDICTIVE ON EFFICIENCIES (probability scale) =====\n"]
-    lines.append("Tissue-level prior (mu_factor, shared across all levels):")
+    lines.append("Group-level prior (mu_factor, shared across all levels):")
     lines.append(f"  median = {mu_med:.4f}    95% CI = [{mu_lo:.4f}, {mu_hi:.4f}]\n")
 
     lines.append("Run-level prior (theta_run) by level:")
@@ -618,11 +618,13 @@ def prior_predictive_checks(model, inputs_dict, outpath=None):
         )
 
     lines.append("\n===== INTERPRETATION =====")
-    lines.append("mu_factor: prior on tissue-level (typical) efficiency. Shared across levels by construction;")
-    lines.append("  reported once. Should match the 'belief' setting.")
-    lines.append("theta_run: prior on run-level efficiency (mu_factor + run offset * sigma_factor).")
-    lines.append("Expect theta_run to be wider than mu_factor - that is partial pooling at work.")
-    lines.append("If theta_run is dramatically wider (e.g. CI spans ~0 to ~1), sigma_factor's prior may be too loose.")
+    lines.append("This is a prior check - what the model sees as possible, without seeing the data.")
+    lines.append("mu_factor: prior on Group-level - (e.g. typical efficiency for a tissue ). Shared across levels by ")
+    lines.append(" construction and as such reported once. Should match the 'belief' setting.")
+    lines.append("theta_run: prior on run-level efficiency (defined in the code as mu_factor + run offset * sigma_factor).")
+    lines.append("theta_run is EXPECTED to be wider than mu_factor - that is due to the partial pooling strategy.")
+    lines.append("NB. If theta_run is dramatically wider (e.g. CI spans ~0 to ~1), sigma_factor's prior may be too loose.")
+    lines.append("In such a case, it could be advisable to try choosing a tighter prior for sigma_factor.")
 
     report = "\n".join(lines)
     print(report)
@@ -721,7 +723,7 @@ def posterior_predictive_check(model, trace_negbin, inputs_dict, random_seed=42,
         test_stats = {
             "mean": np.mean,
             "sd": np.std,
-            "min": np.min,
+            "min": np.min, #discarded. The negative binomial generates a floor effect that inflates this bayesian P-value. removed.
             "max": np.max,
             "q25": lambda x: np.quantile(x, 0.25),
             "median": np.median,
@@ -729,16 +731,21 @@ def posterior_predictive_check(model, trace_negbin, inputs_dict, random_seed=42,
         }
 
         # Bayesian p-values
+        rows = []
         for name, T in test_stats.items():
             T_obs = T(y_obs)
             T_rep = np.array([T(row) for row in y_rep])
             p_bayes = np.mean(T_rep >= T_obs)
             print(f"{name:8s}  T(y_obs)={T_obs:>10.2f}   p_B={p_bayes:.3f}")
+            rows.append({"statistic": name, "T_obs": T_obs, "p_bayes": p_bayes})
+
+    ppc_table = pd.DataFrame(rows)
 
     if outpath is not None:
-        full_path = os.path.join(outpath, "posterior_predictive_check.png")
+        full_path = os.path.join(outpath, "posterior_predictive_checks.png")
         # Save the current figure
         plt.savefig(full_path, dpi=300, bbox_inches='tight')
+        ppc_table.to_csv(os.path.join(outpath, "posterior_predictive_checks.csv"), index=False)
 
     plt.show()
 
@@ -796,7 +803,7 @@ def flag_practical_zero_runs(trace_negbin, inputs_dict, rope_upper=0.01, mass_th
     inputs_dict : dict
     rope_upper : float
         Upper bound of the Region of Practical Equivalence to zero.
-        Default 0.01 (suitable for 'moderate' and 'elevated' belief regimes).
+        Default 0.01 (suitable for 'moderate' and 'frequent' belief regimes).
         Consider lowering (e.g. 0.003) for the 'rare' regime ?
         mass_threshold: float (probability we want for the posterior mass to be labelled)
     """
@@ -1025,7 +1032,11 @@ def runs_plot(df, mass_threshold = 0.95, outpath=None):
 
 def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, min_members=10, belief = "moderate", mass_threshold = 0.95, rope_upper = 0.01):
     # Keep only datasets where baseline is expressed.
-    _, good_runs = test_baseline_vs_noise(df, coordinates, random_state)
+    _, good_runs = test_baseline_vs_noise(dataframe = df,
+                                          coordinates = coordinates,
+                                          random_state=random_state,
+                                          N = 10000)
+
     df = df[good_runs].copy()
 
     # Prepare input data, stores length of each slice.
@@ -1087,6 +1098,7 @@ def run_HBM(df, metadata, coordinates, factor, outpath=None, random_state=42, mi
     #     median_counts=('total', 'median'),
     #     total_counts=('total', 'sum')
     # ).sort_values('n_runs')
+
 
     return res, runs, summary #, df_check
 
