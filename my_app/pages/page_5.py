@@ -179,11 +179,18 @@ if coordinates is None:
         st.image("martas/error_marta.png", width=127)
     st.stop()
 else:
+
+    tot_len_x_y = coordinates["x_slice"][1] - coordinates["x_slice"][0] + coordinates["y_slice"][1] - coordinates["y_slice"][0]
     st.write(f"""You selected the following ranges for the analysis:
 
-    - First Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
-    - Second Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}
-    - Noise Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
+    - Baseline Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
+    - Target Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}
+    - Noise Control Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
+    
+    Total length (nt positions) of Baseline and Target: {tot_len_x_y} positions.
+    
+    It is advised to consider studies with at least ~ {round((tot_len_x_y/2 + tot_len_x_y*0.11))} total counts.
+    
     """)
 
 # WRAP ME INTO A SINGLE FUNCTION!
@@ -265,30 +272,45 @@ if current_mode.txid_analysis_done is True:
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
 
-        tab3, tab4, tab5, tab5_bis, tab6 = st.tabs(
+        max = int(max(current_mode.txid_results["Tot Counts"]))
+        slide_message = f"Select the minimum Total Counts - datasets will less will not be displayed. Min advised:  ~ {round((tot_len_x_y/2 + tot_len_x_y*0.11))} "
+
+        tab3, tab4, tab5, tab6 = st.tabs(
             ["Box plot (RTAs)", "Diamond plot (RTA)",
-             "Single Transcript Plot", "Single Transcript Plot (new)",
+             "Single Transcript Plot",
              "Aggregated Plots"])
 
         with tab3:
             plot_logs = False
             box_colour = "#00bf7d"
-            data = current_mode.txid_results
+
             col1, col2, col3 = st.columns([2, 2, 6])
             with col1:
                 if st.checkbox("Plot Log(2) values"):
                     plot_logs = True
                     box_colour = "#c44601"
 
-            with col2:
                 if st.checkbox("Plot significant RTAs only"):
                     st.write("something")
                     data = current_mode.txid_results[current_mode.txid_results["significant"] == True]
+
+            #with col2:
+
+
+            with col3:
+
+                tot_counts_min = st.slider(slide_message,
+                          0, max, key =  "boxplot_slider")
+
+            data = current_mode.txid_results
+            data = data[data["Tot Counts"] > tot_counts_min]
 
             fig2 = plot_rta_boxplot(results_df = data,
                                     box_fill = box_colour,
                                     logs = plot_logs)
             st.plotly_chart(fig2)
+
+
 
             if st.button("Store in the report", key = "rta_boxplot"):
                 analysis.user_plots.append(fig2)
@@ -323,11 +345,19 @@ if current_mode.txid_analysis_done is True:
                 if st.checkbox("Plot Non Significant"):
                     show_nonsignificant = True
 
-            with col2:
                 if st.checkbox("Plot Log(2) values", key = "diamond_plot_"):
                     plot_logs_d = True
 
-            d_plot = new_diamond_plotter(current_mode.txid_results_meta,
+            with col3:
+                #max = int(max(current_mode.txid_results["Tot Counts"]))
+                tot_counts_min = st.slider(slide_message,
+                          0, max, key =  "diamond_plot_slider")
+
+            data_diamond_plot = current_mode.txid_results_meta
+            data_diamond_plot = data_diamond_plot[data_diamond_plot["Tot Counts"] > tot_counts_min]
+            data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
+
+            d_plot = new_diamond_plotter(data_diamond_plot,
                                  meta=meta_option,
                                  logs = plot_logs_d,
                                  show_nonsignificant = show_nonsignificant)
@@ -364,27 +394,26 @@ if current_mode.txid_analysis_done is True:
             #     analysis.user_plots.append(d_plot_bis)
             #     st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
+        # with tab5:
+        #     st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
+        #
+        #     run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
+        #                                 current_mode.txid_results_meta.index)
+        #
+        #     ml_plot = multi_line_plot(current_mode.all_studies_df,
+        #                               current_mode.utr5_length,
+        #                               current_mode.cds_length,
+        #                               run_option,
+        #                               current_mode.txid_ranges)
+        #     st.plotly_chart(ml_plot, use_container_width=True,
+        #     key=f"ml_plot_{run_option}"  # or any stable unique string
+        #                     )
+        #
+        #     if st.button("Store in the report", key = "ml_plot"):
+        #         analysis.user_plots.append(ml_plot)
+        #         st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+
         with tab5:
-            st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
-
-            run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-                                        current_mode.txid_results_meta.index)
-
-            ml_plot = multi_line_plot(current_mode.all_studies_df,
-                                      current_mode.utr5_length,
-                                      current_mode.cds_length,
-                                      run_option,
-                                      current_mode.txid_ranges)
-            st.plotly_chart(ml_plot, use_container_width=True,
-            key=f"ml_plot_{run_option}"  # or any stable unique string
-                            )
-
-            if st.button("Store in the report", key = "ml_plot"):
-                analysis.user_plots.append(ml_plot)
-                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
-
-
-        with tab5_bis:
             st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
 
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
@@ -397,7 +426,7 @@ if current_mode.txid_analysis_done is True:
             streamlit_bokeh(ml_plot2, use_container_width=False)
 
             if st.button("Store in the report", key = "ml_plot2"):
-                analysis.user_plots.append(ml_plot)
+                analysis.user_plots.append(ml_plot2)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
         with tab6:
