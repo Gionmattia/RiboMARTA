@@ -258,7 +258,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             """)
 
 
-    with st.expander("2 ~ Select Smoothing Option"):
+    with st.expander("2 ~ Select Smoothing Option (optional)"):
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappability_df is None:
@@ -301,7 +301,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
             streamlit_bokeh(after_smooth_plot, use_container_width=False)
 
-    with st.expander("3 ~ Select Aggregation Option"):
+    with st.expander("3 ~ Select Aggregation Option (optional)"):
         st.write("Here you can select whether to aggregate data (by metadata or overall) or not. Resetting this options"
                  "resets also any smoothing option previously selected!")
 
