@@ -236,6 +236,11 @@ if st.button("Run Analysis"):
     current_mode.txid_results_meta = integrate_metadata(current_mode.txid_results,
                                                        st.session_state.metadata)
 
+    if current_mode.aggregation_option != "":
+        current_mode.txid_results_meta["Group"] = current_mode.txid_results_meta.index
+    elif current_mode.aggregation_option == "":
+        current_mode.txid_results_meta["Dataset"] = current_mode.txid_results_meta.index
+
     current_mode.txid_analysis_done = True
 
 
@@ -335,7 +340,7 @@ if current_mode.txid_analysis_done is True:
             # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
             meta_option = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.txid_results_meta.columns[:]) # select first 5
+                current_mode.txid_results_meta.columns[:])
 
             show_nonsignificant =  False
             plot_logs_d = False
@@ -362,6 +367,8 @@ if current_mode.txid_analysis_done is True:
                                  logs = plot_logs_d,
                                  show_nonsignificant = show_nonsignificant)
             st.plotly_chart(d_plot, use_container_width=True)
+
+            current_mode.aggregation_option
 
             # else:
             #     d_plot = new_diamond_plotter(current_mode.txid_results_meta,

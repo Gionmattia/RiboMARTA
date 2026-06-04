@@ -168,6 +168,8 @@ txid_start_checkpoint(current_mode, analysis)
 
 # Extract coverage info and transcript sequence. Includes loader.
 if current_mode.loading_tx_cov:
+    current_mode.aggregation_option = ""
+    current_mode.smoothing_option = False
     all_ranges, strandedness = txid_data_extraction(current_run = current_mode,
                                                     bigwig_files = analysis.filters.selected_studies,
                                                     gr = st.session_state.gr)
@@ -175,6 +177,7 @@ if current_mode.loading_tx_cov:
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
     current_mode.all_studies_df_backup = current_mode.all_studies_df.copy()
+    current_mode.all_studies_df_pre_aggregation_backup = current_mode.all_studies_df.copy()
 
 # Checks whether the coverage has been extracted, before proceeding
 if current_mode.tx_cov_extracted:
@@ -221,7 +224,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
     ga_plots_UI_render(current_mode, analysis)
 
 
-    with st.expander(" Select Ranges"):
+    with st.expander("1 ~ Select Ranges"):
 
     #if current_mode.show_ranges_selectors:
         col1, col2, col3, col4 = st.columns([4, 4, 4, 8])
@@ -255,7 +258,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             """)
 
 
-    with st.expander("Select Smoothing Option"):
+    with st.expander("2 ~ Select Smoothing Option"):
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappability_df is None:
@@ -297,6 +300,40 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                                                      normalize=False)
 
             streamlit_bokeh(after_smooth_plot, use_container_width=False)
+
+    with st.expander("3 ~ Select Aggregation Option"):
+        st.write("Here you can select whether to aggregate data (by metadata or overall) or not. Resetting this options"
+                 "resets also any smoothing option previously selected!")
+
+        valid_agg_options = ["No Aggregation",
+                         "Aggregate by metadata field",
+                         "Total Aggregation"]
+
+        choice_agg = st.radio(
+            "_",
+            label_visibility="collapsed",
+            options=valid_agg_options,
+            horizontal=True,  # makes it look more toggle-like
+            captions=["Default option. No aggregation of the data is applied.",
+                      "Aggregates datasets by selected metadata field.",
+                      "Aggregates everything, everywhere, all at once."],
+        )
+
+        if choice_agg == "Aggregate by metadata field":
+            meta_agg_option = st.selectbox(
+                "To visualise the diamond plot, select the medatadata column to use",
+                st.session_state.metadata.columns[:], key =  "meta_option_aggregation")
+
+        if st.button("Aggregate it!"):
+            current_mode.aggregation_option = choice_agg
+
+            # overwrites all_studies_df (ndr backup still safe) to add smoothing options
+            data_aggregator(current_mode, meta_agg_option)
+
+            current_mode.all_studies_df
+
+        # Functions that takes in current_mode, meta_agg_option, and does aggregation (stores it too for report).
+
 
 
     if st.button("Next"):

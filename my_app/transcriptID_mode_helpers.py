@@ -430,3 +430,28 @@ def ranges_selector(full_mRNA_length, region):
     st.write(f"Selected region {x_start} to {x_end}")
 
     return (x_start, x_end)
+
+
+def data_aggregator(current_run, option):
+
+    current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
+
+    if current_run.aggregation_option == "No Aggregation":
+        return
+
+    elif current_run.aggregation_option  ==  "Aggregate by metadata field": # Metadata Aggregation
+
+        # Of course, does not work because meta is not there.
+        metadata = st.session_state.metadata.copy()
+        mapping = metadata.set_index("Run")[option]
+        current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
+        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+        return
+
+    elif current_run.aggregation_option  == "Total Aggregation": # Total Aggregation
+
+        current_run.all_studies_df = current_run.all_studies_df.sum(axis=1).to_frame("Global Aggregate")
+        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+
+        return
+

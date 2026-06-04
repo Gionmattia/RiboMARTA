@@ -127,6 +127,7 @@ class TranscriptIDMode:
     utr3_length: int = None
     all_studies_df: pd.DataFrame = None
     all_studies_df_backup: pd.DataFrame = None
+    all_studies_df_pre_aggregation_backup: pd.DataFrame = None
     transcript_sequence: str = None
     mappability_df: pd.DataFrame = None
     tx_ga_plot: go.Figure = None
@@ -139,6 +140,7 @@ class TranscriptIDMode:
     y_slice: tuple = None
     n_slice: tuple = None
     smoothing_option: bool = False
+    aggregation_option: str = None
     smoothing_criminal_thresh: int = 4
     txid_ranges: dict = None # Redundant?
     alpha: float = None
