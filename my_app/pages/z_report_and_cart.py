@@ -131,7 +131,7 @@ markdown_content = report_content = f"""
 #### Datasets Processed (SRR):
 {selected_studies}
 #### Datasets Flagged:
-{run.flagged_datasets if len(run.flagged_datasets) is not 0 else "No Datasets flagged"}
+{run.flagged_datasets if len(run.flagged_datasets) != 0 else "No Datasets flagged"}
 """
 
 st.write(markdown_content)
