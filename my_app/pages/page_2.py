@@ -292,6 +292,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             current_mode.smoothing_option = choice
             if choice == "Criminal Smoothing (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
+            else:
+                current_mode.smoothing_criminal_thresh = None
             # overwrites all_studies_df (ndr backup still safe) to add smoothing options
             txid_data_smoother(current_mode, current_mode.smoothing_option)
 

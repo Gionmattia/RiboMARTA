@@ -141,7 +141,8 @@ class TranscriptIDMode:
     n_slice: tuple = None
     smoothing_option: bool = False
     aggregation_option: str = None
-    smoothing_criminal_thresh: int = 4
+    meta_agg_option: str = None
+    smoothing_criminal_thresh: int =  None
     txid_ranges: dict = None # Redundant?
     alpha: float = None
     ci: int = None

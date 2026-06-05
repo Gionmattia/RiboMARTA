@@ -435,6 +435,7 @@ def ranges_selector(full_mRNA_length, region):
 def data_aggregator(current_run, option):
 
     current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
+    current_run.meta_agg_option = None
 
     if current_run.aggregation_option == "No Aggregation":
         return
@@ -446,6 +447,7 @@ def data_aggregator(current_run, option):
         mapping = metadata.set_index("Run")[option]
         current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
         current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+        current_run.meta_agg_option = option
         return
 
     elif current_run.aggregation_option  == "Total Aggregation": # Total Aggregation
