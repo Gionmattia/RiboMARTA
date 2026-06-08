@@ -10,6 +10,7 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
     current_mode.genomic_merged = current_mode.genomic_merged_backup.copy()
 
     if option == "No Smoothing":
+        current_mode.smoothing_option = False
         return
 
     elif option == "Mappability Smoothing (Proportional)": # Mappability Smoothing (Proportional)
@@ -74,7 +75,7 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
 
 
 
-# Calls the appropriate smoothing function, depending on the option given
+# Calls the appropriate smoothing function, depending on the option given.
 def txid_data_smoother(current_mode, option: str = "No Smoothing"):
     # Resets dataframe to original, untouched version
     current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
@@ -82,6 +83,7 @@ def txid_data_smoother(current_mode, option: str = "No Smoothing"):
         assert current_mode.all_studies_df.index.equals(current_mode.mappability_df.index), "Index mismatch between studies and mappability"
 
     if option == "No Smoothing":
+        current_mode.smoothing_option = False
         return
 
     elif option == "Mappability Smoothing (Proportional)": # Mappability Smoothing (Proportional)

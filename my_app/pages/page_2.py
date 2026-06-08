@@ -289,6 +289,12 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                 st.caption("<div style='text-align:right'>Permissive (allows peaks) </div>", unsafe_allow_html=True)
 
         if st.button("Smooth it!"):
+            # Users cannot AGGREGATE and SMOOTH at the same time. One option negates the other.
+            current_mode.aggregation_option = None
+            current_mode.meta_agg_option = None
+            # Undoes any aggregation does beforehand
+            data_aggregator(current_mode, current_mode.aggregation_option)
+
             current_mode.smoothing_option = choice
             if choice == "Criminal Smoothing (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
@@ -307,11 +313,11 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         st.write("Here you can select whether to aggregate data (by metadata or overall) or not. Resetting this options"
                  "resets also any smoothing option previously selected!")
 
-        valid_agg_options = ["No Aggregation",
+        valid_agg_options = [None,
                          "Aggregate by metadata field",
                          "Total Aggregation"]
 
-        choice_agg = st.radio(
+        aggregation_option = st.radio(
             "_",
             label_visibility="collapsed",
             options=valid_agg_options,
@@ -321,22 +327,48 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                       "Aggregates everything, everywhere, all at once."],
         )
 
-        if choice_agg == "Aggregate by metadata field":
-            meta_agg_option = st.selectbox(
-                "To visualise the diamond plot, select the medatadata column to use",
+        if aggregation_option == "Aggregate by metadata field":
+            current_mode.meta_agg_option = st.selectbox(
+                "To visualise the diamond plot, select the metadata column to use",
                 st.session_state.metadata.columns[:], key =  "meta_option_aggregation")
 
         if st.button("Aggregate it!"):
-            current_mode.aggregation_option = choice_agg
+            # Users cannot AGGREGATE and SMOOTH at the same time. One option negates the other.
+            current_mode.smoothing_option = False
+            # Undoes any smoothing
+            txid_data_smoother(current_mode, current_mode.smoothing_option)
 
-            # overwrites all_studies_df (ndr backup still safe) to add smoothing options
-            data_aggregator(current_mode, meta_agg_option)
+            current_mode.aggregation_option = aggregation_option
+            # Nb. overwrites all_studies_df (ndr backup still safe)
+            data_aggregator(current_mode, current_mode.aggregation_option)
 
-            current_mode.all_studies_df
 
         # Functions that takes in current_mode, meta_agg_option, and does aggregation (stores it too for report).
 
+    st.markdown("#### Recap of your current options:")
 
+    col1, col2, col3= st.columns([4, 4, 4])
+
+    with col1:
+        if current_mode.x_slice is None:
+            bubble("No Ranges Selected", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c", outline_width=1)
+        else:
+            bubble("Ranges Selected ", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
+    with col2:
+        if current_mode.smoothing_option is False:
+            bubble("No Smoothing ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
+                   outline_width=1)
+        else:
+            bubble(f"{current_mode.smoothing_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
+    with col3:
+        if current_mode.aggregation_option is None:
+            bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
+                   outline_width=1)
+        else:
+            bubble(f"{current_mode.aggregation_option} : {current_mode.meta_agg_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
+
+    #: str = None
+    st.write("")
 
     if st.button("Next"):
         current_mode.txid_ranges = {"x_slice": current_mode.x_slice,
