@@ -518,11 +518,11 @@ def _bootstrap_rta_ci(
 
 
 # Function linking together the various bits to be run all together
-# Function linking together the various bits to be run all together
 def run_permutation_analysis(df: pd.DataFrame,
                              coordinates: dict[str, tuple[int, int]],
                              ci: int = 95,
-                             alpha: float = 0.05,
+                             alpha_baseline: float = 0.05,
+                             alpha_target: float = 0.05,
                              N: int = 10000,
                              n_jobs: int = 3,
                              random_state: int | None = None) -> tuple[pd.DataFrame, int]:
@@ -547,7 +547,8 @@ def run_permutation_analysis(df: pd.DataFrame,
             - 'y_slice': (start, end) for test region
             - 'n_slice': (start, end) for noise/background region
         ci: Confidence level for statistical testing, as percentage (default: 95)
-        alpha: Significance threshold for FDR correction (default: 0.05)
+        alpha_baseline: Significance threshold for baseline vs noise test (default: 0.05)
+        alpha_target: Significance threshold for target FDR correction (default: 0.05)
         N: Number of permutations for null distribution generation (default: 10000)
         n_jobs: Number of parallel jobs for permutation computation (default: 3)
         random_state: Random seed for reproducibility. If None, results are
@@ -600,7 +601,7 @@ def run_permutation_analysis(df: pd.DataFrame,
     df = _clean_data(df)
 
     # Test baseline (x) vs noise region (n).
-    results_x_vs_n, good_runs = test_baseline_vs_noise(df, coordinates, N=N, random_state=baseline_seed, alpha = alpha)
+    results_x_vs_n, good_runs = test_baseline_vs_noise(df, coordinates, N=N, random_state=baseline_seed, alpha = alpha_baseline)
 
     # Compute observed RTAs and extract arrays.
     ratios_df, y_array, n_array, x_avg_array = _compute_observed_ratios(df, coordinates, good_runs)
@@ -623,7 +624,7 @@ def run_permutation_analysis(df: pd.DataFrame,
     perms_array = np.vstack(perm_results)
 
     # Compiles results dataframe.
-    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=ci, alpha=alpha)
+    results_df = compute_pvalues_and_ci(ratios_df, perms_array, ci=ci, alpha=alpha_target)
 
     # Computes CI for RTA by boostrapping.
     bootstrap_cis = _bootstrap_rta_ci(df, coordinates, good_runs, B=N, ci=ci, random_state=bootstrap_seed)

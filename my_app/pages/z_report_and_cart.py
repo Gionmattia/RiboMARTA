@@ -65,7 +65,8 @@ if run.genomic_mode.active == True:
         noise region: {run.genomic_mode.genomic_ranges[2]}
     
     Parameters:
-        alpha: {run.genomic_mode.alpha}
+        alpha_baseline: {run.genomic_mode.alpha_baseline}
+        alpha_target: {run.genomic_mode.alpha_target}
         ci: {run.genomic_mode.ci}
         N: {run.genomic_mode.N}
         n_jobs: {run.genomic_mode.n_jobs}
@@ -104,7 +105,8 @@ elif run.transcript_mode.active == True:
         Metadata field used for aggregation: {run.transcript_mode.meta_agg_option}
 
     Parameters:
-        alpha: {run.transcript_mode.alpha}
+        alpha_baseline: {run.transcript_mode.alpha_baseline}
+        alpha_target: {run.transcript_mode.alpha_target}
         ci: {run.transcript_mode.ci}
         N: {run.transcript_mode.N}
         n_jobs: {run.transcript_mode.n_jobs}

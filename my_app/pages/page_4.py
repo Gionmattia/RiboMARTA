@@ -48,17 +48,23 @@ else:
     """)
 
 with st.expander("Change options"):
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
+    col1, col1_bis, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2, 2])
     with col1:
-        current_mode.alpha = st.number_input("Choose alpha", min_value=0.01, max_value=0.99, value=0.05)
+        current_mode.alpha_baseline = st.number_input("Choose alpha for baseline", min_value=0.00, max_value=0.99, value=0.05)
+    with col1_bis:
+        current_mode.alpha_target = st.number_input("Choose alpha for RTA test", min_value=0.0, max_value=0.99, value=0.05)
     with col2:
         current_mode.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
     with col3:
-        current_mode.N = st.number_input("Choose number of permutations", min_value=10, max_value=100000, value=10000)
+        current_mode.N = st.number_input("Choose # of permutations", min_value=10, max_value=100000, value=10000)
     with col4:
         current_mode.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
     with col5:
-        current_mode.seed = st.number_input("Choose random seed", min_value=1, max_value = 100, value=None)
+        use_seed = st.checkbox("Set random seed for reproducibility", value=False)
+        if use_seed:
+            current_mode.seed = st.number_input("Random seed", min_value=0, value=42)
+        else:
+            current_mode.seed = None
 
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
@@ -66,8 +72,9 @@ if st.button("Run Analysis"):
 
 
     df = df.drop(columns=["Position"])
-    current_mode.genco_results, current_mode.seed = run_permutation_analysis(df, coordinates,
-                                                                            alpha = current_mode.alpha,
+    current_mode.genco_results, current_mode.seed = run_permutation_analysis(df = df, coordinates = coordinates,
+                                                                            alpha_baseline = current_mode.alpha_baseline,
+                                                                            alpha_target = current_mode.alpha_target,
                                                                             ci = current_mode.ci,
                                                                             N = current_mode.N,
                                                                             n_jobs = current_mode.n_jobs,

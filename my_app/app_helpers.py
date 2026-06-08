@@ -94,7 +94,8 @@ class GenomicCoordinatesMode:
 
 
     # Step 4 - Analysis Parameters stored.
-    alpha: float = None
+    alpha_baseline: float = None
+    alpha_target: float = None
     ci: int = None
     N: int = None
     n_jobs: int = None
@@ -144,7 +145,8 @@ class TranscriptIDMode:
     meta_agg_option: str = None
     smoothing_criminal_thresh: int =  None
     txid_ranges: dict = None # Redundant?
-    alpha: float = None
+    alpha_baseline: float = None
+    alpha_target: float = None
     ci: int = None
     N: int = None
     n_jobs: int = None

@@ -205,13 +205,15 @@ with st.expander("Help me"):
 
 
 with st.expander("Change options"):
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
+    col1, col1_bis, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2, 2])
     with col1:
-        current_mode.alpha = st.number_input("Choose alpha", min_value=0.00, max_value=0.99, value=0.05)
+        current_mode.alpha_baseline = st.number_input("Choose alpha for baseline", min_value=0.00, max_value=0.99, value=0.05)
+    with col1_bis:
+        current_mode.alpha_target = st.number_input("Choose alpha for RTA test", min_value=0.0, max_value=0.99, value=0.05)
     with col2:
         current_mode.ci = st.number_input("Choose CI", min_value=1, max_value=99, value=95)
     with col3:
-        current_mode.N = st.number_input("Choose number of permutations", min_value=10, max_value=100000, value=10000)
+        current_mode.N = st.number_input("Choose # of permutations", min_value=10, max_value=100000, value=10000)
     with col4:
         current_mode.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
     with col5:
@@ -226,8 +228,9 @@ with st.expander("Change options"):
 if st.button("Run Analysis"):
     df = df.drop(columns=["Position"])
 
-    current_mode.txid_results, current_mode.seed = run_permutation_analysis(df, coordinates,
-                                                                            alpha = current_mode.alpha,
+    current_mode.txid_results, current_mode.seed = run_permutation_analysis(df = df, coordinates = coordinates,
+                                                                            alpha_baseline=current_mode.alpha_baseline,
+                                                                            alpha_target = current_mode.alpha_target,
                                                                             ci = current_mode.ci,
                                                                             N = current_mode.N,
                                                                             n_jobs = current_mode.n_jobs,
@@ -277,7 +280,7 @@ if current_mode.txid_analysis_done is True:
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
 
-        max = int(max(current_mode.txid_results["Tot Counts"]))
+        max = max(int(max(current_mode.txid_results["Tot Counts"])),1)
         slide_message = f"Select the minimum Total Counts - datasets will less will not be displayed. Min advised:  ~ {round((tot_len_x_y/2 + tot_len_x_y*0.11))} "
 
         tab3, tab4, tab5, tab6 = st.tabs(
@@ -449,7 +452,6 @@ if current_mode.txid_analysis_done is True:
 
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
                                         dat_selected,
-                                        #,
                                         key = "new_multiline_stp_key")
 
             ml_plot2 = plot_stp_with_frames(current_run=current_mode, all_studies_df=current_mode.all_studies_df,
