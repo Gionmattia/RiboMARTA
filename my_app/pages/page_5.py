@@ -423,8 +423,33 @@ if current_mode.txid_analysis_done is True:
         with tab5:
             st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
 
+            tot_datasets = set(current_mode.all_studies_df.columns)
+            tot_datasets.remove("Position")
+            baseline_passed = set(current_mode.txid_results_meta.index)
+            baseline_failed = tot_datasets - baseline_passed
+
+            options_STP  = st.radio(
+                "_",
+                label_visibility="collapsed",
+                options=["All datasets", "Baseline Expressed","Baseline Not Expressed"],
+                horizontal=True,  # makes it look more toggle-like
+                captions=[f"({len(tot_datasets)} datasets)",
+                          f"Only datasets where Signal Baseline > Noise Control ({len(baseline_passed)})",
+                          f"Only datasets where Signal Baseline indistinguishable from Noise Control ({len(baseline_failed)})",],
+            )
+
+            if options_STP == "All datasets":
+                dat_selected = tot_datasets
+            elif options_STP == "Baseline Expressed":
+                dat_selected = baseline_passed
+            elif options_STP == "Baseline Not Expressed":
+                dat_selected = baseline_failed
+
+            #elif:
+
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-                                        current_mode.txid_results_meta.index,
+                                        dat_selected,
+                                        #,
                                         key = "new_multiline_stp_key")
 
             ml_plot2 = plot_stp_with_frames(current_run=current_mode, all_studies_df=current_mode.all_studies_df,
