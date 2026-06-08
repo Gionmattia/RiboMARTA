@@ -1,4 +1,7 @@
 # page_5.py
+from json.decoder import NaN
+
+import numpy as np
 import streamlit as st
 from module2 import *
 import pandas as pd
@@ -340,10 +343,14 @@ if current_mode.txid_analysis_done is True:
     # Adds plot with breakdowns by metadata
         with tab4:
 
-            # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
-            meta_option = st.selectbox(
+            if current_mode.aggregation_option is None:
+                meta_option = st.selectbox(
                 "To visualise the diamond plot, select the medatadata column to use",
                 current_mode.txid_results_meta.columns[:])
+            elif current_mode.aggregation_option == "Aggregate by metadata field":
+                meta_option = "Group"
+            elif current_mode.aggregation_option == "Total Aggregation":
+                meta_option = "Group"
 
             show_nonsignificant =  False
             plot_logs_d = False
@@ -370,58 +377,12 @@ if current_mode.txid_analysis_done is True:
                                  logs = plot_logs_d,
                                  show_nonsignificant = show_nonsignificant)
             st.plotly_chart(d_plot, use_container_width=True)
-
-            current_mode.aggregation_option
-
-            # else:
-            #     d_plot = new_diamond_plotter(current_mode.txid_results_meta,
-            #                          meta=meta_option,
-            #                          logs = False,
-            #                          show_nonsignificant = False)
-            #     st.plotly_chart(d_plot, use_container_width=True)
+            
 
             if st.button("Store in the report", key = "diamond plot"):
                 analysis.user_plots.append(d_plot)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        # with tab4_log:
-        #     st.write("feature removed")
-            # # NB ALLOWS FOR ONLY THE FIRST 5 METADATA COLUMNS (TEMPORARY)
-            # meta_option_bis = st.selectbox(
-            #     "To visualise the diamond plot, select the medatadata column to use",
-            #     current_mode.txid_results_meta.columns[:],
-            #     key = "meta_dplot_bis") # select first 5
-            #
-            # d_plot_bis = diamond_plotter(current_mode.txid_results_meta,
-            #                          meta=meta_option_bis,
-            #                          logs = True,
-            #                         ) # Can give errors if True for non-significant results (CI goes below allwod for logs)
-            # st.plotly_chart(d_plot_bis,
-            #                 use_container_width=True,
-            #                 key = "figure_d_bis")
-            #
-            # if st.button("Store in the report", key = "log diamond plot"):
-            #     analysis.user_plots.append(d_plot_bis)
-            #     st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
-
-        # with tab5:
-        #     st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
-        #
-        #     run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
-        #                                 current_mode.txid_results_meta.index)
-        #
-        #     ml_plot = multi_line_plot(current_mode.all_studies_df,
-        #                               current_mode.utr5_length,
-        #                               current_mode.cds_length,
-        #                               run_option,
-        #                               current_mode.txid_ranges)
-        #     st.plotly_chart(ml_plot, use_container_width=True,
-        #     key=f"ml_plot_{run_option}"  # or any stable unique string
-        #                     )
-        #
-        #     if st.button("Store in the report", key = "ml_plot"):
-        #         analysis.user_plots.append(ml_plot)
-        #         st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
         with tab5:
             st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")

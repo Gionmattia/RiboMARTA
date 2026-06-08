@@ -345,7 +345,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
         # Functions that takes in current_mode, meta_agg_option, and does aggregation (stores it too for report).
 
-    st.markdown("#### Recap of your current options:")
+    st.markdown("#### Recap of your current workflow:")
 
     col1, col2, col3= st.columns([4, 4, 4])
 
@@ -364,6 +364,9 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         if current_mode.aggregation_option is None:
             bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
                    outline_width=1)
+        elif current_mode.aggregation_option == "Total Aggregation":
+            bubble(f"{current_mode.aggregation_option}", bg_color="#000000",
+                   outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
         else:
             bubble(f"{current_mode.aggregation_option} : {current_mode.meta_agg_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
 
