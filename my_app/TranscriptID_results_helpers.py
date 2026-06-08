@@ -35,6 +35,24 @@ def plot_rta_boxplot(results_df,
 
     filtered = results_df[y_column].dropna()
     y_vals = filtered.values
+
+    # Safety check (against cases where there are no results)
+    if len(y_vals) == 0:
+        fig = go.Figure()
+        fig.update_layout(
+            title=dict(text=plot_title, font=dict(color="black")),
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            annotations=[dict(
+                x=0.5, y=0.5,
+                xref="paper", yref="paper",
+                text="No data available for this selection",
+                showarrow=False,
+                font=dict(color="gray", size=14),
+            )]
+        )
+        return fig
+
     labels = filtered.index.astype(str).tolist()
     x_vals = [1] * len(y_vals)
 
