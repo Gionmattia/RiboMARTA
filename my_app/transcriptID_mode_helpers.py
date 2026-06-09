@@ -441,7 +441,8 @@ def data_aggregator(current_run, aggregation_option):
 
     elif aggregation_option  ==  "Aggregate by metadata field": # Metadata Aggregation
 
-        # Of course, does not work because meta is not there.
+        # Consistency, remove position (though it won't be aggregated, but better safe than sorry)
+        current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
         metadata = st.session_state.metadata.copy()
         mapping = metadata.set_index("Run")[current_run.meta_agg_option]
         current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
@@ -451,6 +452,7 @@ def data_aggregator(current_run, aggregation_option):
 
     elif aggregation_option  == "Total Aggregation": # Total Aggregation
 
+        current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
         current_run.all_studies_df = current_run.all_studies_df.sum(axis=1).to_frame("Global Aggregate")
         current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
 

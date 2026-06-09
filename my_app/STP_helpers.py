@@ -702,6 +702,12 @@ def subplot_single_transcript_plot(
             hover_fill_alpha=0.9,
             line_color=None,
         )
+        # per-renderer hover so the tooltip reads the right column
+        p.add_tools(HoverTool(
+            tooltips=[("Position", "@X"), ("Study", col), ("Counts", f"@{{{col}}}{{0}}")],
+            mode="vline",
+            renderers=[renderer],
+        ))
         legend_items.append((col, [renderer]))
         hover_renderers.append(renderer)
 
@@ -744,13 +750,6 @@ def subplot_single_transcript_plot(
 
     legend = Legend(items=legend_items, orientation="horizontal", click_policy="hide")
     p.add_layout(legend, "above")
-
-    hover = HoverTool(
-        tooltips=[("Position", "@X"), ("Counts", "$y{0.00}")],
-        mode="vline",
-        renderers=hover_renderers,
-    )
-    p.add_tools(hover)
 
     # Typography
     p.title.text_font_size = "14pt"
