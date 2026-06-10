@@ -360,7 +360,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         else:
             bubble(f"{current_mode.smoothing_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
     with col3:
-        if current_mode.aggregation_option is None or current_mode.meta_agg_option is None:
+        if current_mode.aggregation_option is None and current_mode.meta_agg_option is None:
             bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
                    outline_width=1)
         elif current_mode.aggregation_option == "Total Aggregation":

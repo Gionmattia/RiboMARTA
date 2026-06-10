@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from statsmodels.stats.multitest import multipletests
 from joblib import Parallel, delayed
+from scipy.stats import rankdata
 
 
 # needed to remove samples where we do not have info
@@ -79,13 +80,12 @@ def test_baseline_vs_noise(
     diffs_df, reg_x, reg_n = _compute_xn_diffs(dataframe, coordinates)
 
     # permutes the values between x and n, to generate Null hypothesis distribution.
-    perms_array = _permute_values(reg_x, reg_n, N, random_state=random_state)
+    perms_array, observed = _permute_values(reg_x, reg_n, N, random_state=random_state)
 
     # does the actual test, computing the p-values and adjusting them
-    results, good_runs = test_x_region(diffs_df, perms_array, alpha=alpha)
+    results, good_runs = test_x_region(diffs_df, perms_array, observed, alpha=alpha)
 
     return results, good_runs
-
 
 def _compute_xn_diffs(df: pd.DataFrame,
                       coordinates: dict[str, tuple[int, int]]
@@ -127,28 +127,7 @@ def _compute_xn_diffs(df: pd.DataFrame,
     return diffs_df, reg_x.to_numpy(), reg_n.to_numpy()
 
 
-def _permute_values(
-        base_array: np.ndarray,
-        noise_array: np.ndarray,
-        N: int,
-        random_state: int | None = None
-) -> np.ndarray:
-    """
-    Generate null distribution by permuting baseline and noise regions.
-
-    Shuffles the combined baseline + noise arrays N times, recomputing
-    the absolute difference between means for each permutation.
-
-    Args:
-        base_array: Array of shape (n_positions_base, n_runs) from baseline region
-        noise_array: Array of shape (n_positions_noise, n_runs) from noise region
-        N: Number of permutations to perform
-        random_state: Seed for reproducibility (default: None)
-
-    Returns:
-        Array of shape (N, n_runs) containing permuted absolute differences
-    """
-
+def _permute_values(base_array, noise_array, N, random_state=None):
     # Combine the two arrays
     combined = np.concatenate((base_array, noise_array), axis=0)
     # Retrieve the original size of x
@@ -156,25 +135,67 @@ def _permute_values(
     # Set the random state for permutations
     rng = np.random.default_rng(random_state)
 
-    # Set the empty array for the results
-    perms_array = np.empty((N, base_array.shape[1]))
+    # Rank within each run (once)
+    ranks = rankdata(combined, axis=0)
 
+    observed = np.abs(ranks[:base_size].mean(0) - ranks[base_size:].mean(0))
+
+    perms_array = np.empty((N, combined.shape[1]))
     for i in range(N):
-        # Shuffles the labels
-        shuffled = np.apply_along_axis(rng.permutation, 0, combined)
-        # Gets permutated sets averages
-        perm_base = shuffled[:base_size].mean(axis=0)
-        perm_noise = shuffled[base_size:].mean(axis=0)
-        # Computes the diff between perm x and n. Stores it in the output array.
-        perms_array[i, :] = abs(perm_base - perm_noise)
+        shuffled = np.apply_along_axis(rng.permutation, 0, ranks)
+        perms_array[i, :] = np.abs(shuffled[:base_size].mean(0) - shuffled[base_size:].mean(0))
 
-    return perms_array
+    return perms_array, observed
+
+# def _permute_values(
+#         base_array: np.ndarray,
+#         noise_array: np.ndarray,
+#         N: int,
+#         random_state: int | None = None
+# ) -> np.ndarray:
+#     """
+#     Generate null distribution by permuting baseline and noise regions.
+#
+#     Shuffles the combined baseline + noise arrays N times, recomputing
+#     the absolute difference between means for each permutation.
+#
+#     Args:
+#         base_array: Array of shape (n_positions_base, n_runs) from baseline region
+#         noise_array: Array of shape (n_positions_noise, n_runs) from noise region
+#         N: Number of permutations to perform
+#         random_state: Seed for reproducibility (default: None)
+#
+#     Returns:
+#         Array of shape (N, n_runs) containing permuted absolute differences
+#     """
+#
+#     # Combine the two arrays
+#     combined = np.concatenate((base_array, noise_array), axis=0)
+#     # Retrieve the original size of x
+#     base_size = base_array.shape[0]
+#     # Set the random state for permutations
+#     rng = np.random.default_rng(random_state)
+#
+#     # Set the empty array for the results
+#     perms_array = np.empty((N, base_array.shape[1]))
+#
+#     for i in range(N):
+#         # Shuffles the labels
+#         shuffled = np.apply_along_axis(rng.permutation, 0, combined)
+#         # Gets permutated sets averages
+#         perm_base = shuffled[:base_size].mean(axis=0)
+#         perm_noise = shuffled[base_size:].mean(axis=0)
+#         # Computes the diff between perm x and n. Stores it in the output array.
+#         perms_array[i, :] = abs(perm_base - perm_noise)
+#
+#     return perms_array
 
 
 # Computes the p-value and confidence boundary
 def test_x_region(
         diffs_df: pd.DataFrame,
         perms_array: np.ndarray,
+        observed,
         alpha: float = 0.05
 ) -> tuple[pd.DataFrame, list[str]]:
     """
@@ -200,11 +221,8 @@ def test_x_region(
     # """
 
     N = perms_array.shape[0]
-    observed = diffs_df["abs_xn_diff"]
-
-    # Now we observe how many times the perms_array abs(x-n) were more extreme than the observed values.
-    greater = (perms_array >= observed.values).sum(axis=0)
-    pvals = (greater + 1) / (N + 1)  # Changed from  (greater + 0.5) / (N + 1)
+    greater = (perms_array >= observed).sum(axis=0)   # observed is now a plain np array
+    pvals = (greater + 1) / (N + 1)
 
     # FDR correction for multiple testing
     reject, pvals_bh, _, _ = multipletests(pvals, alpha= alpha, method='fdr_bh')
@@ -215,7 +233,7 @@ def test_x_region(
         "n avg": diffs_df["n avg"],
         'padj_bh': pvals_bh,
         'reject': reject,
-    }, index=observed.index)
+    })
 
     good_runs = results[results["reject"] == True].index.to_list()
 
