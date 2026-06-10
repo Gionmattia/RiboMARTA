@@ -224,9 +224,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
     ga_plots_UI_render(current_mode, analysis)
 
 
-    with st.expander("1 ~ Select Ranges"):
-
-    #if current_mode.show_ranges_selectors:
+    with st.container(border = True): #"Select Ranges"
+        st.write("#### Select Ranges")
         col1, col2, col3, col4 = st.columns([4, 4, 4, 8])
         full_mRNA_length = current_mode.utr5_length + current_mode.cds_length + current_mode.utr3_length
 
@@ -258,7 +257,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             """)
 
 
-    with st.expander("2 ~ Select Smoothing Option (optional)"):
+    with st.expander("Option A ~ Select Smoothing Option (optional)"):
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappability_df is None:
@@ -309,7 +308,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
             streamlit_bokeh(after_smooth_plot, use_container_width=False)
 
-    with st.expander("3 ~ Select Aggregation Option (optional)"):
+    with st.expander("Option B ~ Select Aggregation Option (optional)"):
         st.write("Here you can select whether to aggregate data (by metadata or overall) or not. Resetting this options"
                  "resets also any smoothing option previously selected!")
 
@@ -350,7 +349,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
     col1, col2, col3= st.columns([4, 4, 4])
 
     with col1:
-        if current_mode.x_slice is None:
+        if current_mode.n_slice is None or current_mode.n_slice[1] == 0:
             bubble("No Ranges Selected", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c", outline_width=1)
         else:
             bubble("Ranges Selected ", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
@@ -361,7 +360,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         else:
             bubble(f"{current_mode.smoothing_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
     with col3:
-        if current_mode.aggregation_option is None:
+        if current_mode.aggregation_option is None or current_mode.meta_agg_option is None:
             bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
                    outline_width=1)
         elif current_mode.aggregation_option == "Total Aggregation":

@@ -183,28 +183,38 @@ if coordinates is None:
     st.stop()
 else:
 
-    tot_len_x_y = coordinates["x_slice"][1] - coordinates["x_slice"][0] + coordinates["y_slice"][1] - coordinates["y_slice"][0]
-    st.write(f"""You selected the following ranges for the analysis:
+    tot_len_x_y = abs(coordinates["x_slice"][1] - coordinates["x_slice"][0]) + abs(coordinates["y_slice"][1] - coordinates["y_slice"][0])
+    st.markdown(f"""
+    
+    ##### You selected the following transcript: *{current_mode.txid}*
+    
+    ##### You selected the following ranges:
 
     - Baseline Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
     - Target Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}
     - Noise Control Region - From {coordinates["n_slice"][0]} to {coordinates["n_slice"][1]}
     
-    Total length (nt positions) of Baseline and Target: {tot_len_x_y} positions.
+    ##### Total length (nt positions) of Baseline and Target: {tot_len_x_y} positions.
     
-    It is advised to consider studies with at least ~ {round((tot_len_x_y/2 + tot_len_x_y*0.11))} total counts.
-    
+    It is advised to consider studies with at least ~ {round((tot_len_x_y/2 + tot_len_x_y*0.11))} total counts, 
+    as datasets with less might have too sparse coverage to be reliable.
     """)
 
 # WRAP ME INTO A SINGLE FUNCTION!
 with st.expander("Help me"):
-    st.write(" ***CI***: The confidence interval. Default is 95%.")
+    st.write(" ***alpha (baseline)***: p-value threshold when testing the baseline against the noise control region."
+             "Default is 0.05, corresponding to a 5% false positive error rate.")
+    st.write(" ***alpha (target)***: p-value threshold when testing the baseline against the noise control region."
+             "Default is 0.05, corresponding to a 5% false positive error rate. For rare events, 0.01 is advisable.")
+    st.write(" ***CI***: The confidence interval for the RTA estimate. Default is 95%.")
     st.write(" ***Number of permutations***: The number of permutations performed by the internal statistical tests."
              "A higher number of permutations allows for detection of smaller changes, but requires more time."
              "Default is 10000, while max value allowed is 100000.")
     st.write(" ***Workers to allocate***: The number of workers used by the permutation test. The greater the number, "
              "the faster the analysis. Roughly translated to cores available. Not sure if it's internally used, or"
              "if I just placed it there with the intention of implementing it later on.")
+    st.write(" ***Random seed***: For reproducibility. Sets a random seed, "
+             " so that results of permutation tests are perfectly identical and reproducible across runs.")
 
 
 with st.expander("Change options"):
@@ -220,7 +230,7 @@ with st.expander("Change options"):
     with col4:
         current_mode.n_jobs = st.number_input("Choose workers to allocate", min_value=1, max_value=4, value=3)
     with col5:
-        use_seed = st.checkbox("Set random seed for reproducibility", value=False)
+        use_seed = st.checkbox("Random seed", value=False)
         if use_seed:
             current_mode.seed = st.number_input("Random seed", min_value=0, value=42)
         else:
@@ -343,14 +353,14 @@ if current_mode.txid_analysis_done is True:
     # Adds plot with breakdowns by metadata
         with tab4:
 
-            if current_mode.aggregation_option is None:
-                meta_option = st.selectbox(
-                "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.txid_results_meta.columns[:])
-            elif current_mode.aggregation_option == "Aggregate by metadata field":
+
+            if current_mode.aggregation_option == "Aggregate by metadata field":
                 meta_option = "Group"
             elif current_mode.aggregation_option == "Total Aggregation":
                 meta_option = "Group"
+            else:
+                meta_option = st.selectbox("To visualise the diamond plot, select the medatadata column to use",
+                                           current_mode.txid_results_meta.columns[:])
 
             show_nonsignificant =  False
             plot_logs_d = False
