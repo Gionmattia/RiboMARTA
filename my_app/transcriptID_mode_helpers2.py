@@ -157,37 +157,44 @@ def ga_plots_UI_render(current_run, analysis):
         st.write("#### Noise Control Region Selector")
         st.write("In this panel you can visualise the 3' trailer (if present) of your transcript."
         " For each position on the transcript, you can see how many of the high-counts studies share at least a mapped footprint there."
-        "If a position was extremely conserved (ie. had at least across all studies) it will have a higher percentage."
+        "If a position is  conserved (= shared across studies) it will have a higher percentage."
         "\n"
-        "\n Given that Noise is random, a good Noise Control Region is a section where mapped reads are shared by few studies (low percentage)."
-        "\n"         
-        "\n" 
-        "Use this plot to identify a section of low percentage that could be used as noise control! It should fall within the green area."
-        "\n"         
-        "\n" 
-        "IMPORTANT! "
+        "\n Given that Noise is random, a good Noise Control Region is a section of low percentage (where mapped reads are shared by few studies)."
+        "\n"
+        "\n Use the green section in the plot as a reference."
+                 )
+        with st.expander("Options and help"):
 
-        "This method relies on the use of only the higher-coverage datasets (too sparse data might alter the plot and lead to inaccurate estimate of noise)."
-        "\n"
-        "\n It is important to select enough datasets to be representative, but also to not include datasets with too low counts!"
-        "\n"
-        "\n By default, the plot requires that at least 20% of all available datasets have high total counts (good compromise)."
-        "\n"         
-        "\n"  
-        "If you get a warning, you can either: "      
-        "\n"  
-        "\n a) Try reduce the percentage to less on the slider (will work with less datasets, but high count)."
-        "\n"                  
-        "\n b) Ignore the warning, but be aware that this might make regions look LESS conserved than what they truly are." )
+            st.markdown(""" 
+            What we are doing is: we take this datasets, and we check how many of them share at least one mapped read in their 3'UTRs.
 
 
-        st.write("")
-        if current_run.utr3_length is not None or current_run.utr3_length != 0:
+            **Noise is random:** we expect the least conserved positions (low percentage) to be good candidates for the Noise Control region.
+            You are definitely sure there is no downstream translation/pausing/anything there!
+            
+            ##### **IMPORTANT:** 
+            This method relies on the use of only the higher-coverage datasets (too sparse data might 
+            alter the plot and lead to inaccurate estimate of noise). It is important to select enough datasets to be representative, 
+            but also to not include datasets with too low counts!
+            
+            By default, the plot requires that at least 20% of all available datasets to have high total counts (good compromise).
+            
+            If you get a warning, you can either:
+            
+            - a) Try reduce the percentage from 20% to less on the slider below (the method will work with less datasets, but still high counts).
+            - b) Ignore the warning, but be aware that this might make regions look LESS conserved than what they truly are, due to low coverage.
+            
+            """)
+                
 
             cutoff_text = "Select the minimum datasets to be considered for the plot. I.e. the percentage of high-coverage datasets out of the total"
 
             cutoff = st.slider(cutoff_text,
                           1, 60, value = 20, key =  "a_slider")
+
+        if current_run.utr3_length is not None or current_run.utr3_length != 0:
+
+
 
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
@@ -202,7 +209,7 @@ def ga_plots_UI_render(current_run, analysis):
             st.write("")
             st.write(f" You are using the {studies} higher-coverage datasets out of {current_run.all_studies_df.shape[1]-1} for this plot.")
             trailer_plot = trailer_signal_plot(percentage_sharing, studies)
-            streamlit_bokeh(trailer_plot, use_container_width=True)
+            streamlit_bokeh(trailer_plot, use_container_width=True, theme="light_minimal")
 
     with tab5:
         st.write("#### Normalised Global Aggregate & ORF plot")
@@ -299,7 +306,7 @@ def trailer_signal_plot(series, studies):
 
     # advisory band, drawn but clearly non-binding
 
-    p.add_layout(BoxAnnotation(top=suggested_low, fill_alpha=0.20, fill_color="#57d677"))
+    p.add_layout(BoxAnnotation(top=suggested_low, fill_alpha=0.40, fill_color="#57d677"))
     p.add_layout(Label(x=10, y=10, x_units="screen", y_units="screen",
                        text_font_size="9pt", text_color="#a0a0a0"))
 
