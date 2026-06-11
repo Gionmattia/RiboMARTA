@@ -102,22 +102,6 @@ def extract_features_length(ranges, strandedness):
             utr3_len = (retrieve_3_pad(df, strandedness) if strandedness == "+"
                         else retrieve_5_pad(df, strandedness))
 
-    # # If utr length is missing (because not annotated) retrieves it from the genomic coordinates.
-    # if (utr5_len is None or utr3_len is None) and ("start_codon" in features and "stop_codon" in features):
-    #     # padding changes depending on forward/reverse strand:
-    #     if strandedness == "+":
-    #         utr5_len = retrieve_5_pad(df, strandedness)
-    #         utr3_len = retrieve_3_pad(df, strandedness)
-    #     if strandedness == "-":
-    #         utr5_len = retrieve_3_pad(df, strandedness)
-    #         utr3_len = retrieve_5_pad(df, strandedness)
-
-    # Final safety: if we still couldn't resolve them, set to 0 and warn.
-    # if utr5_len is None:
-    #     utr5_len = 0
-    # if utr3_len is None:
-    #     utr3_len = 0
-
     return utr5_len, cds_length, utr3_len
 
 
@@ -437,6 +421,7 @@ def data_aggregator(current_run, aggregation_option):
     current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
 
     if aggregation_option == None:
+        current_run.meta_agg_option = None
         return
 
     elif aggregation_option  ==  "Aggregate by metadata field": # Metadata Aggregation

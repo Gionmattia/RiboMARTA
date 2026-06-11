@@ -253,7 +253,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             ***Target*** is the region you are interested in analysing. You will assess its RTA when using the baseline 
             region activity as reference. \n
             ***Noise Control*** is a region where there should be no translation happening (conceptually akin to a negative 
-            control). Pick a region with good mappability in the 3'UTR, possibly between stop codons.
+            control). Use the NOISE SELECTOR tab to identify the right one, unless you have reasons against that.
             """)
 
 

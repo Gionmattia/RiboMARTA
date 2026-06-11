@@ -19,6 +19,19 @@ from bokeh.embed import file_html
 from bokeh.resources import CDN
 from bokeh.layouts import column
 from streamlit_bokeh import streamlit_bokeh
+import pandas as pd
+import numpy as np
+from statsmodels.stats.multitest import multipletests
+from joblib import Parallel, delayed
+from bokeh.models import BoxAnnotation, Label
+from bokeh.plotting import figure, show
+from bokeh.models import (
+    ColumnDataSource,
+    LinearColorMapper,
+    ColorBar,
+    HoverTool,
+    BoxAnnotation,
+    Label)
 
 
 
@@ -110,7 +123,8 @@ def ga_plots_UI_render(current_run, analysis):
     :return:
     """
 
-    tab2, tab3, tab4 = st.tabs(["Raw Global Aggregate (smoothed)", "Raw Global Aggregate (unsmoothed)",  "Normalised Global Aggregate"])
+    tab2, tab3, tab4, tab5 = st.tabs(["Raw Global Aggregate (smoothed)", "Raw Global Aggregate (unsmoothed)",
+                                      "Noise Region Selector", "Normalised Global Aggregate"])
     with tab2:
         st.write("####  Raw Global Aggregate & ORF plot")
         st.write("Below you can see a Single Transcript plot for your data.")
@@ -139,6 +153,27 @@ def ga_plots_UI_render(current_run, analysis):
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     with tab4:
+        st.write("#### Noise Control Region Selector")
+        st.write("In this panel you can visualise the 3' trailer (if present) of your transcript."
+        " For each position on the transcript, you can see how many studies share at least a mapped footprint there."
+        "\n"
+        "\n Given that Noise is random, a good Noise Control Region is a section where mapped reads are shared by few studies (low percentage)."
+        "\n"         
+        "\n Look at the plot and try to identify a stretch of the transcript that falls below the green reference line."
+        " That is going to be a good starting point, if you struggle to select a noise region.")
+        if current_run.utr3_length is not None or current_run.utr3_length != 0:
+
+            dataset_cutoff = st.slider("Select the minimum datasets to consider for the plot. Default is 20%",
+                          1, 10, key =  "a_slider")
+
+            percentage_sharing, studies = density_calculator(dataframe = current_run.all_studies_df,
+                                                      utr5 = current_run.utr5_length,
+                                                      cds = current_run.cds_length,
+                                                      dataset_cutoff = dataset_cutoff)
+            trailer_plot = trailer_signal_plot(percentage_sharing, studies)
+            streamlit_bokeh(trailer_plot, use_container_width=True)
+
+    with tab5:
         st.write("#### Normalised Global Aggregate & ORF plot")
         st.write("The x-axis represents the position on the transcript, while the y-axis represents the Normalised Global Aggregate"
                  "(each count in a position was normalised by the total counts of its study. The the normalised values have been summed to generate"
@@ -151,3 +186,89 @@ def ga_plots_UI_render(current_run, analysis):
             streamlit_bokeh(current_run.norm_triplet_ga_plot, use_container_width=False)
 
 
+def density_calculator(dataframe, utr5, cds, dataset_cutoff = 5):
+
+    # formatting
+    input_df = dataframe.copy()
+    if "Sequence" in input_df.columns:
+        input_df = input_df.drop(columns = ["Sequence"])
+    if "Position" in input_df.columns:
+        input_df = input_df.drop(columns = ["Position"])
+
+    # extract cds and trailer
+    cds_df = input_df.iloc[utr5:utr5+cds]
+    trailer_temp= input_df.iloc[utr5+cds:]
+
+    # Filter studies with too low coverage (low tot counts)
+    tot_counts_cds = cds_df.sum(axis = 0)
+    mean = tot_counts_cds.mean()
+    median = tot_counts_cds.median()
+    threshold = max(median, mean)
+    dataset_cutoff = len(tot_counts_cds)/dataset_cutoff # At least 1/5 of the total datasets must support this (default).
+
+    n = (tot_counts_cds > threshold).sum()
+    if n > dataset_cutoff:
+        passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
+    else:
+        print("not enough - raise a  warning. Using all datasets") # SHOULD RAISE A WARNING
+        passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
+
+    # filter trailer df - remove studies with too low total counts
+    trailer = trailer_temp[passed_indexes].copy()
+
+    # Encode trailer as 0 (no footprint) and 1 (footprint)
+    trailer_encoded = (trailer !=0).astype(int)
+
+    density = trailer_encoded.mean(axis=1)
+    percentage_sharing = density * 100
+
+    # report number studies used for the mean
+    studies = trailer_encoded.shape[1]
+
+    return percentage_sharing, studies
+
+
+def trailer_signal_plot(series, studies):
+    """
+    Bokeh plot of percentage of studies sharing at least one RFP over position.
+    If a position is less shared (low percentage) is more likley to be noise, rather than translation.
+    """
+
+    df_plot = series.reset_index()
+    df_plot.columns = ["position", "percentage"]
+    df_plot = df_plot.dropna(subset=["percentage"])
+
+    suggested_low = df_plot["percentage"].where(df_plot["percentage"] > 0).min() * 2
+
+    src = ColumnDataSource(df_plot)
+    mapper = LinearColorMapper(palette="Viridis256", low=0.0, high=100.0)
+
+    p = figure(
+        title=f"Per-position study-contribution — low = present in few studies out of {studies} -  more likely to be noise",
+        x_axis_label="3' Trailer position",
+        y_axis_label="Percentage of considered datasets sharing it",
+        height=380, width=950,
+        tools="pan,box_zoom,wheel_zoom,reset,save",
+        y_range=(0, 100),
+    )
+
+    # invisible full-height hit area — one bar per position, always hoverable
+    hit = p.vbar(x="position", top=100, source=src, width=0.9,
+                 fill_alpha=0, line_alpha=0)
+
+    r = p.vbar(x="position", top="percentage", source=src, width=0.9,
+               fill_color={"field": "percentage", "transform": mapper},
+               line_color=None)
+
+    p.add_layout(ColorBar(color_mapper=mapper, title="percentage"), "right")
+    p.add_tools(HoverTool(renderers=[hit],
+                          tooltips=[("position", "@position"),
+                                    ("percentage", "@percentage{0.000}")]))
+
+    # advisory band, drawn but clearly non-binding
+
+    p.add_layout(BoxAnnotation(top=suggested_low, fill_alpha=0.20, fill_color="#57d677"))
+    p.add_layout(Label(x=10, y=10, x_units="screen", y_units="screen",
+                       text_font_size="9pt", text_color="#a0a0a0"))
+
+    return p
