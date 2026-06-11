@@ -320,6 +320,179 @@ def new_diamond_plotter(df, meta="TISSUE", logs=False, jitter_amount=0.4, show_n
 
     return fig
 
+
+import numpy as np
+import pandas as pd
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, HoverTool, FixedTicker, Span
+
+
+def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
+                              show_nonsignificant=False):
+    """
+    Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
+    Significant values are diamonds, while non-significant are circles (optional).
+    Each point has confidence interval whiskers.
+    Points are jittered horizontally within each tissue group.
+
+    Bokeh port of the original Plotly implementation. Behaviour preserved exactly:
+    identical jitter (np.random.seed(42), same per-group iteration order), the
+    same Plotly "Pastel" colour cycle, the categorical x-axis rendered as numeric
+    positions with overridden tick labels, CI whiskers drawn behind the markers,
+    and the white y=0 reference line.
+
+    Args:
+        df: DataFrame with RTA results.
+        meta: Metadata column to group by (default: "TISSUE").
+        logs: If True, plot log2RTA values (default: False). Expects a "log2RTA"
+              column to already exist in df (matching the original).
+        jitter_amount: Amount of horizontal jitter within groups (default: 0.4).
+        show_nonsignificant: If True, show non-significant points as circles
+                             (default: False).
+
+    Returns:
+        A Bokeh figure object.
+    """
+    df = df.copy()
+    if not show_nonsignificant:
+        df = df[df['significant'] == True]
+
+    tissues = df[meta].unique()
+
+    # Exact RGB values of Plotly's qualitative "Pastel" palette, so colours match
+    # the original figure 1:1. Bokeh accepts CSS rgb() strings directly.
+    pastel_colors = [
+        'rgb(102, 197, 204)', 'rgb(246, 207, 113)', 'rgb(248, 156, 116)',
+        'rgb(220, 176, 242)', 'rgb(135, 197, 95)', 'rgb(158, 185, 243)',
+        'rgb(254, 136, 177)', 'rgb(201, 219, 116)', 'rgb(139, 224, 164)',
+        'rgb(180, 151, 231)', 'rgb(179, 179, 179)'
+    ]
+    tissue_color_map = {t: pastel_colors[i % len(pastel_colors)]
+                        for i, t in enumerate(tissues)}
+
+    if logs:
+        y_column = "log2RTA"
+        df["log2RTA_ci_lower_95%"] = np.log2(df["RTA_ci_lower_95%"])
+        df["log2RTA_ci_upper_95%"] = np.log2(df["RTA_ci_upper_95%"])
+        ci_lower = "log2RTA_ci_lower_95%"
+        ci_upper = "log2RTA_ci_upper_95%"
+        plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
+    else:
+        y_column = "RTA"
+        ci_lower = "RTA_ci_lower_95%"
+        ci_upper = "RTA_ci_upper_95%"
+        plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
+
+    tot_counts = "Tot Counts"
+
+    # Map each tissue to a numeric x position (categorical axis emulated numerically).
+    tissue_positions = {tissue: i for i, tissue in enumerate(tissues)}
+    df['x_pos'] = df[meta].map(tissue_positions)
+
+    # Add random jitter within each tissue group.
+    # Same seed + same iteration order as the original -> identical jitter values.
+    np.random.seed(42)
+    df['x_jitter'] = np.nan
+    for tissue in tissues:
+        mask = df[meta] == tissue
+        n_points = int(mask.sum())
+        jitter = np.random.uniform(-jitter_amount, jitter_amount, n_points)
+        df.loc[mask, 'x_jitter'] = df.loc[mask, 'x_pos'] + jitter
+
+    df['color'] = df[meta].map(tissue_color_map)
+
+    p = figure(
+        width=max(600, len(tissues) * 100),
+        height=450,
+        title=plot_title,
+        x_axis_label=meta.lower(),
+        y_axis_label=y_column,
+        tools="pan,box_zoom,wheel_zoom,reset,save",
+        background_fill_color='#daecf1',
+    )
+
+    # --- CI whiskers first (so they sit behind the markers) ---
+    whisker_source = ColumnDataSource(dict(
+        x=df['x_jitter'].to_numpy(),
+        y_lower=df[ci_lower].to_numpy(),
+        y_upper=df[ci_upper].to_numpy(),
+    ))
+    p.segment('x', 'y_lower', 'x', 'y_upper', source=whisker_source,
+              line_color='gray', line_width=1.5)
+
+    def make_source(sub):
+        return ColumnDataSource(dict(
+            x=sub['x_jitter'].to_numpy(),
+            y=sub[y_column].to_numpy(),
+            color=sub['color'].to_numpy(),
+            meta=sub[meta].to_numpy(),
+            run=sub.index.to_numpy(),
+            ci_lower=sub[ci_lower].round(2).to_numpy(),
+            ci_upper=sub[ci_upper].round(2).to_numpy(),
+            tot_counts=sub[tot_counts].to_numpy(),
+        ))
+
+    hover_renderers = []
+
+    # --- Circles (significant == False); only present when show_nonsignificant ---
+    df_circle = df[df['significant'] == False]
+    if len(df_circle) > 0:
+        circle_source = make_source(df_circle)
+        circle_r = p.scatter('x', 'y', source=circle_source, marker='circle',
+                             size=8, fill_color='color', line_color='white',
+                             line_width=1)
+        hover_renderers.append(circle_r)
+
+    # --- Diamonds (significant == True) ---
+    df_diamond = df[df['significant'] == True]
+    diamond_source = make_source(df_diamond)
+    diamond_r = p.scatter('x', 'y', source=diamond_source, marker='diamond',
+                          size=13, fill_color='color', line_color='white',
+                          line_width=1)
+    hover_renderers.append(diamond_r)
+
+    # --- Hover (mirrors the original hovertemplate fields) ---
+    hover = HoverTool(renderers=hover_renderers, tooltips=[
+        ("Tissue", "@meta"),
+        ("RTA", "@y{0.00}"),
+        ("CI", "@ci_lower - @ci_upper"),
+        ("Run", "@run"),
+        ("Tot Counts", "@tot_counts"),
+    ])
+    p.add_tools(hover)
+
+    # --- Legend (significance), only when non-significant points are shown ---
+    if show_nonsignificant:
+        # Empty renderers: they contribute a legend entry without drawing points,
+        # matching the original's x=[None], y=[None] "fake" traces.
+        p.scatter(x=[], y=[], marker='diamond', size=13, fill_color='gray',
+                  line_color='gray', legend_label='s.')
+        p.scatter(x=[], y=[], marker='circle', size=8, fill_color='gray',
+                  line_color='gray', legend_label='n.s.')
+        p.legend.title = 'Significance:'
+        p.legend.label_text_color = 'black'
+        p.legend.title_text_color = 'black'
+
+    # --- y = 0 reference line (white, solid) ---
+    p.add_layout(Span(location=0, dimension='width',
+                      line_color='white', line_width=1))
+
+    # --- Categorical tick labels on the numeric x-axis ---
+    p.xaxis.ticker = FixedTicker(ticks=list(tissue_positions.values()))
+    p.xaxis.major_label_overrides = {i: t for t, i in tissue_positions.items()}
+    p.xaxis.major_label_orientation = np.pi / 4  # 45 degrees
+
+    # --- Cosmetics to match the original (white grid on pale-blue panel) ---
+    p.xgrid.grid_line_color = 'white'
+    p.ygrid.grid_line_color = 'white'
+    p.title.text_color = 'black'
+    p.xaxis.axis_label_text_color = 'black'
+    p.yaxis.axis_label_text_color = 'black'
+    p.xaxis.major_label_text_color = 'black'
+    p.yaxis.major_label_text_color = 'black'
+
+    return p
+
 # plot to have single transcript plot of the original raw data
 def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coordinates = None, x=None):
     """

@@ -387,7 +387,17 @@ if current_mode.txid_analysis_done is True:
                                  logs = plot_logs_d,
                                  show_nonsignificant = show_nonsignificant)
             st.plotly_chart(d_plot, use_container_width=True)
-            
+
+            if current_mode.aggregation_option is not None:
+                jitter = 0
+
+            p = new_diamond_plotter_bokeh(df = data_diamond_plot,
+                                          meta=meta_option,
+                                          logs=plot_logs_d,
+                                          jitter_amount= jitter,
+                                          show_nonsignificant=show_nonsignificant)
+            streamlit_bokeh(p, use_container_width=True, theme="light_minimal")
+
 
             if st.button("Store in the report", key = "diamond plot"):
                 analysis.user_plots.append(d_plot)
