@@ -21,6 +21,7 @@ from bokeh.layouts import column
 from streamlit_bokeh import streamlit_bokeh
 import pandas as pd
 import numpy as np
+import warnings
 from statsmodels.stats.multitest import multipletests
 from joblib import Parallel, delayed
 from bokeh.models import BoxAnnotation, Label
@@ -155,21 +156,51 @@ def ga_plots_UI_render(current_run, analysis):
     with tab4:
         st.write("#### Noise Control Region Selector")
         st.write("In this panel you can visualise the 3' trailer (if present) of your transcript."
-        " For each position on the transcript, you can see how many studies share at least a mapped footprint there."
+        " For each position on the transcript, you can see how many of the high-counts studies share at least a mapped footprint there."
+        "If a position was extremely conserved (ie. had at least across all studies) it will have a higher percentage."
         "\n"
         "\n Given that Noise is random, a good Noise Control Region is a section where mapped reads are shared by few studies (low percentage)."
         "\n"         
-        "\n Look at the plot and try to identify a stretch of the transcript that falls below the green reference line."
-        " That is going to be a good starting point, if you struggle to select a noise region.")
+        "\n" 
+        "Use this plot to identify a section of low percentage that could be used as noise control! It should fall within the green area."
+        "\n"         
+        "\n" 
+        "IMPORTANT! "
+
+        "This method relies on the use of only the higher-coverage datasets (too sparse data might alter the plot and lead to inaccurate estimate of noise)."
+        "\n"
+        "\n It is important to select enough datasets to be representative, but also to not include datasets with too low counts!"
+        "\n"
+        "\n By default, the plot requires that at least 20% of all available datasets have high total counts (good compromise)."
+        "\n"         
+        "\n"  
+        "If you get a warning, you can either: "      
+        "\n"  
+        "\n a) Try reduce the percentage to less on the slider (will work with less datasets, but high count)."
+        "\n"                  
+        "\n b) Ignore the warning, but be aware that this might make regions look LESS conserved than what they truly are." )
+
+
+        st.write("")
         if current_run.utr3_length is not None or current_run.utr3_length != 0:
 
-            dataset_cutoff = st.slider("Select the minimum datasets to consider for the plot. Default is 20%",
-                          1, 10, key =  "a_slider")
+            cutoff_text = "Select the minimum datasets to be considered for the plot. I.e. the percentage of high-coverage datasets out of the total"
 
-            percentage_sharing, studies = density_calculator(dataframe = current_run.all_studies_df,
-                                                      utr5 = current_run.utr5_length,
-                                                      cds = current_run.cds_length,
-                                                      dataset_cutoff = dataset_cutoff)
+            cutoff = st.slider(cutoff_text,
+                          1, 60, value = 20, key =  "a_slider")
+
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                percentage_sharing, studies = density_calculator(dataframe = current_run.all_studies_df,
+                                                          utr5 = current_run.utr5_length,
+                                                          cds = current_run.cds_length,
+                                                          cutoff = cutoff)
+
+                for w in caught:
+                    st.warning(str(w.message))
+
+            st.write("")
+            st.write(f" You are using the {studies} higher-coverage datasets out of {current_run.all_studies_df.shape[1]-1} for this plot.")
             trailer_plot = trailer_signal_plot(percentage_sharing, studies)
             streamlit_bokeh(trailer_plot, use_container_width=True)
 
@@ -186,8 +217,9 @@ def ga_plots_UI_render(current_run, analysis):
             streamlit_bokeh(current_run.norm_triplet_ga_plot, use_container_width=False)
 
 
-def density_calculator(dataframe, utr5, cds, dataset_cutoff = 5):
+def density_calculator(dataframe, utr5, cds, cutoff = 20):
 
+    dataset_cutoff = 100/cutoff
     # formatting
     input_df = dataframe.copy()
     if "Sequence" in input_df.columns:
@@ -210,7 +242,7 @@ def density_calculator(dataframe, utr5, cds, dataset_cutoff = 5):
     if n > dataset_cutoff:
         passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
     else:
-        print("not enough - raise a  warning. Using all datasets") # SHOULD RAISE A WARNING
+        warnings.warn("There wess less datasets among the high-counts than the percentage selected. Using all datasets for the plot") # SHOULD RAISE A WARNING
         passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
 
     # filter trailer df - remove studies with too low total counts
