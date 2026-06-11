@@ -184,6 +184,13 @@ def ga_plots_UI_render(current_run, analysis):
             - a) Try reduce the percentage from 20% to less on the slider below (the method will work with less datasets, but still high counts).
             - b) Ignore the warning, but be aware that this might make regions look LESS conserved than what they truly are, due to low coverage.
             
+            This panel will also, given a desired length for the Noise Control region, find the stretch with the lowest percentage 
+            from the plot and return it to you!
+            
+            Nb. This is a SUGGESTION, nothing beats your eye!
+            
+            More than this, I don't know what to do to help.
+            
             """)
                 
 
@@ -210,6 +217,14 @@ def ga_plots_UI_render(current_run, analysis):
             st.write(f" You are using the {studies} higher-coverage datasets out of {current_run.all_studies_df.shape[1]-1} for this plot.")
             trailer_plot = trailer_signal_plot(percentage_sharing, studies)
             streamlit_bokeh(trailer_plot, use_container_width=True, theme="light_minimal")
+
+            col1, col2 = st.columns([2, 6])
+            with col1:
+                window_size = st.number_input("Select the size of the noise region you want to get", value = 100, key="n_window")
+            with col2:
+                st.write("")
+                st.write("")
+                give_intervals(percentage_sharing, int(window_size))
 
     with tab5:
         st.write("#### Normalised Global Aggregate & ORF plot")
@@ -285,7 +300,7 @@ def trailer_signal_plot(series, studies):
     p = figure(
         title=f"Per-position study-contribution — low = present in few studies out of {studies} -  more likely to be noise",
         x_axis_label="3' Trailer position",
-        y_axis_label="Percentage of considered datasets sharing it",
+        y_axis_label="Percentage of considered datasets sharing at least one count",
         height=380, width=950,
         tools="pan,box_zoom,wheel_zoom,reset,save",
         y_range=(0, 100),
@@ -311,3 +326,14 @@ def trailer_signal_plot(series, studies):
                        text_font_size="9pt", text_color="#a0a0a0"))
 
     return p
+
+def give_intervals(percentage_sharing, window):
+
+    rolling_mean = percentage_sharing.rolling(window=window, center=True).mean()
+    min_center = rolling_mean.idxmin()  # index at the center of the lowest window
+
+    # If you want the actual start/end of the stretch:
+    start = min_center - window // 2
+    end = start + window
+
+    st.write(f"Suggested Interval (please check against plot): {start} -  {end}")
