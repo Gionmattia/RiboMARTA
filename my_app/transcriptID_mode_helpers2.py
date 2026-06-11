@@ -328,12 +328,25 @@ def trailer_signal_plot(series, studies):
     return p
 
 def give_intervals(percentage_sharing, window):
-
     rolling_mean = percentage_sharing.rolling(window=window, center=True).mean()
-    min_center = rolling_mean.idxmin()  # index at the center of the lowest window
 
-    # If you want the actual start/end of the stretch:
-    start = min_center - window // 2
-    end = start + window
+    if rolling_mean.notna().sum() == 0:
+        st.write(f"Transcript too short for a {window}-nt window.")
+        return
 
-    st.write(f"Suggested Interval (please check against plot): {start} -  {end}")
+    # Positional index of the minimum, ignoring NaN edges
+    min_pos = int(np.nanargmin(rolling_mean.values))
+
+    n = len(percentage_sharing)
+    half = window // 2
+
+    # Clamp to valid range, preserving window size where possible
+    start = max(0, min_pos - half)
+    end   = min(n, start + window)
+    start = max(0, end - window)   # re-anchor if we hit the right edge
+
+    start_label = percentage_sharing.index[start]
+    end_label = percentage_sharing.index[end - 1]
+
+    st.write(f"Suggested Interval (please check against plot): {start_label} - {end_label}")
+    return start, end
