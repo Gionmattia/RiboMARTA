@@ -312,10 +312,9 @@ if current_mode.txid_analysis_done is True:
                     box_colour = "#c44601"
 
                 if st.checkbox("Plot significant RTAs only"):
-                    st.write("something")
                     data = current_mode.txid_results[current_mode.txid_results["significant"] == True]
-
-            #with col2:
+                else:
+                    data = current_mode.txid_results
 
 
             with col3:
@@ -323,7 +322,6 @@ if current_mode.txid_analysis_done is True:
                 tot_counts_min = st.slider(slide_message,
                           0, max, key =  "boxplot_slider")
 
-            data = current_mode.txid_results
             data = data[data["Tot Counts"] > tot_counts_min]
 
             fig2 = plot_rta_boxplot(results_df = data,
@@ -337,18 +335,6 @@ if current_mode.txid_analysis_done is True:
                 analysis.user_plots.append(fig2)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        # with tab3_log: # Removed. I can wrap this much more easily
-        #     # plot the results
-            # fig2_bis = plot_rta_boxplot(results_df = current_mode.txid_results,
-            #                             logs =  True,
-            #                             box_fill = "#c44601")
-            #
-            # st.plotly_chart(fig2_bis,
-            #                 key = "figure_2_bis")
-            #
-            # if st.button("Store in the report", key = "log_rta_boxplot"):
-            #     analysis.user_plots.append(fig2_bis)
-            #     st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     # Adds plot with breakdowns by metadata
         with tab4:
