@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from statsmodels.stats.multitest import multipletests
 from joblib import Parallel, delayed
-from scipy.stats import rankdata
+from scipy.stats import rankdata, bootstrap
 
 
 # needed to remove samples where we do not have info
@@ -449,7 +449,78 @@ def _block_average(region: np.ndarray, L: int = 3) -> np.ndarray:
     counts = np.diff(np.append(starts, n_pos))      # positions per block (last may be <L)
     return sums / counts[:, None]                   # block-means (n_blocks x n_runs)
 
-# New function for boostrap analysis and RTA CIs
+def BCa_bootstrap(
+        df: pd.DataFrame,
+        coordinates: dict[str, tuple[int, int]],
+        good_runs: list[str],
+        B: int = 10000,
+        ci: int = 95,
+        random_state: int | None = 42,
+        L = 3
+) -> pd.DataFrame:
+    """ Computes the CIs of the RTA - this time using the BCa Bootstrap.
+
+    Args:
+        df: Coverage dataframe with positions as rows, runs as columns
+        coordinates: Dictionary defining region boundaries with keys:
+            - 'x_slice': (start, end) for baseline region
+            - 'y_slice': (start, end) for test region
+            - 'n_slice': (start, end) for noise region
+        good_runs: List of run IDs (SRRs) to compute bootstrap CIs for
+        B: Number of bootstrap samples (default: 10000)
+        ci: Confidence level as percentage (default: 95)
+        random_state: Seed for reproducibility (default: 42)
+
+    Returns:
+        DataFrame indexed by run IDs with columns:
+            - 'bootstrap_ci_lower_XX%': Lower bound of bootstrap CI for RTA
+            - 'bootstrap_ci_upper_XX%': Upper bound of bootstrap CI for RTA
+    """
+
+    # Filter to good runs
+    df_filtered = df[good_runs].copy()
+
+    # Extract regions
+    reg_x = _block_average(df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy(), L)
+    reg_y = _block_average(df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy(), L)
+    reg_n = _block_average(df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy(), L)
+
+    # Initialize random generator
+    rng = np.random.default_rng(random_state)
+
+    def ratio(x, y, n, axis):  # Check "axis" argument..
+        x_avg = np.mean(x, axis = axis)
+        y_avg = np.mean(y, axis = axis)
+        n_avg = np.mean(n, axis = axis)
+
+        return (y_avg - n_avg) / (x_avg - n_avg)
+
+    confidence_level = ci/100
+
+    res = bootstrap(
+        (reg_x, reg_y, reg_n),
+        ratio,
+        method='BCa',
+        axis=0,  # resample over rows
+        n_resamples=B,
+        confidence_level=confidence_level,
+        vectorized=True,
+        paired=False,
+        random_state=rng,
+    )
+
+    ci_res = res.confidence_interval
+
+    return pd.DataFrame({
+        f'RTA_ci_lower_{ci}%': ci_res.low,
+        f'RTA_ci_upper_{ci}%': ci_res.high,
+        # 'bootstrap_non_finite': non_finite_summary,
+        # 'bootstrap_ci_reliable': non_finite_counts <= 0.05 * B,
+    }, index=good_runs)
+
+
+
+# Function for boostrap analysis and RTA CIs
 def _bootstrap_rta_ci(
         df: pd.DataFrame,
         coordinates: dict[str, tuple[int, int]],
