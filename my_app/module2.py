@@ -551,7 +551,7 @@ def _bootstrap_rta_ci(
     # Extract regions
     reg_x = df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy()
     reg_y = df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy()
-    reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy(~)
+    reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy()
 
     # Initialize random generator
     rng = np.random.default_rng(random_state)
