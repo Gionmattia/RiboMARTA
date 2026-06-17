@@ -434,20 +434,7 @@ def compute_pvalues_and_ci(
     }, index=observed.index)
 
 
-def _block_average(region: np.ndarray, L: int = 3) -> np.ndarray:
-    """
-    Collapse a region (positions x runs) into block-means of L consecutive
-    positions. A trailing block shorter than L (region not divisible by L) is
-    averaged over the 1-2 positions it contains, so no data is dropped.
 
-    With A-site-collapsed counts, L=3 guarantees exactly one A-site position
-    per block at any frame offset, yielding ~independent one-codon units.
-    """
-    n_pos = region.shape[0]
-    starts = np.arange(0, n_pos, L)                 # block start indices
-    sums = np.add.reduceat(region, starts, axis=0)  # summed within each block
-    counts = np.diff(np.append(starts, n_pos))      # positions per block (last may be <L)
-    return sums / counts[:, None]                   # block-means (n_blocks x n_runs)
 
 def BCa_bootstrap(
         df: pd.DataFrame,
@@ -481,9 +468,9 @@ def BCa_bootstrap(
     df_filtered = df[good_runs].copy()
 
     # Extract regions
-    reg_x = _block_average(df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy(), L)
-    reg_y = _block_average(df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy(), L)
-    reg_n = _block_average(df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy(), L)
+    reg_x = df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy()
+    reg_y = df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy()
+    reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy()
 
     # Initialize random generator
     rng = np.random.default_rng(random_state)
@@ -562,9 +549,9 @@ def _bootstrap_rta_ci(
     df_filtered = df[good_runs].copy()
 
     # Extract regions
-    reg_x = _block_average(df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy(), L)
-    reg_y = _block_average(df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy(), L)
-    reg_n = _block_average(df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy(), L)
+    reg_x = df_filtered.iloc[coordinates["x_slice"][0]: coordinates["x_slice"][1]].to_numpy()
+    reg_y = df_filtered.iloc[coordinates["y_slice"][0]: coordinates["y_slice"][1]].to_numpy()
+    reg_n = df_filtered.iloc[coordinates["n_slice"][0]: coordinates["n_slice"][1]].to_numpy(~)
 
     # Initialize random generator
     rng = np.random.default_rng(random_state)
