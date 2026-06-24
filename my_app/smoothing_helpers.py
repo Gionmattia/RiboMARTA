@@ -44,10 +44,17 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
         position = df["Position"]
         data_cols = df.drop(columns="Position")
 
-        # Multiply only the data columns
-        smoothed = data_cols.mul(map_df["Mappability"], axis=0)
+        # # Multiply only the data columns
+        # smoothed = data_cols.mul(map_df["Mappability"], axis=0)
+        #
+        # agg_smoothed_df = pd.concat([position, smoothed], axis=1)
 
-        agg_smoothed_df = pd.concat([position, smoothed], axis=1)
+        # Create mask for rows where mappability < 1
+        low_map = (map_df["Mappability"] < 1).to_numpy()
+        data_cols.loc[low_map, :] = np.nan
+
+        # assemble result
+        agg_smoothed_df = pd.concat([position, data_cols], axis=1)
         # reassign
         current_mode.genomic_merged = agg_smoothed_df
         return
@@ -149,10 +156,14 @@ def prop_smoother(current_mode):
 
 def agg_smoother(current_mode):
 
-    df = current_mode.all_studies_df
+    agg_smoothed_df  = current_mode.all_studies_df.copy()
     map_df = current_mode.mappability_df.copy()
-    map_df.loc[map_df['Mappability'] < 1, 'Mappability'] = 0
-    agg_smoothed_df = df.mul(map_df["Mappability"], axis=0)
+    # map_df.loc[map_df['Mappability'] < 1, 'Mappability'] = 0
+    # agg_smoothed_df = df.mul(map_df["Mappability"], axis=0)
+
+    # Create mask for rows where mappability < 1
+    low_map = (map_df["Mappability"] < 1).to_numpy()
+    agg_smoothed_df .loc[low_map, :] = np.nan
 
     return agg_smoothed_df
 

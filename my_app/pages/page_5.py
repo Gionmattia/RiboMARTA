@@ -296,10 +296,10 @@ if current_mode.txid_analysis_done is True:
         max = max(int(max(current_mode.txid_results["Tot Counts"])),1)
         slide_message = f"Select the minimum Total Counts - datasets will less will not be displayed. Min advised:  ~ {round((tot_len_x_y/2 + tot_len_x_y*0.11))} "
 
-        tab3, tab4, tab5, tab6 = st.tabs(
+        tab3, tab4, tab5 = st.tabs(
             ["Box plot (RTAs)", "Diamond plot (RTA)",
-             "Single Transcript Plot",
-             "Aggregated Plots"])
+             "Single Transcript Plot" ])
+             # , "Aggregated Plots"])
 
         with tab3:
             plot_logs = False
@@ -430,35 +430,35 @@ if current_mode.txid_analysis_done is True:
                 analysis.user_plots.append(ml_plot2)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        with tab6:
-            st.write("Here you can visualise all the data aggregated (regardless of the significance of the RTA), depending on the metadata available.")
-
-            # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
-            st.session_state.agg_meta_option = st.selectbox(
-                "Select the medatadata field to use for the aggregation",
-                current_mode.txid_results_meta.columns[:])
-
-            # Now to select the individual condition or conditions
-            aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
-                                        current_mode.txid_results_meta[st.session_state.agg_meta_option].unique())
-
-            # Button to choose whether to aggregate only significant ones or everything?
-            agg_selection = aggregator(current_mode.all_studies_df,
-                                       current_mode.txid_results_meta,
-                                       st.session_state.agg_meta_option)
-
-            # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
-            agg_meta_plot = agg_line_plot(agg_selection,
-                                          current_mode.utr5_length,
-                                          current_mode.cds_length,
-                                          aggregations = aggregations,
-                                          coordinates = current_mode.txid_ranges)
-
-            st.plotly_chart(agg_meta_plot, use_container_width=True)
-
-            if st.button("Store in the report", key = "agg_line_plot"):
-                analysis.user_plots.append(ml_plot)
-                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
+        # with tab6:
+        #     st.write("Here you can visualise all the data aggregated (regardless of the significance of the RTA), depending on the metadata available.")
+        #
+        #     # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
+        #     st.session_state.agg_meta_option = st.selectbox(
+        #         "Select the medatadata field to use for the aggregation",
+        #         current_mode.txid_results_meta.columns[:])
+        #
+        #     # Now to select the individual condition or conditions
+        #     aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
+        #                                 current_mode.txid_results_meta[st.session_state.agg_meta_option].unique())
+        #
+        #     # Button to choose whether to aggregate only significant ones or everything?
+        #     agg_selection = aggregator(current_mode.all_studies_df,
+        #                                current_mode.txid_results_meta,
+        #                                st.session_state.agg_meta_option)
+        #
+        #     # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
+        #     agg_meta_plot = agg_line_plot(agg_selection,
+        #                                   current_mode.utr5_length,
+        #                                   current_mode.cds_length,
+        #                                   aggregations = aggregations,
+        #                                   coordinates = current_mode.txid_ranges)
+        #
+        #     st.plotly_chart(agg_meta_plot, use_container_width=True)
+        #
+        #     if st.button("Store in the report", key = "agg_line_plot"):
+        #         analysis.user_plots.append(ml_plot)
+        #         st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     #with st.expander("Diamond Plot"):
         # Insert here function to merge results with metadata...
