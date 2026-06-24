@@ -10,16 +10,20 @@ st.title("Dataset Selection")
 if analysis.genomic_upload == True:
     st.write("You are currently working with loaded data. Metadata might no be available for all your studies.")
     analysis.full_dataset_list = analysis.genomic_mode.genomic_merged.columns.tolist()
-    analysis.full_dataset_list.remove("Sequence")
-    analysis.full_dataset_list.remove("Position")
+    if "Sequence" in analysis.full_dataset_list.columns:
+        analysis.full_dataset_list.remove("Sequence")
+    if "Position" in analysis.full_dataset_list.columns:
+        analysis.full_dataset_list.remove("Position")
     restricted_meta = st.session_state.metadata[st.session_state.metadata["Run"].isin(analysis.full_dataset_list)]
     available_meta = restricted_meta.columns
     selected_columns = st.multiselect(f"Select the metadata fields to filter by", available_meta)
 
 elif analysis.tx_upload == True:
     analysis.full_dataset_list = analysis.transcript_mode.all_studies_df.columns.tolist()
-    analysis.full_dataset_list.remove("Sequence")
-    analysis.full_dataset_list.remove("Position")
+    if "Sequence" in analysis.full_dataset_list:
+        analysis.full_dataset_list.remove("Sequence")
+    if "Position" in analysis.full_dataset_list:
+        analysis.full_dataset_list.remove("Position")
     st.write("You are currently working with loaded data. Metadata might no be available for all your studies.")
     restricted_meta = st.session_state.metadata[st.session_state.metadata["Run"].isin(analysis.full_dataset_list)]
     available_meta = restricted_meta.columns
