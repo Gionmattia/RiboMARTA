@@ -50,7 +50,7 @@ THESIS_Homo_sapiens_2026_GRCh38:
 THESIS_Mus_musculus_2026_GRCm39:
   bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/MOUSE_RIBOMARTA_THESIS_PANEL"
   gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.113.gtf"
-  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/THESIS_mouse_metadata.csv"
   fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.dna.primary_assembly.fa"
 # mappability_path: to be added
 

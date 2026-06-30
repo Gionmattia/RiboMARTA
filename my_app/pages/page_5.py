@@ -239,7 +239,8 @@ with st.expander("Change options"):
 
 # Sets up coordinates dictionary to be used by the function
 if st.button("Run Analysis"):
-    df = df.drop(columns=["Position"])
+    if "Position" in df.columns:
+        df = df.drop(columns="Position")
 
     current_mode.txid_results, current_mode.seed = run_permutation_analysis(df = df, coordinates = coordinates,
                                                                             alpha_baseline=current_mode.alpha_baseline,
@@ -376,13 +377,16 @@ if current_mode.txid_analysis_done is True:
 
             if current_mode.aggregation_option is not None:
                 jitter = 0
+            else:
+                jitter = 0.1
 
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,
                                           meta=meta_option,
                                           logs=plot_logs_d,
                                           jitter_amount= jitter,
                                           show_nonsignificant=show_nonsignificant)
-            streamlit_bokeh(p, use_container_width=True, theme="light_minimal")
+            streamlit_bokeh(p, use_container_width=False
+                            , theme="light_minimal")
 
 
             if st.button("Store in the report", key = "diamond plot"):
@@ -394,7 +398,8 @@ if current_mode.txid_analysis_done is True:
             st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
 
             tot_datasets = set(current_mode.all_studies_df.columns)
-            tot_datasets.remove("Position")
+            if "Postion" in tot_datasets:
+                tot_datasets.remove("Position")
             baseline_passed = set(current_mode.txid_results_meta.index)
             baseline_failed = tot_datasets - baseline_passed
 

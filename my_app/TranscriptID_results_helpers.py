@@ -325,7 +325,7 @@ import numpy as np
 import pandas as pd
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, HoverTool, FixedTicker, Span
-
+from bokeh.models import Legend
 
 def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
                               show_nonsignificant=False):
@@ -359,8 +359,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
 
     tissues = df[meta].unique()
 
-    # Exact RGB values of Plotly's qualitative "Pastel" palette, so colours match
-    # the original figure 1:1. Bokeh accepts CSS rgb() strings directly.
+    # Color Palette
     pastel_colors = [
         'rgb(102, 197, 204)', 'rgb(246, 207, 113)', 'rgb(248, 156, 116)',
         'rgb(220, 176, 242)', 'rgb(135, 197, 95)', 'rgb(158, 185, 243)',
@@ -402,7 +401,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     df['color'] = df[meta].map(tissue_color_map)
 
     p = figure(
-        width=max(600, len(tissues) * 100),
+        width=max(600, len(tissues) * 160),
         height=450,
         title=plot_title,
         x_axis_label=meta.lower(),
@@ -447,7 +446,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     df_diamond = df[df['significant'] == True]
     diamond_source = make_source(df_diamond)
     diamond_r = p.scatter('x', 'y', source=diamond_source, marker='diamond',
-                          size=13, fill_color='color', line_color='white',
+                          size=25, fill_color='color', line_color='white',
                           line_width=1)
     hover_renderers.append(diamond_r)
 
@@ -465,13 +464,15 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     if show_nonsignificant:
         # Empty renderers: they contribute a legend entry without drawing points,
         # matching the original's x=[None], y=[None] "fake" traces.
-        p.scatter(x=[], y=[], marker='diamond', size=13, fill_color='gray',
-                  line_color='gray', legend_label='s.')
-        p.scatter(x=[], y=[], marker='circle', size=8, fill_color='gray',
-                  line_color='gray', legend_label='n.s.')
-        p.legend.title = 'Significance:'
-        p.legend.label_text_color = 'black'
-        p.legend.title_text_color = 'black'
+        d = p.scatter(x=[float('nan')], y=[float('nan')], marker='diamond', size=25, fill_color='black',
+                      line_color='black')
+        c = p.scatter(x=[float('nan')], y=[float('nan')], marker='circle', size=8, fill_color='black',
+                      line_color='black')
+        legend = Legend(items=[('s.', [d]), ('n.s.', [c])], title='Significance:')
+        legend.label_text_color = 'black'
+        legend.title_text_color = 'black'
+
+        p.add_layout(legend, "right")
 
     # --- y = 0 reference line (white, solid) ---
     p.add_layout(Span(location=0, dimension='width',
@@ -479,7 +480,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
 
     # --- Categorical tick labels on the numeric x-axis ---
     p.xaxis.ticker = FixedTicker(ticks=list(tissue_positions.values()))
-    p.xaxis.major_label_overrides = {i: t for t, i in tissue_positions.items()}
+    p.xaxis.major_label_overrides = {i: str(t) for t, i in tissue_positions.items()}
     p.xaxis.major_label_orientation = np.pi / 4  # 45 degrees
 
     # --- Cosmetics to match the original (white grid on pale-blue panel) ---

@@ -574,7 +574,8 @@ def plot_stp_with_frames(
     """
 
     df = all_studies_df.copy()
-    df = df.drop(columns = "Position")
+    if "Position" in df.columns:
+        df = df.drop(columns = "Position")
     df["X"] = df.index
 
     x_min = int(df["X"].min())
