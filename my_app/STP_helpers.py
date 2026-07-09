@@ -339,8 +339,8 @@ def ORF_plotter2(
         title=f"Frame {frame}",
         background_fill_color="white",
         border_fill_color="white",
-        tools="",
-        toolbar_location=None,
+        tools="save",
+        toolbar_location="right",
     )
 
     bars = p.vbar(

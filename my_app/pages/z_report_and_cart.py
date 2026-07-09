@@ -142,27 +142,46 @@ st.write(markdown_content)
 # The report is written within the markdown_content variable (assembled here).
 # the table with the results is stored within run.transcript_mode.results_meta (mode-specific, for genomic is genomic_mode.results_meta)
 
-def create_zip_report(markdown_content, user_plots, results):
 
+# Temporary - I need to understand how much this works first.. but having it wrapped makes for an easier interpretation
+import copy
+from bokeh.models import Plot
+
+
+def create_zip_report(markdown_content, user_plots, results):
 # Create a buffer to hold the zip file
     buffy = io.BytesIO()
+
     with zipfile.ZipFile(buffy, "w") as zf:
         # 1) save the markdown report
         zf.writestr("report.md", markdown_content)
-        # 2) save all plots as html
+        # 2) save all plots as html but .svg downloadable
         for i, fig in enumerate(user_plots):
-            # Convert Plotly figure to HTML string
             # Check if it's a Plotly figure
+            # Convert Plotly figure to HTML string
             if hasattr(fig, "to_html"):
                 plot_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
-
+                try:
+                    zf.writestr(f"plots/plot_{i + 1}.svg", fig.to_image(format="svg"))
+                except Exception as e:
+                    zf.writestr(f"plots/plot_{i + 1}_svg_error.txt", str(e))
             # Check if it's a Bokeh figure
             else:
                 try:
-                    plot_html = file_html(fig, CDN, "Transcript_plot_with_ORF")
+                    # We are changing the backend to svg, then back. This should avoid issues arising with
+                    # copy() method (not working on plots) or shallow copying that could break shaered children.
+                    plots = list(fig.select({'type': Plot}))
+                    previous = [p.output_backend for p in plots]
+                    for p in plots:
+                        p.output_backend = "svg"
+                    html_svg = file_html(fig, CDN, f"Plot {i + 1}")
+                    for p, prev in zip(plots, previous):
+                        p.output_backend = prev
+                    zf.writestr(f"plots/plot_{i + 1}.html", html_svg)
                 except Exception as e:
-                    plot_html = f"<h1>Error saving plot</h1><p>{str(e)}</p>"
-            zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
+                    zf.writestr(f"plots/plot_{i + 1}_svg_error.txt", str(e))
+
+            #zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
         # 3) Save results
         if results is not None:
             csv_results = results.to_csv(index=True)
@@ -178,7 +197,9 @@ with col1:
     st.write(f"Your results will be saved as {filename}")
 
 if st.button("Prepare Download Bundle"):
-    zip_data = create_zip_report(markdown_content, run.user_plots, results)
+    zip_data = create_zip_report(markdown_content = markdown_content,
+                                 user_plots = run.user_plots,
+                                 results =  results)
 
     st.download_button(
         label="Download All Files (.zip)",
