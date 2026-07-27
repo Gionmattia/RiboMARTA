@@ -211,8 +211,7 @@ with st.expander("Help me"):
              "A higher number of permutations allows for detection of smaller changes, but requires more time."
              "Default is 10000, while max value allowed is 100000.")
     st.write(" ***Workers to allocate***: The number of workers used by the permutation test. The greater the number, "
-             "the faster the analysis. Roughly translated to cores available. Not sure if it's internally used, or"
-             "if I just placed it there with the intention of implementing it later on.")
+             "the faster the analysis. Roughly translated to cores available.")
     st.write(" ***Random seed***: For reproducibility. Sets a random seed, "
              " so that results of permutation tests are perfectly identical and reproducible across runs.")
 
@@ -267,28 +266,25 @@ if current_mode.txid_analysis_done is True:
 
     with st.expander("Show Tabular Results"):
 
-        tab1, tab2= st.tabs(["Detailed Results", "Results with Metadata"])
+        tab1, tab2, tab3= st.tabs(["Analysis Results", "Results with Selected Metadata", "Result with Full Metadtaa"])
 
         with tab1:
-            st.write("Here you can visualise the results of the analysis.")
+            st.write("Here you can visualise the results of the analysis. This table is useful to check "
+                     "the numerical aspects of the analysis results.")
             current_mode.txid_results
         with tab2:
-            st.write("Here you can visualise the results with relative metadata, either in a shortened or full version.")
-            col1, col2, col3 = st.columns([2.5, 2, 6])
-            verbose = False
-            with col1:
-                if st.button("Selected Metadata"):
-                    verbose = False
-            with col2:
-                if st.button("Full Metadata"):
-                    verbose = True
+            st.write("Here you can visualise the results with selected metadata of your choice. Useful to have a more 'easy-to-parse' table."
+                     "By default, it always showcases the SRR, the RTA, the padj, and the Total Counts.")
+            all_meta_options = current_mode.txid_results_meta.columns
+            meta_options = st.multiselect("Select metadata field to visualise", all_meta_options)
+            default_meta = ["RTA", "padj_bh", "Tot Counts"]
+            table_meta = default_meta + meta_options
+            st.dataframe(current_mode.txid_results_meta,
+                         column_order=(table_meta))
 
-            if not verbose:    # Display fewer metadata
-                st.dataframe(current_mode.txid_results_meta,
-                         column_order=("RTA", "padj_bh", "significant", "TISSUE", "CELL_LINE", "Info",
-                                       "BioSample"))
-            else:
-                current_mode.txid_results_meta
+        with tab3:
+            st.write("Here you can visualise the results of the analysis with the complete metadata. Quite verbose but the most informative")
+            current_mode.txid_results_meta
 
 
     # Add expander for boxplot
@@ -375,17 +371,17 @@ if current_mode.txid_analysis_done is True:
                                  show_nonsignificant = show_nonsignificant)
             st.plotly_chart(d_plot, use_container_width=True)
 
-            if current_mode.aggregation_option is not None:
-                jitter = 0
+            if current_mode.aggregation_option is None or current_mode.aggregation_option == "":
+                jitter = 0.3
             else:
-                jitter = 0.1
+                jitter = 0
 
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,
                                           meta=meta_option,
                                           logs=plot_logs_d,
                                           jitter_amount= jitter,
                                           show_nonsignificant=show_nonsignificant)
-            streamlit_bokeh(p, use_container_width=False
+            streamlit_bokeh(p, use_container_width=True
                             , theme="light_minimal")
 
 
@@ -435,43 +431,7 @@ if current_mode.txid_analysis_done is True:
                 analysis.user_plots.append(ml_plot2)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        # with tab6:
-        #     st.write("Here you can visualise all the data aggregated (regardless of the significance of the RTA), depending on the metadata available.")
-        #
-        #     # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
-        #     st.session_state.agg_meta_option = st.selectbox(
-        #         "Select the medatadata field to use for the aggregation",
-        #         current_mode.txid_results_meta.columns[:])
-        #
-        #     # Now to select the individual condition or conditions
-        #     aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
-        #                                 current_mode.txid_results_meta[st.session_state.agg_meta_option].unique())
-        #
-        #     # Button to choose whether to aggregate only significant ones or everything?
-        #     agg_selection = aggregator(current_mode.all_studies_df,
-        #                                current_mode.txid_results_meta,
-        #                                st.session_state.agg_meta_option)
-        #
-        #     # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
-        #     agg_meta_plot = agg_line_plot(agg_selection,
-        #                                   current_mode.utr5_length,
-        #                                   current_mode.cds_length,
-        #                                   aggregations = aggregations,
-        #                                   coordinates = current_mode.txid_ranges)
-        #
-        #     st.plotly_chart(agg_meta_plot, use_container_width=True)
-        #
-        #     if st.button("Store in the report", key = "agg_line_plot"):
-        #         analysis.user_plots.append(ml_plot)
-        #         st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-    #with st.expander("Diamond Plot"):
-        # Insert here function to merge results with metadata...
-
-        # Function to select by which metadata to plot the results...
-
-        # st.button("Select"):
-        # generate the plot
 
 else:
     st.write("Here you will see the results once the analysis is complete")

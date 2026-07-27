@@ -331,15 +331,9 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
                               show_nonsignificant=False):
     """
     Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
-    Significant values are diamonds, while non-significant are circles (optional).
-    Each point has confidence interval whiskers.
-    Points are jittered horizontally within each tissue group.
-
-    Bokeh port of the original Plotly implementation. Behaviour preserved exactly:
-    identical jitter (np.random.seed(42), same per-group iteration order), the
-    same Plotly "Pastel" colour cycle, the categorical x-axis rendered as numeric
-    positions with overridden tick labels, CI whiskers drawn behind the markers,
-    and the white y=0 reference line.
+    Significant values are diamonds, while non-significant are circles.
+    Each point estimate has its CI wiskers.
+    Points are jittered horizontally within each group.
 
     Args:
         df: DataFrame with RTA results.
@@ -359,7 +353,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
 
     tissues = df[meta].unique()
 
-    # Color Palette
+    # Color Palette (added manually)
     pastel_colors = [
         'rgb(102, 197, 204)', 'rgb(246, 207, 113)', 'rgb(248, 156, 116)',
         'rgb(220, 176, 242)', 'rgb(135, 197, 95)', 'rgb(158, 185, 243)',
@@ -401,8 +395,8 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     df['color'] = df[meta].map(tissue_color_map)
 
     p = figure(
-        width=max(600, len(tissues) * 160),
-        height=450,
+        frame_height=450,
+        sizing_mode="stretch_width",
         title=plot_title,
         x_axis_label=meta.lower(),
         y_axis_label=y_column,
