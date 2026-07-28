@@ -224,7 +224,8 @@ def ga_plots_UI_render(current_run, analysis):
             with col2:
                 st.write("")
                 st.write("")
-                give_intervals(percentage_sharing, int(window_size))
+                st.write("Suggested Intervals not yet implemented. Requires extra work")
+                # give_intervals(percentage_sharing, int(window_size))
 
     with tab5:
         st.write("#### Normalised Global Aggregate & ORF plot")
@@ -327,26 +328,26 @@ def trailer_signal_plot(series, studies):
 
     return p
 
+# Not sure I like this code. Too many silent issues,,, it was supposed to be easier, honestly.
 def give_intervals(percentage_sharing, window):
+    # Not sure of behaviour on edge-cases
     rolling_mean = percentage_sharing.rolling(window=window, center=True).mean()
 
     if rolling_mean.notna().sum() == 0:
-        st.write(f"Transcript too short for a {window}-nt window.")
+        st.write(f"Trailer too short for a {window}-nt window.")
         return
 
-    # Positional index of the minimum, ignoring NaN edges
     min_pos = int(np.nanargmin(rolling_mean.values))
 
     n = len(percentage_sharing)
     half = window // 2
 
-    # Clamp to valid range, preserving window size where possible
     start = max(0, min_pos - half)
     end   = min(n, start + window)
-    start = max(0, end - window)   # re-anchor if we hit the right edge
+    start = max(0, end - window)
 
     start_label = percentage_sharing.index[start]
     end_label = percentage_sharing.index[end - 1]
 
-    st.write(f"Suggested Interval (please check against plot): {start_label} - {end_label}")
-    return start, end
+    st.write(f"Suggested Interval (please check against plot): {start_label} - {end_label}") # return embedded within function. Nope
+    return # start, end
