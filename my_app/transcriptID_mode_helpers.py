@@ -430,6 +430,8 @@ def data_aggregator(current_run, aggregation_option):
         current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
         metadata = st.session_state.metadata.copy()
         mapping = metadata.set_index("Run")[current_run.meta_agg_option]
+        current_run.members_per_group = mapping.value_counts().to_frame()
+        current_run.members_per_group["Group"] = current_run.members_per_group.index
         current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
         current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
 

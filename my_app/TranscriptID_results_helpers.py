@@ -328,7 +328,7 @@ from bokeh.models import ColumnDataSource, HoverTool, FixedTicker, Span
 from bokeh.models import Legend
 
 def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
-                              show_nonsignificant=False):
+                              show_nonsignificant=False, show_n_members = False):
     """
     Plots the calculated RTAs by selected meta-information (such as TISSUE or CELL_LINE).
     Significant values are diamonds, while non-significant are circles.
@@ -363,6 +363,8 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     tissue_color_map = {t: pastel_colors[i % len(pastel_colors)]
                         for i, t in enumerate(tissues)}
 
+
+# This might not work if CI are different than 95%... well it stays for now
     if logs:
         y_column = "log2RTA"
         df["log2RTA_ci_lower_95%"] = np.log2(df["RTA_ci_lower_95%"])
@@ -370,11 +372,13 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
         ci_lower = "log2RTA_ci_lower_95%"
         ci_upper = "log2RTA_ci_upper_95%"
         plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
+        count = df["count"]
     else:
         y_column = "RTA"
         ci_lower = "RTA_ci_lower_95%"
         ci_upper = "RTA_ci_upper_95%"
         plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
+        count = df["count"]
 
     tot_counts = "Tot Counts"
 
@@ -423,6 +427,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
             ci_lower=sub[ci_lower].round(2).to_numpy(),
             ci_upper=sub[ci_upper].round(2).to_numpy(),
             tot_counts=sub[tot_counts].to_numpy(),
+            count = sub["count"].to_numpy()
         ))
 
     hover_renderers = []
@@ -445,13 +450,25 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     hover_renderers.append(diamond_r)
 
     # --- Hover (mirrors the original hovertemplate fields) ---
-    hover = HoverTool(renderers=hover_renderers, tooltips=[
-        ("Tissue", "@meta"),
-        ("RTA", "@y{0.00}"),
-        ("CI", "@ci_lower - @ci_upper"),
-        ("Run", "@run"),
-        ("Tot Counts", "@tot_counts"),
-    ])
+
+    if show_n_members == False:
+        hover = HoverTool(renderers=hover_renderers, tooltips=[
+            (meta, "@meta"),
+            ("RTA", "@y{0.00}"),
+            ("CI", "@ci_lower - @ci_upper"),
+            ("Run", "@run"),
+            ("Tot Counts", "@tot_counts"),
+        ])
+    elif show_n_members == True:
+        hover = HoverTool(renderers=hover_renderers, tooltips=[
+            (meta, "@meta"),
+            ("RTA", "@y{0.00}"),
+            ("CI", "@ci_lower - @ci_upper"),
+            ("Run", "@run"),
+            ("Tot Counts", "@tot_counts"),
+            ("N Datasets", "@count"),
+        ])
+
     p.add_tools(hover)
 
     # --- Legend (significance), only when non-significant points are shown ---

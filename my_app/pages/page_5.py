@@ -371,16 +371,26 @@ if current_mode.txid_analysis_done is True:
                                  show_nonsignificant = show_nonsignificant)
             st.plotly_chart(d_plot, use_container_width=True)
 
+            data_diamond_plot
+            current_mode.members_per_group
+
             if current_mode.aggregation_option is None or current_mode.aggregation_option == "":
                 jitter = 0.3
+                show_n_members =  False
             else:
                 jitter = 0
+                show_n_members = True
+                # here we add the info on the # elements per group
+                data_diamond_plot = pd.merge(data_diamond_plot, current_mode.members_per_group, on = meta_option)
+
+            data_diamond_plot
 
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,
                                           meta=meta_option,
                                           logs=plot_logs_d,
                                           jitter_amount= jitter,
-                                          show_nonsignificant=show_nonsignificant)
+                                          show_nonsignificant=show_nonsignificant,
+                                          show_n_members = show_n_members)
             streamlit_bokeh(p, use_container_width=True
                             , theme="light_minimal")
 
