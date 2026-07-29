@@ -372,13 +372,11 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
         ci_lower = "log2RTA_ci_lower_95%"
         ci_upper = "log2RTA_ci_upper_95%"
         plot_title = f"Diamond plot of log2 RTAs across datasets, by {meta.lower()}"
-        count = df["count"]
     else:
         y_column = "RTA"
         ci_lower = "RTA_ci_lower_95%"
         ci_upper = "RTA_ci_upper_95%"
         plot_title = f"Diamond plot of RTAs across datasets, by {meta.lower()}"
-        count = df["count"]
 
     tot_counts = "Tot Counts"
 
@@ -416,19 +414,31 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     ))
     p.segment('x', 'y_lower', 'x', 'y_upper', source=whisker_source,
               line_color='gray', line_width=1.5)
-
-    def make_source(sub):
-        return ColumnDataSource(dict(
-            x=sub['x_jitter'].to_numpy(),
-            y=sub[y_column].to_numpy(),
-            color=sub['color'].to_numpy(),
-            meta=sub[meta].to_numpy(),
-            run=sub.index.to_numpy(),
-            ci_lower=sub[ci_lower].round(2).to_numpy(),
-            ci_upper=sub[ci_upper].round(2).to_numpy(),
-            tot_counts=sub[tot_counts].to_numpy(),
-            count = sub["count"].to_numpy()
-        ))
+    if show_n_members == False:
+        def make_source(sub):
+            return ColumnDataSource(dict(
+                x=sub['x_jitter'].to_numpy(),
+                y=sub[y_column].to_numpy(),
+                color=sub['color'].to_numpy(),
+                meta=sub[meta].to_numpy(),
+                run=sub.index.to_numpy(),
+                ci_lower=sub[ci_lower].round(2).to_numpy(),
+                ci_upper=sub[ci_upper].round(2).to_numpy(),
+                tot_counts=sub[tot_counts].to_numpy()
+            ))
+    elif show_n_members == True:
+        def make_source(sub):
+            return ColumnDataSource(dict(
+                x=sub['x_jitter'].to_numpy(),
+                y=sub[y_column].to_numpy(),
+                color=sub['color'].to_numpy(),
+                meta=sub[meta].to_numpy(),
+                run=sub.index.to_numpy(),
+                ci_lower=sub[ci_lower].round(2).to_numpy(),
+                ci_upper=sub[ci_upper].round(2).to_numpy(),
+                tot_counts=sub[tot_counts].to_numpy(),
+                count = sub["count"].to_numpy()
+            ))
 
     hover_renderers = []
 

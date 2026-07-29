@@ -365,14 +365,12 @@ if current_mode.txid_analysis_done is True:
             data_diamond_plot = data_diamond_plot[data_diamond_plot["Tot Counts"] > tot_counts_min]
             data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
 
-            d_plot = new_diamond_plotter(data_diamond_plot,
-                                 meta=meta_option,
-                                 logs = plot_logs_d,
-                                 show_nonsignificant = show_nonsignificant)
-            st.plotly_chart(d_plot, use_container_width=True)
+            # d_plot = new_diamond_plotter(data_diamond_plot,
+            #                      meta=meta_option,
+            #                      logs = plot_logs_d,
+            #                      show_nonsignificant = show_nonsignificant)
+            # st.plotly_chart(d_plot, use_container_width=True)
 
-            data_diamond_plot
-            current_mode.members_per_group
 
             if current_mode.aggregation_option is None or current_mode.aggregation_option == "":
                 jitter = 0.3
@@ -383,20 +381,17 @@ if current_mode.txid_analysis_done is True:
                 # here we add the info on the # elements per group
                 data_diamond_plot = pd.merge(data_diamond_plot, current_mode.members_per_group, on = meta_option)
 
-            data_diamond_plot
-
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,
                                           meta=meta_option,
                                           logs=plot_logs_d,
                                           jitter_amount= jitter,
                                           show_nonsignificant=show_nonsignificant,
                                           show_n_members = show_n_members)
-            streamlit_bokeh(p, use_container_width=True
-                            , theme="light_minimal")
+            streamlit_bokeh(p, use_container_width=True, theme="light_minimal")
 
 
             if st.button("Store in the report", key = "diamond plot"):
-                analysis.user_plots.append(d_plot)
+                analysis.user_plots.append(p)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
 
