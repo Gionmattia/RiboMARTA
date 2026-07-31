@@ -517,6 +517,8 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     p.xaxis.major_label_text_color = 'black'
     p.yaxis.major_label_text_color = 'black'
 
+    p.y_range.start = 0
+
     return p
 
 # plot to have single transcript plot of the original raw data
