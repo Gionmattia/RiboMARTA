@@ -385,7 +385,11 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     df['x_pos'] = df[meta].map(tissue_positions)
 
     # Add random jitter within each tissue group.
-    # Same seed + same iteration order as the original -> identical jitter values.
+    # Override if user chooses to plot individual datasets
+    if meta == "Dataset":
+        jitter_amount = 0
+
+    # Same seed + same iteration order as the original -> keep positioning across reiterations.
     np.random.seed(42)
     df['x_jitter'] = np.nan
     for tissue in tissues:

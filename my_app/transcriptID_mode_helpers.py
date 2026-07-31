@@ -429,7 +429,12 @@ def data_aggregator(current_run, aggregation_option):
         # Consistency, remove position (though it won't be aggregated, but better safe than sorry)
         current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
         metadata = st.session_state.metadata.copy()
+        #subset to keep only selected meta
+        sel_studies = current_run.all_studies_df.columns
+        metadata = metadata[metadata["Run"].isin(sel_studies)]
+
         mapping = metadata.set_index("Run")[current_run.meta_agg_option]
+
         current_run.members_per_group = mapping.value_counts().to_frame()
         current_run.members_per_group["Group"] = current_run.members_per_group.index
         current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T

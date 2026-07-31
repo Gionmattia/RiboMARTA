@@ -148,7 +148,7 @@ import copy
 from bokeh.models import Plot
 
 
-def create_zip_report(markdown_content, user_plots, results):
+def create_zip_report(markdown_content, user_plots, raw_data, results):
 # Create a buffer to hold the zip file
     buffy = io.BytesIO()
 
@@ -182,7 +182,10 @@ def create_zip_report(markdown_content, user_plots, results):
                     zf.writestr(f"plots/plot_{i + 1}_svg_error.txt", str(e))
 
             #zf.writestr(f"plots/plot_{i + 1}.html", plot_html)
-        # 3) Save results
+        # 3) Store raw data (for reference) NB. does not store normalised/aggregated data! just RAW as it was extracted
+        csv_raw_data = raw_data.to_csv(index=True)
+        zf.writestr("raw_data.csv", csv_raw_data)
+        # 4) Save results
         if results is not None:
             csv_results = results.to_csv(index=True)
             zf.writestr("results.csv", csv_results)
@@ -199,6 +202,7 @@ with col1:
 if st.button("Prepare Download Bundle"):
     zip_data = create_zip_report(markdown_content = markdown_content,
                                  user_plots = run.user_plots,
+                                 raw_data= run.transcript_mode.all_studies_df_backup,
                                  results =  results)
 
     st.download_button(

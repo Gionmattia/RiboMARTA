@@ -399,7 +399,7 @@ if current_mode.txid_analysis_done is True:
             st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
 
             tot_datasets = set(current_mode.all_studies_df.columns)
-            if "Postion" in tot_datasets:
+            if "Position" in tot_datasets:
                 tot_datasets.remove("Position")
             baseline_passed = set(current_mode.txid_results_meta.index)
             baseline_failed = tot_datasets - baseline_passed
