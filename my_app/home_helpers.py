@@ -214,6 +214,13 @@ def upload_selection():
                         )
         tx_cov_extracted = True
 
+        try:
+            transcript_sequence = ''.join(all_studies_df['Sequence'])
+            all_studies_df.drop(columns='Sequence', inplace=True)
+            st.info("Retrieved sequence from the uploaded file!")
+        except KeyError:
+            st.error("The File Uploaded does not come from RiboMARTA ('Sequence' column is missing).")
+
         if st.button("Next"):
             # Generate ID for current run
             st.session_state.quirky_id = generate_quirky_id()
@@ -226,6 +233,7 @@ def upload_selection():
                     active=True,
                     txid = txid,
                     all_studies_df=all_studies_df,
+                    transcript_sequence = transcript_sequence,
                     utr5_length=utr5_length,
                     cds_length=cds_length,
                     utr3_length=utr3_length,

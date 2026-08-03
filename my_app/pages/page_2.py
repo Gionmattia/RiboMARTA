@@ -144,6 +144,8 @@ div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:
 </style>
 """, unsafe_allow_html=True)
 
+
+##### Analysis Checkpoints and Setup #####
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
 
@@ -152,20 +154,35 @@ analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
 # This bit tests your current id matches the AnalysisStatus ID (to make sure you don't have old data)
 assert st.session_state.quirky_id == analysis.quirky_id
 current_mode = analysis.transcript_mode
-
 # Retrieve the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
 fasta = st.session_state.fasta
 st.write(f"######  :gray[ Analysis ID: {st.session_state.quirky_id}]")
 st.title("Transcript ID Mode")
 
+
+##### Analysis Start #####
+
 # Renders the info message for this mode
 txid_mode_intro()
 
 # Checkpoint: checks for presence of a txid (eg. ENST...) if user has not submitted one, returns error.
-txid_start_checkpoint(current_mode, analysis)
+txid_checkpoint(current_mode)
 
-# Extract coverage info and transcript sequence. Includes loader.
+# Checkpoint - allows to extract coverage only if we are not in "Upload Mode"
+if analysis.tx_upload == False:
+    if st.button("Load Transcript"):  # If not in tx upload, loads
+        current_mode.loading_tx_cov = True
+
+## All the code to extract info - needs some order ##
+# Extract coverage info, transcript sequence, and mappability. Includes loader.
 if current_mode.loading_tx_cov:
+    # Extracts mappability info, if available.
+    if analysis.mappability_path is not None:
+        mappability_df = txid_map_extraction(current_mode.txid, analysis.mappability_path, st.session_state.gr)
+        mappability_df["X"] = mappability_df.index
+        other_col = [c for c in mappability_df.columns if c not in ['Position', 'X']][0]
+        current_mode.mappability_df = mappability_df.rename(columns={other_col: 'Mappability'})
+
     current_mode.aggregation_option = ""
     current_mode.smoothing_option = False
     all_ranges, strandedness = txid_data_extraction(current_run = current_mode,
@@ -178,22 +195,17 @@ if current_mode.loading_tx_cov:
     current_mode.all_studies_df_backup = current_mode.all_studies_df.copy()
     current_mode.all_studies_df_pre_aggregation_backup = current_mode.all_studies_df.copy()
 
+
 # Checks whether the coverage has been extracted, before proceeding
 if current_mode.tx_cov_extracted:
-
-    # Format the coverage data as a table for download
-    if current_mode.transcript_sequence != "" and analysis.tx_upload == False:
+    # If data has been extracted, allows for download in .csv format
+    if analysis.tx_upload == False:
         format_txid_df_download(current_mode)
-
     # If the sequence is not available and is "File Upload Mode", retrieve sequence from it.
-    if current_mode.transcript_sequence is None and analysis.tx_upload == True:
-        st.write("You are currently in: Ensembl Transcript ID - File Upload mode")
-        try:
-            current_mode.transcript_sequence = ''.join(current_mode.all_studies_df['Sequence'])
-            current_mode.all_studies_df.drop(columns='Sequence', inplace=True)
-            st.info("Retrieved sequence from the uploaded file!")
-        except KeyError:
-            st.error("The File Uploaded does not come from RiboMARTA ('Sequence' column is missing).")
+    elif analysis.tx_upload == True:
+        st.markdown("### You are currently in: Ensembl Transcript ID - File Upload mode")
+else:
+    st.stop()
 
 
 ### Display the data once extracted | Allow for ranges selection ###
