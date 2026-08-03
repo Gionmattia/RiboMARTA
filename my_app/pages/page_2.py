@@ -7,143 +7,11 @@ from transcriptID_mode_helpers import *
 from transcriptID_mode_helpers2 import *
 from STP_helpers import *
 from streamlit_bokeh import streamlit_bokeh
-
+from Style_options import txid_mode_style
 import streamlit as st
 
-st.markdown("""
-<style>
-    /* 1. The Base Button Style (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button,
-    div[data-testid="stButton"]:nth-of-type(2) > button,
-    div[data-testid="stDownloadButton"] > button {
-        background-color: #000000;
-        color: #ffffff;
-        border: 2px solid #555555;
-        border-radius: 10px;
-        padding: 0.5em 1em;
-        transition: all 0.3s ease;
-    }
-
-    /* 2. The Hover State (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button:hover,
-    div[data-testid="stButton"]:nth-of-type(2) > button:hover,
-    div[data-testid="stDownloadButton"] > button:hover  {
-        border-color: #FFA500;
-        color: #FFA500;
-        background-color: #1a1a1a;
-    }
-
-    /* 3. The Clicked/Active State (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button:active,
-    div[data-testid="stButton"]:nth-of-type(2) > button:active,
-    div[data-testid="stDownloadButton"] > button:active {
-        background-color: #FFA500;
-        color: #ffffff;
-        border-color: #FFA500;
-    }
-
-    /* 4. Focus State (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button:focus:not(:active),
-    div[data-testid="stButton"]:nth-of-type(2) > button:focus:not(:active),
-    div[data-testid="stDownloadButton"] button:focus:not(:active) >
-     {
-        border-color: #FFA500;
-        color: #FFA500;
-        box-shadow: none;
-    }
-
-        
-
-/* ===== EXPANDERS ===== */
-/* New versions */
-div[data-testid="stExpander"] {
-    background-color: #2b2b2b !important;
-    border-radius: 8px;
-    border: 1px solid #444;
-}
-
-div[data-testid="stExpander"] > details {
-    background-color: #f0aa2d !important;
-}
-
-div[data-testid="stExpander"] > details > summary,
-div[data-testid="stExpander"] > details > summary p,
-div[data-testid="stExpander"] > details > summary span {
-    background-color: #f0aa2d !important;
-    color: #000000 !important;
-    padding: 0.17rem 0.5rem;
-    font-size: 1.15rem !important;
-}
-
-div[data-testid="stExpander"] > details[open] > summary {
-    background-color: #f0aa2d !important;
-}
-
-/* Content inside expander */
-div[data-testid="stExpanderDetails"] {
-    background-color: #2b2b2b !important;
-    padding: 1rem;
-}
-
-/* ===== TABS ===== */
-button[data-baseweb="tab"] {
-    background-color: #f0aa2d !important;
-    color: #000000 !important;
-    padding: 0.75rem 1.5rem !important;
-    font-size: 1.15rem !important;
-    font-weight: 600 !important;
-}
-button[data-baseweb="tab"] p {
-    font-size: 1.1rem !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #f0aa2d !important;
-    color: #000000 !important;
-}
-
-div[data-baseweb="tab-highlight"] {
-    background-color: #f0c694 !important;
-    height: 0.45rem !important;
-}
-
-div[data-baseweb="tab-panel"] {
-    background-color: #2b2b2b !important;
-    padding: 1.5rem;
-    border-radius: 0 0 8px 8px;
-}
-
-div[data-baseweb="tab-list"] {
-    background-color: transparent !important;
-    gap: 4px;
-}
-/* Unselected radio - default state (outer ring) */
-div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
-    border: 2px solid #888888 !important;
-    background-color: transparent !important;
-    box-sizing: border-box !important;
-}
-/* Unselected radio - hover state (outer ring) */
-div[data-testid="stRadio"] label[data-baseweb="radio"]:hover:not(:has(input:checked)) > div:first-child {
-    border: 2px solid #d0a454 !important;
-    background-color: rgba(30, 144, 255, 0.1) !important;
-    box-sizing: border-box !important;
-}
-/* Outer ring of the selected radio */
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child {
-    border: 2px solid #d0a454 !important;
-    background-color: transparent !important;
-    box-sizing: border-box !important;
-}
-/* Inner dot of the selected radio */
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
-    border: 2px solid #d0a454 !important;
-    background-color: #d0a454 !important;
-    box-sizing: border-box !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
+##### Imports CSS to style the whole page #####
+txid_mode_style()
 
 ##### Analysis Checkpoints and Setup #####
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
@@ -164,17 +32,17 @@ st.title("Transcript ID Mode")
 
 # Renders the info message for this mode
 txid_mode_intro()
-# Checkpoint: checks for presence of a txid (eg. ENST...) if user has not submitted one, returns error.
+# Checkpoint - checks for presence of a txid (eg. ENST...) if user has not submitted one, returns error.
 txid_checkpoint(current_mode)
-# Checkpoint - allows to extract coverage only if we are not in "Upload Mode"
+# Checkpoint - Appears only if not in Upload mode. Button to start extraction of data.
 if analysis.tx_upload == False:
-    if st.button("Load Transcript"):  # If not in tx upload, loads
-        current_mode.loading_tx_cov = True
+    if st.button("Load Transcript"):
+        current_mode.loading_tx_cov = True  # Logical flag
 
 ## All the code to extract info - needs some order ##
-# Extract coverage info, transcript sequence, and mappability. Includes loader.
+# Extract the data coverage info, transcript sequence, and mappability. Includes loader.
 if current_mode.loading_tx_cov:
-    # Extracts mappability info, if available.
+    # Extracts mappability info, if available
     if analysis.mappability_path is not None:
         mappability_df = txid_map_extraction(current_mode.txid, analysis.mappability_path, st.session_state.gr)
         mappability_df["X"] = mappability_df.index
@@ -183,10 +51,11 @@ if current_mode.loading_tx_cov:
 
     current_mode.aggregation_option = ""
     current_mode.smoothing_option = False
+    # Extract the transcript ranges and the strand
     all_ranges, strandedness = txid_data_extraction(current_run = current_mode,
                                                     bigwig_files = analysis.filters.selected_studies,
                                                     gr = st.session_state.gr)
-
+    # Retrieves the sequence
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
     # Creates back-ups for the smoothing options and aggregation options.
@@ -194,19 +63,19 @@ if current_mode.loading_tx_cov:
     current_mode.all_studies_df_pre_aggregation_backup = current_mode.all_studies_df.copy()
 
 
-# Checks whether the coverage has been extracted, before proceeding
+# Checkpoint - Checks whether the coverage has been extracted
 if current_mode.tx_cov_extracted:
     # If data has been extracted, allows for download in .csv format
     if analysis.tx_upload == False:
         format_txid_df_download(current_mode)
-    # If the sequence is not available and is "File Upload Mode", retrieve sequence from it.
+    # If it's "File Upload Mode", reminds it to the user.
     elif analysis.tx_upload == True:
         st.markdown("### You are currently in: Ensembl Transcript ID - File Upload mode")
 else:
     st.stop()
 
 
-### Display the data once extracted | Allow for ranges selection ###
+#####  Display the data once extracted #####
 if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence != "":
     if current_mode.triplet_ga_plot is None:
         current_mode.triplet_ga_plot = plot_ga_with_frames2(current_mode,
@@ -231,7 +100,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
     ga_plots_UI_render(current_mode, analysis)
 
 
-    with st.container(border = True): #"Select Ranges"
+    #####  Ranges Selection #####
+    with st.container(border = True):
         st.write("#### Select Ranges")
         col1, col2, col3, col4 = st.columns([4, 4, 4, 8])
         full_mRNA_length = current_mode.utr5_length + current_mode.cds_length + current_mode.utr3_length
@@ -360,28 +230,28 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
     col1, col2, col3= st.columns([4, 4, 4])
 
-    with col1:
+    with col1: # Ranges Overview
         if current_mode.n_slice is None or current_mode.n_slice[1] == 0:
             bubble("No Ranges Selected", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c", outline_width=1)
         else:
             bubble("Ranges Selected ", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
-    with col2:
+
+    with col2: # Smoothing Overview
         if current_mode.smoothing_option is False:
             bubble("No Smoothing ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
                    outline_width=1)
         else:
             bubble(f"{current_mode.smoothing_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
-    with col3:
-        if current_mode.aggregation_option is None and current_mode.meta_agg_option is None:
-            bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
-                   outline_width=1)
+
+    with col3: # Aggregation Overview
+        if current_mode.aggregation_option is None: # and current_mode.meta_agg_option is None:
+            bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c", outline_width=1)
         elif current_mode.aggregation_option == "Total Aggregation":
             bubble(f"{current_mode.aggregation_option}", bg_color="#000000",
                    outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
         else:
             bubble(f"{current_mode.aggregation_option} : {current_mode.meta_agg_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
 
-    #: str = None
     st.write("")
 
     if st.button("Next"):
@@ -390,4 +260,3 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                                    "n_slice": current_mode.n_slice}
 
         st.switch_page("pages/page_5.py")
-

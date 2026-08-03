@@ -15,6 +15,7 @@ from Bio.Seq import Seq
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import Span, Label, FactorRange, HoverTool, PanTool
 
+
 # Function to load the ranges
 def extract_tx_pyranges(gr, txid):
     """

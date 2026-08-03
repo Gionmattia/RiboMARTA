@@ -61,6 +61,7 @@ def txid_mode_intro():
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("martas/explaining_marta.png", width=180)
 
+
 def txid_checkpoint(current_run):
     """
     Checkpoint function. It checks if the user has submitted a transcriptID before allowing
@@ -82,38 +83,6 @@ def txid_checkpoint(current_run):
         st.stop()
 
     return
-
-# def txid_start_checkpoint(current_run, analysis):
-#     """
-#     Checkpoint function. It checks if the user has submitted a transcriptID before allowing
-#     to further proceed in the analysis.
-#     Txid should be saved in the current_run (class: AnalysisStatus, see app_helpers.py)
-#     It overwrites the value of current_run.loading_tx_cov flag tp True (used for loading screen)
-#     :param current_run:
-#     :return:
-#     """
-#
-#     txid = current_run.txid
-#     if txid == "":
-#         col1, col2 = st.columns([1, 3])
-#         with col1:
-#             st.image("martas/error_marta.png", width=127)
-#         with col2:
-#             st.markdown("<br><br>", unsafe_allow_html=True)
-#             st.error(" The 'Transcript ID' field was empty. Please provide a value before proceeding!")
-#     # Allows to extract the tx coverage, if not in Upload Mode.
-#     else:
-#         if analysis.tx_upload == False:
-#             if st.button("Load Transcript"): # If not in tx upload, loads
-#                 current_run.loading_tx_cov = True
-#                 # and also loads mappability track
-#                 if analysis.mappability_path is not None:
-#                     mappability_df = txid_map_extraction(txid, analysis.mappability_path, st.session_state.gr)
-#                     mappability_df["X"] = mappability_df.index
-#                     other_col = [c for c in mappability_df.columns if c not in ['Position', 'X']][0]
-#                     current_run.mappability_df = mappability_df.rename(columns={other_col: 'Mappability'})
-
-
 
 def format_txid_df_download(current_run):
     """
