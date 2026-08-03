@@ -164,10 +164,8 @@ st.title("Transcript ID Mode")
 
 # Renders the info message for this mode
 txid_mode_intro()
-
 # Checkpoint: checks for presence of a txid (eg. ENST...) if user has not submitted one, returns error.
 txid_checkpoint(current_mode)
-
 # Checkpoint - allows to extract coverage only if we are not in "Upload Mode"
 if analysis.tx_upload == False:
     if st.button("Load Transcript"):  # If not in tx upload, loads
@@ -266,6 +264,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             """)
 
 
+##### Smoothing Options #####
     with st.expander("Option A ~ Select Smoothing Option (optional)"):
 
         # Failsafe - If no mappability is given, no smoothing is done
@@ -317,6 +316,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
             streamlit_bokeh(after_smooth_plot, use_container_width=False)
 
+
+##### Aggregation Options #####
     with st.expander("Option B ~ Select Aggregation Option (optional)"):
         st.write("Here you can select whether to aggregate data (by metadata or overall) or not. Resetting this options"
                  "resets also any smoothing option previously selected!")
@@ -353,6 +354,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
         # Functions that takes in current_mode, meta_agg_option, and does aggregation (stores it too for report).
 
+
+##### Workflow Recap #####
     st.markdown("#### Recap of your current workflow:")
 
     col1, col2, col3= st.columns([4, 4, 4])
