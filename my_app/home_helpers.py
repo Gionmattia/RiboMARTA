@@ -229,7 +229,10 @@ def upload_selection():
                     utr5_length=utr5_length,
                     cds_length=cds_length,
                     utr3_length=utr3_length,
-                    tx_cov_extracted=tx_cov_extracted)
+                    tx_cov_extracted=tx_cov_extracted,
+                    all_studies_df_backup = all_studies_df.copy(), # Generates back-up right away
+                    all_studies_df_pre_aggregation_backup = all_studies_df.copy(), # Generates back-up right away
+                )
             )
             st.switch_page("pages/metadata_filter.py")
 

@@ -111,7 +111,7 @@ def format_txid_df_download(current_run):
     return st.download_button(
         label="Download data as CSV",
         data=csv,
-        file_name=f'{current_run.txid}_raw_counts.csv',
+        file_name=f"{current_run.txid}_5'_{current_run.utr5_length}_CDS_{current_run.cds_length}_3'_{current_run.utr3_length}_raw_counts.csv",
         mime='text/csv'
     )
 

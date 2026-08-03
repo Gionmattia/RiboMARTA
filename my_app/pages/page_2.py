@@ -161,8 +161,6 @@ st.title("Transcript ID Mode")
 # Renders the info message for this mode
 txid_mode_intro()
 
-
-
 # Checkpoint: checks for presence of a txid (eg. ENST...) if user has not submitted one, returns error.
 txid_start_checkpoint(current_mode, analysis)
 
@@ -176,6 +174,7 @@ if current_mode.loading_tx_cov:
 
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
+    # Creates back-ups for the smoothing options and aggregation options.
     current_mode.all_studies_df_backup = current_mode.all_studies_df.copy()
     current_mode.all_studies_df_pre_aggregation_backup = current_mode.all_studies_df.copy()
 
