@@ -72,14 +72,10 @@ def organism_loader_interface():
 def genomic_coordinates_selection():
     """
     Function to render the UI for the "Genomic Coordinates" option in the Home page.
-    ---
-    State variables set: my_ranges
-    State variables cleared: txid, picture, genomic_slices, all_studies_df, utr5_length,
-        cds_length, utr3_length
     """
     # Add a small explaination
     with st.expander("Show Genomic Mode Explaination"):
-        st.write("""
+        st.markdown("""
         
         In this analysis mode, you are required to select three genomic intervals. 
         - The first one acts as your ***baseline***, to which you compare your... 
@@ -109,7 +105,6 @@ def genomic_coordinates_selection():
 
         # Generate ID for current run
         st.session_state.quirky_id = generate_quirky_id()
-
         # Initialize custom dataclasses (AnalysisStatus and GenomicCoordinatesMode) to keep track of analysis flow.
         st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
             quirky_id=st.session_state.quirky_id,
@@ -120,31 +115,20 @@ def genomic_coordinates_selection():
                 genomic_ranges=genomic_ranges
             )
         )
-
-        # session_state clean-up
-        keys_to_reset = ["txid", "picture", "genomic_slices", "all_studies_df", "utr5_length",
-        "cds_length", "utr3_length"]
-        reset_session_state(keys_to_reset)
-        # Reset regions_extracted (used to display page_1 breakdowns)
-        # st.session_state.regions_extracted = False
         # Proceed to next page of the analysis
-
         st.switch_page("pages/metadata_filter.py")
 
 
 def ensembl_txid_selection():
     """
     Function to render the UI for the "Ensembl Transcript ID" option in the Home page
-    ---
-    State variables set: txid
-    State variables cleared: my_ranges, picture, genomic_slices, all_studies_df, utr5_length, cds_length, utr3_length
     """
     st.write("Please provide a valid Ensembl stable transcript id  (*Ex. ENST00000602676, ENSMUST00000199678*): ")
     txid = st.text_input("Ensembl Transcript ID")
 
     if st.button("Next"):
         st.session_state.quirky_id = generate_quirky_id()
-        # Create a new Analysis Status class, associated to the quirky_id. Add flags for this mode.
+        # Create a new AnalysisStatus instance, associated to the quirky_id. Add flags for this mode.
         st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
             quirky_id = st.session_state.quirky_id,
             organism = st.session_state.selected_organism,
@@ -154,10 +138,6 @@ def ensembl_txid_selection():
                 txid = txid
             )
         )
-        # session_state clean-up
-        keys_to_reset = ["my_ranges", "picture", "genomic_slices","genomic_merged", "genomic_ranges", "all_studies_df", "utr5_length",
-         "cds_length", "utr3_length", "tx_upload", "genomic_upload", "cov_extracted"]
-        reset_session_state(keys_to_reset)
         # Proceed to next page of the analysis
         st.switch_page("pages/metadata_filter.py")
 
@@ -165,13 +145,6 @@ def ensembl_txid_selection():
 def upload_selection():
     """
     Function to render the UI for the "File Upload" option in the Home page
-    ---
-    State variables set (for genomic_upload): genomic_slices
-    State variables set (for tx_upload): all_studies_df, utr5_length, cds_length, utr3_length
-
-    State variables cleared (for genomic_upload): my_ranges, txid, picture, all_studies_df,
-                                                    utr5_length, cds_length, utr3_length
-    State variables cleared (for tx_upload): my_ranges, txid, picture, genomic_slices
     """
 
     st.write("Please select the type of input you want to load: ")
@@ -182,7 +155,7 @@ def upload_selection():
         st.session_state.tx_upload = True
         st.session_state.genomic_upload = False
 
-    # put a st.stop here if variables are not initialised
+    # Block to work in "Genomic Upload Submode"
     if st.session_state.get("genomic_upload", False) is True:
         # Upload the three .csv files
         pre_feature_x_file  = st.file_uploader("Upload the .csv for the first region")
@@ -216,11 +189,9 @@ def upload_selection():
                     genomic_merged=genomic_merged,
                     genomic_merged_ranges=genomic_merged_ranges)
             )
-            # clean the keys
             st.switch_page("pages/metadata_filter.py")
-            #st.switch_page("pages/page_4.py")
 
-
+    # Block to work in "Transcript Upload Submode"
     if st.session_state.get("tx_upload", False) is True:
         uploaded_file = st.file_uploader("Upload the .csv with your transcript", type = "csv")
         try:
@@ -261,9 +232,10 @@ def upload_selection():
                     tx_cov_extracted=tx_cov_extracted)
             )
             st.switch_page("pages/metadata_filter.py")
-            #st.switch_page("pages/page_2.py")
 
 
+##### Formatting Functions - These are input-validation functions #####
+# Formats Genomic mode ranges
 def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
                            post_feature_y:pd.DataFrame,
                            noise_n:pd.DataFrame
@@ -299,15 +271,4 @@ def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
 
     return genomic_merged, genomic_slices
 
-
-# OLD version, currently not used by the app... but leaving it for reference
-# Helper - resets streamlit state variables
-def reset_session_state(keys):
-    """
-    Clean-up function, helps remove session_state variables when switching between analysis options
-
-    :param keys: list of session_state keys to remove
-    :return:
-    """
-    for k in keys:
-        st.session_state.pop(k, None)
+# Functions to validate the transcript upload should go down here, ideally.
