@@ -12,7 +12,7 @@ import os
 
 import streamlit.elements.widgets.selectbox
 import streamlit.runtime.session_manager
-
+from transcriptID_mode_helpers2 import txid_map_extraction
 from app_helpers import *
 
 # Organism Loader - Provides interface and code to load organism.
@@ -224,6 +224,16 @@ def upload_selection():
         if st.button("Next"):
             # Generate ID for current run
             st.session_state.quirky_id = generate_quirky_id()
+
+            # Extracts mappability info, if available.
+            if st.session_state.mappability_path is not None:
+                mappability_df = txid_map_extraction(txid, st.session_state.mappability_path, st.session_state.gr)
+                mappability_df["X"] = mappability_df.index
+                other_col = [c for c in mappability_df.columns if c not in ['Position', 'X']][0]
+                mappability_df = mappability_df.rename(columns={other_col: 'Mappability'})
+            else:
+                mappability_df = None
+
             st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
                 quirky_id=st.session_state.quirky_id,
                 organism=st.session_state.selected_organism,
@@ -240,6 +250,7 @@ def upload_selection():
                     tx_cov_extracted=tx_cov_extracted,
                     all_studies_df_backup = all_studies_df.copy(), # Generates back-up right away
                     all_studies_df_pre_aggregation_backup = all_studies_df.copy(), # Generates back-up right away
+                    mappability_df = mappability_df
                 )
             )
             st.switch_page("pages/metadata_filter.py")

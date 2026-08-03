@@ -210,8 +210,6 @@ else:
 
 ### Display the data once extracted | Allow for ranges selection ###
 if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence != "":
-
-
     if current_mode.triplet_ga_plot is None:
         current_mode.triplet_ga_plot = plot_ga_with_frames2(current_mode,
                                                             current_mode.all_studies_df,
