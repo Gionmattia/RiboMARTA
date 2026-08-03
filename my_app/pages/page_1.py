@@ -6,6 +6,7 @@ from home_helpers import genomic_mode_formatter
 from smoothing_helpers import *
 from STP_helpers import *
 from streamlit_bokeh import streamlit_bokeh
+from Style_options import genco_mode_style
 
 quirky_id_checkpoint()
 
@@ -15,137 +16,7 @@ analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
 assert st.session_state.quirky_id == analysis.quirky_id
 current_mode = analysis.genomic_mode
 
-st.markdown("""
-
-<style>
-    [data-testid="stTable"] thead tr th {
-        background-color: #5ca274 !important;
-        color: #000000 !important;        /* dark text for contrast on the green */
-        font-weight: 600 !important;
-    }
-
-    /* 1. The Base Button Style (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button,
-    div[data-testid="stButton"]:nth-of-type(2) > button,
-
-
-    /* 2. The Hover State (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button:hover  {
-        border-color: #5ca274;
-        color: #5ca274;
-        background-color: #1a1a1a;
-    }
-
-    /* 3. The Clicked/Active State (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button:active,
-    div[data-testid="stButton"]:nth-of-type(2) > button:active,
-    div[data-testid="stDownloadButton"] > button:active {
-        background-color: #78c38c;
-        color: #ffffff;
-        border-color: #78c38c;
-    }
-
-    /* 4. Focus State (Targeting 1st and 2nd) */
-    div[data-testid="stButton"]:nth-of-type(1) > button:focus:not(:active),
-    div[data-testid="stButton"]:nth-of-type(2) > button:focus:not(:active),
-    div[data-testid="stDownloadButton"] button:focus:not(:active) >
-     {
-        border-color: #FFA500;
-        color: #FFA500;
-        box-shadow: none;
-    }
-
-
-
-/* ===== EXPANDERS ===== */
-/* New versions */
-div[data-testid="stExpander"] {
-    background-color: #2b2b2b !important;
-    border-radius: 8px;
-    border: 1px solid #444;
-}
-
-div[data-testid="stExpander"] > details {
-    background-color: #5ca274 !important;
-}
-
-div[data-testid="stExpander"] > details > summary,
-div[data-testid="stExpander"] > details > summary p,
-div[data-testid="stExpander"] > details > summary span {
-    background-color: #5ca274 !important;
-    color: #000000 !important;
-    padding: 0.17rem 0.5rem;
-    font-size: 1.15rem !important;
-}
-
-div[data-testid="stExpander"] > details[open] > summary {
-    background-color: #5ca274 !important;
-}
-
-/* Content inside expander */
-div[data-testid="stExpanderDetails"] {
-    background-color: #2b2b2b !important;
-    padding: 1rem;
-}
-
-/* ===== TABS ===== */
-button[data-baseweb="tab"] {
-    background-color: #5ca274 !important;
-    color: #000000 !important;
-    padding: 0.75rem 1.5rem !important;
-    font-size: 1.15rem !important;
-    font-weight: 600 !important;
-}
-button[data-baseweb="tab"] p {
-    font-size: 1.1rem !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #5ca274 !important;
-    color: #000000 !important;
-}
-
-div[data-baseweb="tab-highlight"] {
-    background-color: #78c38c !important;
-    height: 0.45rem !important;
-}
-
-div[data-baseweb="tab-panel"] {
-    background-color: #2b2b2b !important;
-    padding: 1.5rem;
-    border-radius: 0 0 8px 8px;
-}
-
-div[data-baseweb="tab-list"] {
-    background-color: transparent !important;
-    gap: 4px;
-}
-/* Unselected radio - default state (outer ring) */
-div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
-    border: 2px solid #888888 !important;
-    background-color: transparent !important;
-    box-sizing: border-box !important;
-}
-/* Unselected radio - hover state (outer ring) */
-div[data-testid="stRadio"] label[data-baseweb="radio"]:hover:not(:has(input:checked)) > div:first-child {
-    border: 2px solid #00855d !important;
-    background-color: rgba(30, 144, 255, 0.1) !important;
-    box-sizing: border-box !important;
-}
-/* Outer ring of the selected radio */
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child {
-    border: 2px solid #00855d !important;
-    background-color: transparent !important;
-    box-sizing: border-box !important;
-}
-/* Inner dot of the selected radio */
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
-    border: 2px solid #00855d !important;
-    background-color: #00855d !important;
-    box-sizing: border-box !important;
-}
-</style>
-""", unsafe_allow_html=True)
+genco_mode_style()
 
 st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 st.title("Genomic Coordinates Mode")
