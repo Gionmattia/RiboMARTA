@@ -74,6 +74,8 @@ if current_mode.tx_cov_extracted:
 else:
     st.stop()
 
+current_mode.utr5_length
+current_mode.cds_length
 
 #####  Display the data once extracted #####
 if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence != "":

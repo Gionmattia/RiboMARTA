@@ -87,8 +87,8 @@ def extract_features_length(ranges, strandedness):
     # Retrieve lengths based on presence of features on annotation (defaults to 0 or None)
     cds_length   = features_breakdown.get("CDS", 0)
     stop_len  = features_breakdown.get("stop_codon", 0)
-    utr5_len = features_breakdown.get("five_prime_utr", None)
-    utr3_len = features_breakdown.get("three_prime_utr", None)
+    utr5_len = features_breakdown.get("five_prime_utr", 0) # Was None
+    utr3_len = features_breakdown.get("three_prime_utr", 0) # Was None
 
     # Combine stop codon to cds
     #cds_length = cds_len + stop_len
@@ -96,10 +96,10 @@ def extract_features_length(ranges, strandedness):
     # Fall back to coordinate-based UTR inference when annotation lacks explicit UTR features.
     # Handle each UTR independently — they can be missing separately.
     if "start_codon" in features and "stop_codon" in features:
-        if utr5_len is None:
+        if utr5_len == 0:
             utr5_len = (retrieve_5_pad(df, strandedness) if strandedness == "+"
                         else retrieve_3_pad(df, strandedness))
-        if utr3_len is None:
+        if utr3_len == 0:
             utr3_len = (retrieve_3_pad(df, strandedness) if strandedness == "+"
                         else retrieve_5_pad(df, strandedness))
 
