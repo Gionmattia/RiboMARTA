@@ -23,7 +23,7 @@ if df is None:
         st.image("martas/error_marta.png", width=127)
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.warning("Please, select the genomic ranges and extract them before moving to this page!")
+        st.warning("Please, select the genomic transcript_ranges and extract them before moving to this page!")
     st.stop()
 
 
@@ -33,7 +33,7 @@ if coordinates is None:
     col1, col2 = st.columns([3,  1])
     with col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.warning("Error. Genomic ranges still not generated!")
+        st.warning("Error. Genomic transcript_ranges still not generated!")
     with col2:
         st.image("martas/error_marta.png", width=127)
 elif genomic_upload == True:

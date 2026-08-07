@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
-# plot to have the three genomic ranges plotted for the original raw data
+# plot to have the three genomic transcript_ranges plotted for the original raw data
 def multi_line_plot_genomic(df, run_option = None, coordinates = None, x=None):
     """
     Plots each column of a dataframe as a line (except for x, if provided).
@@ -20,7 +20,7 @@ def multi_line_plot_genomic(df, run_option = None, coordinates = None, x=None):
         utr5_length: length of 5' leader
         cds_length: length of cds
         run_option: a list of runs to pass to be plotted
-        coordinates: the ranges adopted by the user for the analysis
+        coordinates: the transcript_ranges adopted by the user for the analysis
         x: Optional - Series or column name to use as x-axis (otherwise use index)
         title: Plot title
     """
@@ -113,7 +113,7 @@ def multi_line_plot_genomic(df, run_option = None, coordinates = None, x=None):
 
     fig.update_layout(
         title="Raw Counts Plot",
-        xaxis_title= "Position over the three genomic ranges",
+        xaxis_title= "Position over the three genomic transcript_ranges",
         yaxis_title= "Raw counts",
         plot_bgcolor="#daecf1"
     )
@@ -187,7 +187,7 @@ def genom_agg_line_plot(agg_output_df, aggregations = None, coordinates = None, 
         utr5_length: length of 5' leader
         cds_length: length of cds
         aggregations: a list of metadata options for the field runs have been grouped by aggregator()
-        coordinates: the ranges adopted by the user for the analysis
+        coordinates: the transcript_ranges adopted by the user for the analysis
         x: Optional - Series or column name to use as x-axis (otherwise use index)
     """
 
@@ -280,7 +280,7 @@ def genom_agg_line_plot(agg_output_df, aggregations = None, coordinates = None, 
 
     fig.update_layout(
         title="Aggregated Counts Plot",
-        xaxis_title= "Position over the three genomic ranges",
+        xaxis_title= "Position over the three genomic transcript_ranges",
         yaxis_title= "Raw counts",
         plot_bgcolor="#daecf1"
     )

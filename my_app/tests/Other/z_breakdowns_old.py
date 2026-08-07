@@ -50,7 +50,7 @@ if current_run.genomic_coordinates == True and current_run.regions_extracted == 
 
 elif current_run.ensembl_transcript_id == True and current_run.txid_analysis_done == True:
     st.write( "In this page you can see if there's a difference in counts proportions across the three regions of interest."
-        "Please, select if you are interested in observing the breakdowns over the selected transcript ranges,"
+        "Please, select if you are interested in observing the breakdowns over the selected transcript transcript_ranges,"
         "or if you want to see across 5' leader, CDS, and 3' trailer")
 
     col1, col2, col3 = st.columns([1, 1, 4])

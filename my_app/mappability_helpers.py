@@ -15,9 +15,9 @@ def txid_map_extraction(txid, mappability_path, gr):
     :param gr: annotation object, as loaded by pyranges.
     :return: all_ranges, strandedness
     """
-    # 1 Retrieve transcript ranges
+    # 1 Retrieve transcript transcript_ranges
     transcript_ranges = extract_tx_pyranges(gr, txid)
-    # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
+    # 2  Retrieve transcript features (CDS, UTRs) transcript_ranges and strandedness
     all_ranges, strandedness = regions_df_formatter(transcript_ranges)
     # FIX TO work with UCSC format
     all_ranges["Chromosome"] = "chr" + all_ranges["Chromosome"].astype(str)

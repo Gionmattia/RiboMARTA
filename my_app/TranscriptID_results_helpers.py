@@ -530,7 +530,7 @@ def multi_line_plot(df, utr5_length = 0, cds_length = 0, run_option = None, coor
         utr5_length: length of 5' leader
         cds_length: length of cds
         run_option: a list of runs to pass to be plotted
-        coordinates: the ranges adopted by the user for the analysis
+        coordinates: the transcript_ranges adopted by the user for the analysis
         x: Optional - Series or column name to use as x-axis (otherwise use index)
         title: Plot title
     """
@@ -716,7 +716,7 @@ def agg_line_plot(agg_output_df,  utr5_length = 0, cds_length = 0, aggregations 
         utr5_length: length of 5' leader
         cds_length: length of cds
         aggregations: a list of metadata options for the field runs have been grouped by aggregator()
-        coordinates: the ranges adopted by the user for the analysis
+        coordinates: the transcript_ranges adopted by the user for the analysis
         x: Optional - Series or column name to use as x-axis (otherwise use index)
     """
 

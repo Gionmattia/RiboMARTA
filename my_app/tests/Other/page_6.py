@@ -35,12 +35,12 @@ if coordinates is None:
     col1, col2 = st.columns([3,  1])
     with col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.warning("Please, select ranges of transcript to compare before proceeding!")
+        st.warning("Please, select transcript_ranges of transcript to compare before proceeding!")
     with col2:
         st.image("martas/error_marta.png", width=127)
     st.stop()
 else:
-    st.write(f"""You selected the following ranges for the analysis:
+    st.write(f"""You selected the following transcript_ranges for the analysis:
 
     - First Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
     - Second Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}

@@ -1,5 +1,5 @@
 # transcriptID_mode_helpers.py
-
+import pyranges
 import streamlit as st
 import pyBigWig
 import pyranges as pr
@@ -16,16 +16,28 @@ from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import Span, Label, FactorRange, HoverTool, PanTool
 
 
-# Function to load the ranges
-def extract_tx_pyranges(gr, txid):
+# Function to load the transcript_ranges
+def extract_tx_pyranges(gr: pr.PyRanges, txid: str) -> pr.PyRanges:
     """
-    Function to load the gtf annotation and extract the ranges for selected transcript
+    Function to extract the transcript_ranges for a selected transcript out of the gr object.
 
-    :param gr: loaded gtf, as pyranges object
-    :param txid: the stable (ensebml) transcript id
-    :return: a dataframe with ranges for each feature of txid
+    Parameters
+    ----------
+    gr: pr.PyRanges
+        GTF annotation file, loaded as a PyRanges object.
+    txid: str
+        the stable (ensebml) transcript id.
+
+    Returns
+    -------
+    transcript_ranges: pr.PyRanges
+        a pyranges object with the genomic coordinates for any element of the selected transcript
+
+    Raises
+    ------
+    KeyError
+        if the txid is not found in the annotation file.
     """
-    # Read the gtf file
     transcript_ranges = gr[gr.transcript_id == txid]
     if len(transcript_ranges) == 0:
         raise KeyError(f"transcript id {txid} was not found in the annotation file.")
@@ -33,25 +45,36 @@ def extract_tx_pyranges(gr, txid):
     return transcript_ranges
 
 
-# Function to format the transcript ranges, for extraction of coverage from BigWigs
-def regions_df_formatter(transcript_ranges):
+# Function to format the transcript transcript_ranges, for extraction of coverage from BigWigs
+def regions_df_formatter(transcript_ranges: pr.PyRanges) -> tuple[pd.DataFrame, str]:
     """
-    :param transcript_ranges: a pyranges.pyranges_main.PyRanges object
-    :param return_individual_regions: whether to return individual regions (3', 5', cds) dataframe coordinates or as a single one
-    :return: tuple, a singe dataframe, with the coordinates for each exon fragment. The strandedness of the feature extracted.
-
+    Function to format the transcript_ranges for a selected transcript out of the gr object.
     The "Region" tag is necessary to name each range differently, so that the _extract_one() helper can use these tags as key when
     building the dictionary of coverages per exonic fragment.
-    """
+
+    Parameters
+    ----------
+    transcript_ranges: pr.PyRanges
+        a pyranges object with the genomic coordinates for any element of the selected transcript
+    Returns
+    -------
+    tuple[pd.DataFrame, str]:
+        The pd.DataFrame with the coordinates for each exon fragment of the given transcript.
+        A string encoding the strand (+ or -) for the features extracted.
+    Raises
+    ------
+    ValueError
+        If the features to be extracted as a single transcript are annotated on no strand or both.
+    """ 
 
     # First, convert object to a dataframe, for manipulation
     my_ranges = transcript_ranges.as_df()[['Chromosome', 'Feature', 'Start', 'End', 'transcript_id', 'gene_name', 'exon_number', 'exon_id', "Strand"]]
 
     # Check strandedness of the transcript features is unique (It should be, but errors in annotation happen).
     if my_ranges["Strand"].nunique() != 1:
-        raise AssertionError("Transcript should be on one strand, but the selected one seems to have elements on both/none strands.")
+        raise ValueError("Transcript should be on one strand, but the selected one seems to have elements on both/none strands.")
     else:
-        strandedness = my_ranges["Strand"].unique()
+        strandedness = str(my_ranges["Strand"].iloc[0])
 
     # Extract features coordinates, divided between CDS, utr5 and utr3
     ranges_df = my_ranges[my_ranges["Feature"]== "exon"].copy()
@@ -67,16 +90,27 @@ def regions_df_formatter(transcript_ranges):
     return ranges_df, strandedness
 
 
-# Function to derive lengths of CDS and UTRs from ranges
-def extract_features_length(ranges, strandedness):
+# Function to derive lengths of CDS and UTRs from transcript_ranges
+def extract_features_length(transcript_ranges: pr.PyRanges, strandedness: str) -> tuple[int,int,int]:
     """
+    Function to derive the length of the features (CDS, 5' leader, 3' trailer) if annotated.
+     If not, returns padding values (for visualisation purposes).
 
-    :param all_ranges: A dataframe with the ranges for each region (CDS, utrs)
-    :return: the length of the three regions
+    Parameters
+    ----------
+    transcript_ranges: pr.PyRanges
+        a pyranges object with the genomic coordinates for any element of the selected transcript
+    strandedness: str
+        A string encoding the strand (+ or -) for the features extracted.
+
+    Returns
+    -------
+    utr5_len, cds_length, utr3_len: tuple[int, int, int]
+        length of each region, if annotated.
+
     """
-
-    # Extract Feature informations available.
-    df = ranges.as_df()
+    # Extract Feature information available.
+    df = transcript_ranges.as_df()
 
     features = df["Feature"].unique()
     # Calculate length of each individual feature
@@ -84,17 +118,14 @@ def extract_features_length(ranges, strandedness):
     # Calculate length by grouped feature (CDS, utrs)
     features_breakdown = df.groupby("Feature")["length"].sum()
 
-    # Retrieve lengths based on presence of features on annotation (defaults to 0 or None)
+    # Retrieve lengths based on presence of features on annotation (defaults to 0)
     cds_length   = features_breakdown.get("CDS", 0)
-    stop_len  = features_breakdown.get("stop_codon", 0)
+    stop_len  = features_breakdown.get("stop_codon", 0) # not needed
     utr5_len = features_breakdown.get("five_prime_utr", 0) # Was None
     utr3_len = features_breakdown.get("three_prime_utr", 0) # Was None
 
-    # Combine stop codon to cds
-    #cds_length = cds_len + stop_len
-
-    # Fall back to coordinate-based UTR inference when annotation lacks explicit UTR features.
-    # Handle each UTR independently — they can be missing separately.
+    # Backup: coordinate-based UTR when annotation lacks explicit UTR features.
+    # Handle each UTR independently, as either of them can be missing separately.
     if "start_codon" in features and "stop_codon" in features:
         if utr5_len == 0:
             utr5_len = (retrieve_5_pad(df, strandedness) if strandedness == "+"
@@ -107,11 +138,26 @@ def extract_features_length(ranges, strandedness):
 
 
 #  helper function for extract_features_lengths
-def retrieve_5_pad(ranges_df, strandedness):
+def retrieve_5_pad(ranges_df: pd.DataFrame, strandedness:str) -> int:
+    """
+    Function to derive the padding for the 5' leader, based on strandedness
+
+    Parameters
+    ----------
+    ranges_df: pd.DataFrame
+        table with the genomic coordinates for any element of the selected transcript
+    strandedness: str
+        A string encoding the strand (+ or -) for the features extracted.
+
+    Returns
+    -------
+    left_pad: int
+
+    """
     df = ranges_df[~ranges_df["Feature"].isin(["transcript", "CDS", "five_prime_utr", "three_prime_utr"])].copy()
 
     if strandedness == "+":
-        # Retrieve start position (target)
+        # Retrieve start position
         target = df[df["Feature"] == "start_codon"]["Start"].iloc[0]
         # Extract all exons starting before the start codon
         relevant_exons = df[df['Start'] <= target].copy()
@@ -121,9 +167,8 @@ def retrieve_5_pad(ranges_df, strandedness):
         left_pad = (relevant_exons['Clipped_End'] - relevant_exons['Start']).sum()
 
     elif strandedness == "-":
-        # Retrieve start position (target)
+        # Retrieve start position
         target = df[df["Feature"] == "stop_codon"]["Start"].iloc[0]
-
         # Extract all exons starting before the start codon
         relevant_exons = df[df['Start'] <= target].copy()
         # Use clip to have a "roof value"
@@ -131,14 +176,30 @@ def retrieve_5_pad(ranges_df, strandedness):
         # retrieve position
         left_pad = (relevant_exons['Clipped_End'] - relevant_exons['Start']).sum()
 
-    return left_pad
+    return int(left_pad)
+
 
 #  helper function for extract_features_lengths
-def retrieve_3_pad(ranges_df, strandedness):
+def retrieve_3_pad(ranges_df: pd.DataFrame, strandedness: str) -> int:
+    """
+    Function to derive the padding for the 3' trailer, based on strandedness
+
+    Parameters
+    ----------
+    ranges_df: pd.DataFrame
+        table with the genomic coordinates for any element of the selected transcript
+    strandedness: str
+        A string encoding the strand (+ or -) for the features extracted.
+
+    Returns
+    -------
+    right_pad: int
+
+    """
     df = ranges_df[~ranges_df["Feature"].isin(["transcript", "CDS", "five_prime_utr", "three_prime_utr"])].copy()
 
     if strandedness == "+":
-        # Retrieve start position (target)
+        # Retrieve start position
         target = df[df["Feature"] == "stop_codon"]["End"].iloc[0]
         # Extract all exons starting before the start codon
         relevant_exons = df[df['End'] >= target].copy()
@@ -148,9 +209,8 @@ def retrieve_3_pad(ranges_df, strandedness):
         right_pad = (relevant_exons['End'] - relevant_exons['Clipped_Start']).sum()
 
     elif strandedness == "-":
-        # Retrieve start position (target)
+        # Retrieve start position
         target = df[df["Feature"] == "start_codon"]["End"].iloc[0]
-
         # Extract all exons starting before the start codon
         relevant_exons = df[df['End'] >= target].copy()
         # Use clip to have a "roof value"
@@ -158,13 +218,13 @@ def retrieve_3_pad(ranges_df, strandedness):
         # retrieve position
         right_pad = (relevant_exons['End'] - relevant_exons['Clipped_Start']).sum()
 
-    return right_pad
+    return int(right_pad)
 
 
 # Function to extract coverage for a single transcript from a single bigwig
 def extract_mRNA_regions_from_bigwig(all_ranges_df, bigwig_file):
     """
-    :param all_ranges_df: dataframe with genomic ranges (coordinates) for all elements of the mRNA
+    :param all_ranges_df: dataframe with genomic transcript_ranges (coordinates) for all elements of the mRNA
     :param bigwig_file: the path to a BigWig file
     :return: full transcript coverage, as a dataframe. SRR is kept a column name
 
@@ -244,20 +304,16 @@ def txid_data_extraction(current_run, bigwig_files, gr):
 
         # Internal Check. Stops execution if the txid is not found for any reason.
         try:
-            # 1 Retrieve transcript ranges
+            # 1 Retrieve transcript transcript_ranges
             transcript_ranges = extract_tx_pyranges(gr, current_run.txid)
         except KeyError:
             st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
                      "Please, restart from the Home page.")
-            img_placeholder.image("martas/ko_marta.png", width=100)
             st.stop()
 
-        # 2  Retrieve transcript features (CDS, UTRs) ranges and strandedness
-        #all_ranges, strandedness = regions_dataframe_formatter(transcript_ranges)
+        # 2  Retrieve transcript features (CDS, UTRs) transcript_ranges and strandedness
         all_ranges, strandedness = regions_df_formatter(transcript_ranges)
         # 3  Retrieve features (CDS, UTRs) lengths
-        #         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
-        #             all_ranges)
         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
             transcript_ranges, strandedness)
         # 4 Extract coverage from given bigwigs
@@ -291,111 +347,111 @@ def get_sequence(fasta, df, strandedness):
         return full_seq
 
 
-# Make global aggregate plot (used in TranscriptID mode)
-def plot_global_aggregate_with_zero(df, utr5_length = 0, cds_length = 0, txid = "", title="Global Aggregate of Counts for "):
-    """
-    Create an interactive plot with better control over axis ranges.
-
-    Parameters:
-    -----------
-    df : pandas.DataFrame
-        DataFrame containing a 'Global Aggregate' column
-    utr5_length : int, optional
-        Length of 5 UTR
-    cds_length : int, optional
-        Label of CDS
-    title : str, optional
-        Title for the plot
-
-    Returns:
-    --------
-    plotly.graph_objects.Figure
-        Interactive plotly figure with fixed axis behavior
-    """
-
-    if 'Global Aggregate' not in df.columns:
-        raise ValueError("DataFrame must contain a 'Global Aggregate' column")
-
-    fig = go.Figure()
-
-    color_list = ["#d4ad07", "#21963b", " #b50000", "#3F4EC7", "#8737DA", "#1690D2"]
-    chosen_color = random.choice(color_list)
-
-    fig.add_trace(go.Scatter(
-        x=df.index,
-        y=df['Global Aggregate'],
-        mode='lines',
-        line=dict(width=2, color = chosen_color),
-        hovertemplate='<b>Position:</b> %{x}<br><b>Total Counts:</b> %{y}<extra></extra>'
-    ))
-
-    fig.add_vline(
-    x=utr5_length,  # your x-value
-    line_dash="dash",  # dashed line
-    line_color="white",  # or any color you want
-    line_width=2
-    )
-
-    fig.add_annotation(
-    x=utr5_length,
-    y=1,  # or pick a y-value (if yref="paper", 1 is the top of the plot)
-    yref="paper",
-    text="CDS start",
-    showarrow=False,
-    font=dict(size=12, color="black"),
-    bgcolor="white",
-    bordercolor="black",
-    borderpad=4
-    )
-
-    fig.add_vline(
-    x=utr5_length+cds_length,  # your x-value
-    line_dash="dash",  # dashed line
-    line_color="white",  # or any color you want
-    line_width=2
-    )
-
-    fig.add_annotation(
-    x=utr5_length+cds_length,
-    y=1,  # or pick a y-value (if yref="paper", 1 is the top of the plot)
-    yref="paper",
-    text="CDS end",
-    showarrow=False,
-    font=dict(size=12, color="black"),
-    bgcolor="white",
-    bordercolor="black",
-    borderpad=4
-    )
-
-    fig.update_layout(
-        title=dict(text=title + txid, x=0, font=dict(size=16)),
-        xaxis_title="Position on transcript",
-        yaxis_title="Total Counts",
-        hovermode='x',
-        showlegend=False,
-        width=800,
-        height=500,
-        template='plotly_white',
-        yaxis=dict(
-            range=[0, df['Global Aggregate'].max() * 1.25],
-            fixedrange=False,
-            zeroline=True,
-            zerolinecolor='rgba(0,0,0,0.5)',
-            zerolinewidth=2
-        ),
-        xaxis=dict(
-            rangeslider=dict(visible=False),
-            type='linear',
-            fixedrange=False
-        )
-    )
-
-    return fig
+# # Make global aggregate plot (used in TranscriptID mode)
+# def plot_global_aggregate_with_zero(df, utr5_length = 0, cds_length = 0, txid = "", title="Global Aggregate of Counts for "):
+#     """
+#     Create an interactive plot with better control over axis transcript_ranges.
+#
+#     Parameters:
+#     -----------
+#     df : pandas.DataFrame
+#         DataFrame containing a 'Global Aggregate' column
+#     utr5_length : int, optional
+#         Length of 5 UTR
+#     cds_length : int, optional
+#         Label of CDS
+#     title : str, optional
+#         Title for the plot
+#
+#     Returns:
+#     --------
+#     plotly.graph_objects.Figure
+#         Interactive plotly figure with fixed axis behavior
+#     """
+#
+#     if 'Global Aggregate' not in df.columns:
+#         raise ValueError("DataFrame must contain a 'Global Aggregate' column")
+#
+#     fig = go.Figure()
+#
+#     color_list = ["#d4ad07", "#21963b", " #b50000", "#3F4EC7", "#8737DA", "#1690D2"]
+#     chosen_color = random.choice(color_list)
+#
+#     fig.add_trace(go.Scatter(
+#         x=df.index,
+#         y=df['Global Aggregate'],
+#         mode='lines',
+#         line=dict(width=2, color = chosen_color),
+#         hovertemplate='<b>Position:</b> %{x}<br><b>Total Counts:</b> %{y}<extra></extra>'
+#     ))
+#
+#     fig.add_vline(
+#     x=utr5_length,  # your x-value
+#     line_dash="dash",  # dashed line
+#     line_color="white",  # or any color you want
+#     line_width=2
+#     )
+#
+#     fig.add_annotation(
+#     x=utr5_length,
+#     y=1,  # or pick a y-value (if yref="paper", 1 is the top of the plot)
+#     yref="paper",
+#     text="CDS start",
+#     showarrow=False,
+#     font=dict(size=12, color="black"),
+#     bgcolor="white",
+#     bordercolor="black",
+#     borderpad=4
+#     )
+#
+#     fig.add_vline(
+#     x=utr5_length+cds_length,  # your x-value
+#     line_dash="dash",  # dashed line
+#     line_color="white",  # or any color you want
+#     line_width=2
+#     )
+#
+#     fig.add_annotation(
+#     x=utr5_length+cds_length,
+#     y=1,  # or pick a y-value (if yref="paper", 1 is the top of the plot)
+#     yref="paper",
+#     text="CDS end",
+#     showarrow=False,
+#     font=dict(size=12, color="black"),
+#     bgcolor="white",
+#     bordercolor="black",
+#     borderpad=4
+#     )
+#
+#     fig.update_layout(
+#         title=dict(text=title + txid, x=0, font=dict(size=16)),
+#         xaxis_title="Position on transcript",
+#         yaxis_title="Total Counts",
+#         hovermode='x',
+#         showlegend=False,
+#         width=800,
+#         height=500,
+#         template='plotly_white',
+#         yaxis=dict(
+#             range=[0, df['Global Aggregate'].max() * 1.25],
+#             fixedrange=False,
+#             zeroline=True,
+#             zerolinecolor='rgba(0,0,0,0.5)',
+#             zerolinewidth=2
+#         ),
+#         xaxis=dict(
+#             rangeslider=dict(visible=False),
+#             type='linear',
+#             fixedrange=False
+#         )
+#     )
+#
+#     return fig
 
 
 def ranges_selector(full_mRNA_length, region):
     """
-    A simple function to automatically render the selectors for ranges
+    A simple function to automatically render the selectors for transcript_ranges
     :param full_mRNA_length: Intuitively, the full cDNA length
     :param region: internal, needs to be different every time this function is called, or input keys will overlap and cause error
     :return: a tuple, with two int defining a range on the mRNA

@@ -51,10 +51,12 @@ if current_mode.loading_tx_cov:
 
     current_mode.aggregation_option = ""
     current_mode.smoothing_option = False
-    # Extract the transcript ranges and the strand
+    # Extract the transcript transcript_ranges and the strand
     all_ranges, strandedness = txid_data_extraction(current_run = current_mode,
                                                     bigwig_files = analysis.filters.selected_studies,
                                                     gr = st.session_state.gr)
+
+    st.session_state.strandedness = strandedness
     # Retrieves the sequence
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
@@ -73,9 +75,6 @@ if current_mode.tx_cov_extracted:
         st.markdown("### You are currently in: Ensembl Transcript ID - File Upload mode")
 else:
     st.stop()
-
-current_mode.utr5_length
-current_mode.cds_length
 
 #####  Display the data once extracted #####
 if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence != "":

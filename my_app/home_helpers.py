@@ -86,19 +86,19 @@ def genomic_coordinates_selection():
         The resulting "RTA" (Ratio of Translational Activity) is a measure of how footprints densities is for the second range,
         compared to the baseline.
         
-        ***NB1.*** As a general rule of thumb, try to select ranges of approximatively the same size and between 100bp - 2-3kb.
+        ***NB1.*** As a general rule of thumb, try to select transcript_ranges of approximatively the same size and between 100bp - 2-3kb.
         
         ***NB2.*** This analysis mode is conceived to compare specific small genomic intervals. If you are interested
         in evaluating the translational activity for a transcript, please use the apposite mode.""")
 
-    st.write("Please provide genomic ranges for the regions you want to compare: ")
+    st.write("Please provide genomic transcript_ranges for the regions you want to compare: ")
 
     col1, _, _ = st.columns([3,2,1])
     with col1:
         genomic_range_1 = st.text_input("(Region 1 - Ex: *chr19:2,269,606-2,269,738*)")
         genomic_range_2 = st.text_input("(Region 2 - Ex: *chr19:2,271,786-2,271,949*)")
         genomic_range_n = st.text_input("(Noise Region - Ex: *chr19:2,273,160-2,273,406*)")
-        # Save three ranges as a list
+        # Save three transcript_ranges as a list
         genomic_ranges = [genomic_range_1, genomic_range_2, genomic_range_n]
 
     if st.button("Next"):
@@ -257,7 +257,7 @@ def upload_selection():
 
 
 ##### Formatting Functions - These are input-validation functions #####
-# Formats Genomic mode ranges
+# Formats Genomic mode transcript_ranges
 def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
                            post_feature_y:pd.DataFrame,
                            noise_n:pd.DataFrame

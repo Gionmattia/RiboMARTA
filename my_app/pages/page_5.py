@@ -177,7 +177,7 @@ if coordinates is None:
     col1, col2 = st.columns([3,  1])
     with col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.warning("Please, select ranges of transcript to compare before proceeding!")
+        st.warning("Please, select transcript_ranges of transcript to compare before proceeding!")
     with col2:
         st.image("martas/error_marta.png", width=127)
     st.stop()
@@ -188,7 +188,7 @@ else:
     
     ##### You selected the following transcript: *{current_mode.txid}*
     
-    ##### You selected the following ranges:
+    ##### You selected the following transcript_ranges:
 
     - Baseline Region - From {coordinates["x_slice"][0]} to {coordinates["x_slice"][1]}
     - Target Region - From {coordinates["y_slice"][0]} to {coordinates["y_slice"][1]}

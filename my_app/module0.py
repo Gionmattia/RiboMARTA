@@ -82,7 +82,7 @@ def format_input_df(my_list):
     Unpacks genomic coordinates and formats them into a table that is used by the code to extract coverage
 
     :param my_list: A list of strings (genomic coordinates) as "chrx:56,741,761-56,761,390"
-    :return: The dataframe with ranges to extract from genomic
+    :return: The dataframe with transcript_ranges to extract from genomic
     """
     data = []
     region_names = ["First Region", "Second Region", "Noise Region"]
@@ -100,7 +100,7 @@ def format_input_df(my_list):
 # Function to extract the coverage from all bigwigs and compile the three dataframes (used in Genomic Coordinates mode).
 def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
     """
-    This is the function used to extract coverage info when the user specifies the three genomic ranges manually.
+    This is the function used to extract coverage info when the user specifies the three genomic transcript_ranges manually.
 
     :param bigwig_files: list of paths to .bigwig files
     :param regions_df: dataframe with genomic regions to extract

@@ -3,7 +3,7 @@ transcriptID_mode_helpers2.py
 
 This module contains functions for the transcriptID mode. Specifically, it contains functions used to render text, plots,
 and other "front-end" options.
-For functions relative to backend operations, such as extracting ranges or generating the plots in the first place,
+For functions relative to backend operations, such as extracting transcript_ranges or generating the plots in the first place,
 please refer to transcriptID_mode_helpers.py
 
 Author: Gionmattia Carancini

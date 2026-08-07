@@ -21,16 +21,16 @@ genco_mode_style()
 st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 st.title("Genomic Coordinates Mode")
 st.write("Welcome to Genomic Coordinates Analysis Page. Before proceeding, "
-         "please take another look at your ranges below before starting.")
+         "please take another look at your transcript_ranges below before starting.")
 
-# Prints on screen the ranges used for the extraction, if present
+# Prints on screen the transcript_ranges used for the extraction, if present
 if current_mode.regions_extracted == True:
     coord_display_df = current_mode.formatted_genomic_ranges.copy()
     coord_display_df = coord_display_df.set_index("Region")
     st.table(coord_display_df)
 
 if current_mode.regions_extracted == False:
-    # Formats the ranges to use for the extraction
+    # Formats the transcript_ranges to use for the extraction
     try:
         current_mode.formatted_genomic_ranges = format_input_df(current_mode.genomic_ranges)
         current_mode.formatted_genomic_ranges
@@ -55,7 +55,7 @@ if current_mode.regions_extracted == False:
         if analysis.mappability_path is not None:
             # Transform path to mappability .bw to a list
             mapp_bw_as_list = [analysis.mappability_path]
-            # Change ranges so to work with UCSC format (used by mappability track)
+            # Change transcript_ranges so to work with UCSC format (used by mappability track)
             ranges_formatted = current_mode.formatted_genomic_ranges.copy()
             ranges_formatted["Chromosome"] = "chr" + current_mode.formatted_genomic_ranges["Chromosome"].astype(str)
             # Extract three regions
@@ -93,7 +93,7 @@ if current_mode.regions_extracted == True:
     with st.expander("Show raw count data per region"):
         st.write("""In this tab, you can explore the raw data that has been extracted for your genomic intervals of choice.
         You can expand each table by clicking on the top-right "fullscreen" button. 
-        If you wish to download one of the intervals, you can also download the ranges locally as a .csv.""")
+        If you wish to download one of the intervals, you can also download the transcript_ranges locally as a .csv.""")
         col1, col2,col3 = st.columns(3)
         with col1:
             st.write("Baseline Region")
