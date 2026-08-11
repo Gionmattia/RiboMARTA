@@ -266,3 +266,18 @@ def genco_mode_style():
     }
     </style>
     """, unsafe_allow_html=True)
+
+# Style bubble - Used to recap inputs/options throughout the app
+def bubble(text, bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1):
+    st.markdown(
+        f'<div style="'
+        f'background:{bg_color};'
+        f'color:{text_color};'
+        f'border:{outline_width}px solid {outline_color};'
+        f'padding:10px 14px;'
+        f'border-radius:10px;'
+        f'display:inline-block;'
+        f'font-weight:600;'
+        f'">{text}</div>',
+        unsafe_allow_html=True,
+    )

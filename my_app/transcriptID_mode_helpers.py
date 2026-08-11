@@ -1,4 +1,5 @@
 # transcriptID_mode_helpers.py
+import pyfaidx
 import pyranges
 import streamlit as st
 import pyBigWig
@@ -222,12 +223,9 @@ def retrieve_3_pad(ranges_df: pd.DataFrame, strandedness: str) -> int:
 
 
 # Function to extract coverage for a single transcript from a single bigwig
-def extract_mRNA_regions_from_bigwig(all_ranges_df, bigwig_file):
-    """
-    :param all_ranges_df: dataframe with genomic transcript_ranges (coordinates) for all elements of the mRNA
-    :param bigwig_file: the path to a BigWig file
-    :return: full transcript coverage, as a dataframe. SRR is kept a column name
+def extract_mRNA_regions_from_bigwig(all_ranges_df: pd.DataFrame, bigwig_file: str) -> pd.DataFrame:
 
+    """
     This function uses the internal helper _extract_one to extract
     the coverage for each element (exon or exon fragment) making up the mRNA regions
     (utr5_tuple, cds_tuple, utr3_tuple).
@@ -237,8 +235,19 @@ def extract_mRNA_regions_from_bigwig(all_ranges_df, bigwig_file):
     An assert statement makes sure the concatenation respected the sequence order, by checking
     the genomic coordinates associated with each position.
 
-    """
+    Parameters
+    ----------
+    all_ranges_df: pd.DataFrame
+        Data frame with the ranges for the transcript of interest.
+    bigwig_file: str
+        Path to a single bigwig file.
 
+    Returns
+    -------
+    full_transcript: pd.DataFrame
+        Data frame with the info for the transcript extracted from a single bigwig
+
+    """
     # Extract from a single bigwig the coverage for all regions whose coordinates are specified in the three dataframes
     all_regions_tuple = _extract_one(bigwig_file, all_ranges_df)
 
@@ -252,19 +261,35 @@ def extract_mRNA_regions_from_bigwig(all_ranges_df, bigwig_file):
 
 
 # Function to extract the single transcript from multiple bigwigs
-def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs = 1):
+def extract_from_multiple_bigwigs(bigwig_files: list,
+                                  all_ranges: pd.DataFrame,
+                                  strandedness: str,
+                                  n_jobs:int = 1) -> pd.DataFrame:
     """
-    :param bigwig_files: List of paths pointing to bigwigs to use
-    :param transcript_ranges: pyranges object from the .gtf annotation file
-    :param n_jobs: how many cores to allocate
-    :return: tuple. Study ID and dictionary of the three regions dataframes.
+     This function extracts the coverage information from multiple bigwig files.
+
+    Parameters
+    ----------
+    bigwig_files: list
+        List of paths pointing to bigwigs to use, given as strings
+    all_ranges: pd.DataFrame
+        Data frame with the ranges for the transcript of interest.
+    strandedness: str
+        A string encoding the strand (+ or -) for the features extracted.
+    n_jobs: int.
+        how many cores to allocate to the extraction. Default is 1.
+
+    Returns
+    -------
+    all_studies_df: pd.DataFrame
+        Data frame with the raw count per position (rows) across all selected datasets (columns).
+
     """
 
-    # Get the parent interpreter context to enable parallel execution
-    # context  = mp.get_context("fork")
 
     # Extracts in parallel the coverages from each bigwig
-    # NEEDS TO BE FIXED SO TO DIVIDE BIGWIGS INTO CHUNKS AND ASSIGN A CHUNK TO EACH WORKER!!
+    # Nb. It would require to split the bigwig list across workers..which I did't do.
+    # parallel implementation needs to be done later on!
     results = Parallel(n_jobs=n_jobs,
                        backend="multiprocessing") (
         # Needs to be modified so to handle fused df...?
@@ -276,7 +301,7 @@ def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs
     for df in results[1:]:
         all_studies_df = all_studies_df.merge(df, on="Position", how="outer")
 
-    ### and flip here if the strand is - ... (we can flip all dfs at this point.
+    ### and flip here if the strand is - ... (we can flip all dfs at this point).
     if strandedness == "-":
         all_studies_df = all_studies_df.sort_values("Position", ascending=False).reset_index(drop=True)
 
@@ -285,51 +310,77 @@ def extract_from_multiple_bigwigs(bigwig_files, all_ranges, strandedness, n_jobs
     return all_studies_df
 
 
-# Comment - Functionally speaking, does a bit too much... but not sure if I have time/will to unpack it.
-def txid_data_extraction(current_run, bigwig_files, gr):
-    """
-    Function loads coverage information into a dataframe (all_studies_df) which is stored into current_run.
-    Also extract features lengths (5', CDs, 3') and stores them in current_run object.
-
-    :param current_run: current run - object where txid mode variables and results are stored. See app_helpers.py
-    :param bigwig_files: absolute path to bigwig files.
-    :param gr: annotation object, as loaded by pyranges.
-
-
-
-    :return: all_ranges, strandedness
-    """
-
-    with st.spinner("I am retrieving the coverage data..."):
-
-        # Internal Check. Stops execution if the txid is not found for any reason.
-        try:
-            # 1 Retrieve transcript transcript_ranges
-            transcript_ranges = extract_tx_pyranges(gr, current_run.txid)
-        except KeyError:
-            st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
-                     "Please, restart from the Home page.")
-            st.stop()
-
-        # 2  Retrieve transcript features (CDS, UTRs) transcript_ranges and strandedness
-        all_ranges, strandedness = regions_df_formatter(transcript_ranges)
-        # 3  Retrieve features (CDS, UTRs) lengths
-        current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
-            transcript_ranges, strandedness)
-        # 4 Extract coverage from given bigwigs
-        current_run.all_studies_df = extract_from_multiple_bigwigs(bigwig_files,
-                                                                   all_ranges,
-                                                                   strandedness,
-                                                                   n_jobs=1)
-        # Updates logic flags within current_run
-        current_run.loading_tx_cov = False
-        current_run.tx_cov_extracted = True
-
-    return all_ranges, strandedness
+# def txid_data_extraction(current_run, bigwig_files, gr):
+#
+#     """
+#     Wrapper function loads coverage information into a dataframe (all_studies_df) which is stored into current_run.
+#     Also extract features lengths (5', CDs, 3') and stores them in current_run object.
+#
+#     Parameters
+#     ----------
+#     current_run: TranscriptIDMode
+#         Custom DataClass instance storing all the info for the current analysis.
+#     bigwig_files: list
+#         List of paths pointing to bigwigs to use, given as strings
+#     gr: pr.PyRanges
+#         GTF annotation file, loaded as a PyRanges object.
+#
+#     Returns
+#     -------
+#     all_studies_df: pd.DataFrame
+#         Data frame with the raw count per position (rows) across all selected datasets (columns).
+#     strandedness: str
+#         A string encoding the strand (+ or -) for the features extracted.
+#     """
+#
+#     with st.spinner("I am retrieving the coverage data..."):
+#
+#         # Internal Check. Stops execution if the txid is not found for any reason.
+#         try:
+#             # 1 Retrieve transcript transcript_ranges
+#             transcript_ranges = extract_tx_pyranges(gr, current_run.txid)
+#         except KeyError:
+#             st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
+#                      "Please, restart from the Home page.")
+#             st.stop()
+#
+#         # 2  Retrieve transcript features (CDS, UTRs) transcript_ranges and strandedness
+#         all_ranges, strandedness = regions_df_formatter(transcript_ranges)
+#         # 3  Retrieve features (CDS, UTRs) lengths
+#         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
+#             transcript_ranges, strandedness)
+#         # 4 Extract coverage from given bigwigs
+#         current_run.all_studies_df = extract_from_multiple_bigwigs(bigwig_files,
+#                                                                    all_ranges,
+#                                                                    strandedness,
+#                                                                    n_jobs=1)
+#         # Updates logic flags within current_run
+#         current_run.loading_tx_cov = False
+#         current_run.tx_cov_extracted = True
+#
+#     return all_ranges, strandedness
 
 
 # Helper - Functions to create ORFplot
-def get_sequence(fasta, df, strandedness):
+def get_sequence(fasta: pyfaidx.Fasta, df: pd.DataFrame, strandedness: str) -> str:
+    """
+     This function extracts the sequence information for a transcript from the genome FASTA file.
+
+    Parameters
+    ----------
+    fasta: pyfaidx.Fasta
+        Fasta file containing the genome for the selected organism
+    df: pd.DataFrame
+        Data frame with the ranges for the transcript of interest
+    strandedness: str
+        A string encoding the strand (+ or -) for the features extracted
+
+    Returns
+    -------
+    full_seq: str
+        The sequence for the transcript of interest
+
+    """
     full_seq = ""
 
     for row in df.itertuples():
@@ -347,114 +398,22 @@ def get_sequence(fasta, df, strandedness):
         return full_seq
 
 
-# # Make global aggregate plot (used in TranscriptID mode)
-# def plot_global_aggregate_with_zero(df, utr5_length = 0, cds_length = 0, txid = "", title="Global Aggregate of Counts for "):
-#     """
-#     Create an interactive plot with better control over axis transcript_ranges.
-#
-#     Parameters:
-#     -----------
-#     df : pandas.DataFrame
-#         DataFrame containing a 'Global Aggregate' column
-#     utr5_length : int, optional
-#         Length of 5 UTR
-#     cds_length : int, optional
-#         Label of CDS
-#     title : str, optional
-#         Title for the plot
-#
-#     Returns:
-#     --------
-#     plotly.graph_objects.Figure
-#         Interactive plotly figure with fixed axis behavior
-#     """
-#
-#     if 'Global Aggregate' not in df.columns:
-#         raise ValueError("DataFrame must contain a 'Global Aggregate' column")
-#
-#     fig = go.Figure()
-#
-#     color_list = ["#d4ad07", "#21963b", " #b50000", "#3F4EC7", "#8737DA", "#1690D2"]
-#     chosen_color = random.choice(color_list)
-#
-#     fig.add_trace(go.Scatter(
-#         x=df.index,
-#         y=df['Global Aggregate'],
-#         mode='lines',
-#         line=dict(width=2, color = chosen_color),
-#         hovertemplate='<b>Position:</b> %{x}<br><b>Total Counts:</b> %{y}<extra></extra>'
-#     ))
-#
-#     fig.add_vline(
-#     x=utr5_length,  # your x-value
-#     line_dash="dash",  # dashed line
-#     line_color="white",  # or any color you want
-#     line_width=2
-#     )
-#
-#     fig.add_annotation(
-#     x=utr5_length,
-#     y=1,  # or pick a y-value (if yref="paper", 1 is the top of the plot)
-#     yref="paper",
-#     text="CDS start",
-#     showarrow=False,
-#     font=dict(size=12, color="black"),
-#     bgcolor="white",
-#     bordercolor="black",
-#     borderpad=4
-#     )
-#
-#     fig.add_vline(
-#     x=utr5_length+cds_length,  # your x-value
-#     line_dash="dash",  # dashed line
-#     line_color="white",  # or any color you want
-#     line_width=2
-#     )
-#
-#     fig.add_annotation(
-#     x=utr5_length+cds_length,
-#     y=1,  # or pick a y-value (if yref="paper", 1 is the top of the plot)
-#     yref="paper",
-#     text="CDS end",
-#     showarrow=False,
-#     font=dict(size=12, color="black"),
-#     bgcolor="white",
-#     bordercolor="black",
-#     borderpad=4
-#     )
-#
-#     fig.update_layout(
-#         title=dict(text=title + txid, x=0, font=dict(size=16)),
-#         xaxis_title="Position on transcript",
-#         yaxis_title="Total Counts",
-#         hovermode='x',
-#         showlegend=False,
-#         width=800,
-#         height=500,
-#         template='plotly_white',
-#         yaxis=dict(
-#             range=[0, df['Global Aggregate'].max() * 1.25],
-#             fixedrange=False,
-#             zeroline=True,
-#             zerolinecolor='rgba(0,0,0,0.5)',
-#             zerolinewidth=2
-#         ),
-#         xaxis=dict(
-#             rangeslider=dict(visible=False),
-#             type='linear',
-#             fixedrange=False
-#         )
-#     )
-#
-#     return fig
-
-
-def ranges_selector(full_mRNA_length, region):
+def ranges_selector(full_mRNA_length: int, region: str) -> tuple[int,int]:
     """
-    A simple function to automatically render the selectors for transcript_ranges
-    :param full_mRNA_length: Intuitively, the full cDNA length
-    :param region: internal, needs to be different every time this function is called, or input keys will overlap and cause error
-    :return: a tuple, with two int defining a range on the mRNA
+    A simple renderer for numeric inputs. Used to allow user to select ranges for the regions of interest to test
+    (baseline, target, noise control)
+
+    Parameters
+    ----------
+    full_mRNA_length: int
+        length of the full mRNA
+    region: str
+        the region of interest
+
+    Returns
+    -------
+    (x_start, x_end): tuple(int,int)
+        The ranges for the region of interest, as a tuple
     """
     x_start = st.number_input("Transcript region start coordinate (es: 10)",
                               min_value=0,
@@ -472,7 +431,7 @@ def ranges_selector(full_mRNA_length, region):
 
     return (x_start, x_end)
 
-
+# Should move elsewhere... It doesn't feel like belonging here.
 def data_aggregator(current_run, aggregation_option):
 
     current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
@@ -507,16 +466,3 @@ def data_aggregator(current_run, aggregation_option):
 
         return
 
-def bubble(text, bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1):
-    st.markdown(
-        f'<div style="'
-        f'background:{bg_color};'
-        f'color:{text_color};'
-        f'border:{outline_width}px solid {outline_color};'
-        f'padding:10px 14px;'
-        f'border-radius:10px;'
-        f'display:inline-block;'
-        f'font-weight:600;'
-        f'">{text}</div>',
-        unsafe_allow_html=True,
-    )

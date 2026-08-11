@@ -7,7 +7,7 @@ from transcriptID_mode_helpers import *
 from transcriptID_mode_helpers2 import *
 from STP_helpers import *
 from streamlit_bokeh import streamlit_bokeh
-from Style_options import txid_mode_style
+from Style_options import txid_mode_style, bubble
 import streamlit as st
 
 ##### Imports CSS to style the whole page #####
@@ -42,6 +42,39 @@ if analysis.tx_upload == False:
 ## All the code to extract info - needs some order ##
 # Extract the data coverage info, transcript sequence, and mappability. Includes loader.
 if current_mode.loading_tx_cov:
+
+    with st.spinner("I am retrieving the coverage data..."):
+        # Internal Check. Stops execution if the txid is not found for any reason.
+        try:
+            # 1 Retrieve transcript transcript_ranges
+            transcript_ranges = extract_tx_pyranges(st.session_state.gr, current_mode.txid)
+
+        except KeyError:
+            st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
+                     "Please, restart from the Home page.")
+            st.stop()
+
+        # 2  Retrieve transcript features (CDS, UTRs) transcript_ranges and strandedness
+        all_ranges, strandedness = regions_df_formatter(transcript_ranges)
+        st.session_state.strandedness = strandedness
+
+        # 3  Retrieve features (CDS, UTRs) lengths
+        current_mode.utr5_length, current_mode.cds_length, current_mode.utr3_length = extract_features_length(
+            transcript_ranges, strandedness)
+
+        # 4 Extract coverage from given bigwigs
+        try:
+            current_mode.all_studies_df = extract_from_multiple_bigwigs(analysis.filters.selected_studies,
+                                                                       all_ranges,
+                                                                       strandedness,
+                                                                       n_jobs=1)
+            # Updates logic flags within current_run
+            current_mode.loading_tx_cov = False
+            current_mode.tx_cov_extracted = True
+        except:
+            st.error("I was unable to retrieve the information from the .BigWig files")
+            st.stop()
+
     # Extracts mappability info, if available
     if analysis.mappability_path is not None:
         mappability_df = txid_map_extraction(current_mode.txid, analysis.mappability_path, st.session_state.gr)
@@ -51,12 +84,7 @@ if current_mode.loading_tx_cov:
 
     current_mode.aggregation_option = ""
     current_mode.smoothing_option = False
-    # Extract the transcript transcript_ranges and the strand
-    all_ranges, strandedness = txid_data_extraction(current_run = current_mode,
-                                                    bigwig_files = analysis.filters.selected_studies,
-                                                    gr = st.session_state.gr)
 
-    st.session_state.strandedness = strandedness
     # Retrieves the sequence
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 

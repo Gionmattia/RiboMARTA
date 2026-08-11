@@ -38,8 +38,7 @@ from bokeh.models import (
 
 def txid_mode_intro():
     """
-    Renders Marta and a brief description of txid mode.
-    :return:
+    Renders Marta and a brief description of txid mode
     """
     col1, col2 = st.columns([4, 2])
     with col1:
@@ -67,9 +66,6 @@ def txid_checkpoint(current_run):
     Checkpoint function. It checks if the user has submitted a transcriptID before allowing
     to further proceed in the analysis.
     Txid should be saved in the current_run (class: AnalysisStatus, see app_helpers.py)
-    It overwrites the value of current_run.loading_tx_cov flag tp True (used for loading screen)
-    :param current_run:
-    :return:
     """
 
     txid = current_run.txid
@@ -88,8 +84,6 @@ def format_txid_df_download(current_run):
     """
     Sets up the df with coverage from all Runs for download.
     It adds the sequence information to it as well.
-    :param current_run:
-    :return:
     """
     # copy the current working dataframe
     export_dataframe = current_run.all_studies_df.copy()
@@ -109,8 +103,6 @@ def ga_plots_UI_render(current_run, analysis):
     """
     Renders the plots stored (tx_ga_plot and triplet_ga_plot) as a st.expander.
     Also adds some info text.
-    :param current_run: the class AnalysisStatus instance for the current analysis
-    :return:
     """
 
     tab2, tab3, tab4, tab5 = st.tabs(["Raw Global Aggregate (smoothed)", "Raw Global Aggregate (unsmoothed)",
@@ -209,7 +201,8 @@ def ga_plots_UI_render(current_run, analysis):
 
             col1, col2 = st.columns([2, 6])
             with col1:
-                window_size = st.number_input("Select the size of the noise region you want to get", value = 100, key="n_window")
+                st.write("")
+                # window_size = st.number_input("Select the size of the noise region you want to get", value = 100, key="n_window")
             with col2:
                 st.write("")
                 st.write("")
@@ -230,7 +223,19 @@ def ga_plots_UI_render(current_run, analysis):
 
 
 def density_calculator(dataframe, utr5, cds, cutoff = 20):
+    """
 
+    Parameters
+    ----------
+    dataframe: pd.DataFrame with all coverage per position for the selected transcript
+    utr5: int length of the 5' leader
+    cds: int length of the CDS
+    cutoff: percentage of studies we want to consider as high-coverage datasets
+
+    Returns
+    -------
+
+    """
     dataset_cutoff = 100/cutoff
     # formatting
     input_df = dataframe.copy()
@@ -254,7 +259,7 @@ def density_calculator(dataframe, utr5, cds, cutoff = 20):
     if n > dataset_cutoff:
         passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
     else:
-        warnings.warn("There wess less datasets among the high-counts than the percentage selected. Using all datasets for the plot") # SHOULD RAISE A WARNING
+        warnings.warn("There were less datasets among the high-counts than the percentage selected. Using all datasets for the plot") # SHOULD RAISE A WARNING
         passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
 
     # filter trailer df - remove studies with too low total counts
@@ -318,25 +323,25 @@ def trailer_signal_plot(series, studies):
     return p
 
 # Not sure I like this code. Too many silent issues,,, it was supposed to be easier, honestly.
-def give_intervals(percentage_sharing, window):
-    # Not sure of behaviour on edge-cases
-    rolling_mean = percentage_sharing.rolling(window=window, center=True).mean()
-
-    if rolling_mean.notna().sum() == 0:
-        st.write(f"Trailer too short for a {window}-nt window.")
-        return
-
-    min_pos = int(np.nanargmin(rolling_mean.values))
-
-    n = len(percentage_sharing)
-    half = window // 2
-
-    start = max(0, min_pos - half)
-    end   = min(n, start + window)
-    start = max(0, end - window)
-
-    start_label = percentage_sharing.index[start]
-    end_label = percentage_sharing.index[end - 1]
-
-    st.write(f"Suggested Interval (please check against plot): {start_label} - {end_label}") # return embedded within function. Nope
-    return # start, end
+# def give_intervals(percentage_sharing, window):
+#     # Not sure of behaviour on edge-cases
+#     rolling_mean = percentage_sharing.rolling(window=window, center=True).mean()
+#
+#     if rolling_mean.notna().sum() == 0:
+#         st.write(f"Trailer too short for a {window}-nt window.")
+#         return
+#
+#     min_pos = int(np.nanargmin(rolling_mean.values))
+#
+#     n = len(percentage_sharing)
+#     half = window // 2
+#
+#     start = max(0, min_pos - half)
+#     end   = min(n, start + window)
+#     start = max(0, end - window)
+#
+#     start_label = percentage_sharing.index[start]
+#     end_label = percentage_sharing.index[end - 1]
+#
+#     st.write(f"Suggested Interval (please check against plot): {start_label} - {end_label}") # return embedded within function. Nope
+#     return # start, end
