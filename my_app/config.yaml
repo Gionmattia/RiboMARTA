@@ -9,12 +9,12 @@
 #metadata_path: ""
 
 # Configs for human
-Homo_sapiens_GRCh38:
-  bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/inflated_bigwigs"
-  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.108_ensembl.gtf"
-  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
-  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
-  mappability_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/mappability_hg38.bw"
+#Homo_sapiens_GRCh38:
+#  bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/inflated_bigwigs"
+#  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.108_ensembl.gtf"
+#  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+#  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+#  mappability_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/mappability_hg38.bw"
 
 #Mus_musculus_GRCm39:
 #  bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/inflated_bigwigs"
@@ -28,17 +28,17 @@ Homo_sapiens_GRCh38:
 #  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
 #  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/s_cerevisiae/Saccharomyces_cerevisiae_corrected.R64-1-1.dna.toplevel.fa"
 
-Mus_musculus_GRCm39_50_dom_filtered_datasets_AZ:
-  bigwigs_dir: "/home/gionmattia/Desktop/new_m_musculus_panel_50_dom"
-  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.113.gtf"
-  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
-  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.dna.primary_assembly.fa"
+#Mus_musculus_GRCm39_50_dom_filtered_datasets_AZ:
+#  bigwigs_dir: "/home/gionmattia/Desktop/new_m_musculus_panel_50_dom"
+#  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.113.gtf"
+#  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+#  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.dna.primary_assembly.fa"
 
-Drosophila_OAZ_manuscript:
-  bigwigs_dir:  "/home/gionmattia/Desktop/Drosophila_AZ_24_02_26/bigwigs/"
-  gtf_path: "/home/gionmattia/Desktop/Drosophila_AZ_24_02_26/Annotations_and_fasta/Drosophila_melanogaster.BDGP6.54.115.gtf"
-  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
-  fasta_path: "/home/gionmattia/Desktop/Drosophila_AZ_24_02_26/Annotations_and_fasta/Drosophila_melanogaster.BDGP6.54.dna.toplevel.fa"
+#Drosophila_OAZ_manuscript:
+#  bigwigs_dir:  "/home/gionmattia/Desktop/Drosophila_AZ_24_02_26/bigwigs/"
+#  gtf_path: "/home/gionmattia/Desktop/Drosophila_AZ_24_02_26/Annotations_and_fasta/Drosophila_melanogaster.BDGP6.54.115.gtf"
+#  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+#  fasta_path: "/home/gionmattia/Desktop/Drosophila_AZ_24_02_26/Annotations_and_fasta/Drosophila_melanogaster.BDGP6.54.dna.toplevel.fa"
 
 THESIS_Homo_sapiens_2026_GRCh38:
   bigwigs_dir: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/HUMAN_RIBOMARTA_THESIS_PANEL/bigwigs"
@@ -54,9 +54,17 @@ THESIS_Mus_musculus_2026_GRCm39:
   fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Mus_musculus_GRCm39/Mus_musculus.GRCm39.dna.primary_assembly.fa"
 # mappability_path: to be added
 
-Homo_sapiens_ENDOTHELIUM_GRCh38:
-  bigwigs_dir: "/home/gionmattia/Desktop/HUMAN_RIBOMARTA_THESIS_PANEL/Endothelium"
-  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.108_ensembl.gtf"
-  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
-  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
-  mappability_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/mappability_hg38.bw"
+#Homo_sapiens_ENDOTHELIUM_GRCh38:
+#  bigwigs_dir: "/home/gionmattia/Desktop/HUMAN_RIBOMARTA_THESIS_PANEL/Endothelium"
+#  gtf_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.108_ensembl.gtf"
+#  metadata_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/RiboSeqOrg_Metadata_07_2024.csv"
+#  fasta_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+#  mappability_path: "/home/gionmattia/Desktop/RiboMARTA_Testing_June_25/Homo_sapiens_GRCh38/mappability_hg38.bw"
+
+
+#GWIPS_TEST_Homo_sapiens_GRCh38:
+#  bigwigs_dir: # example "http://localhost:7777/"
+#  gtf_path: # path to gtf (annotation file) used to generate bigwigs
+#  metadata_path: # path to metadata as .csv. Should have fields Run, TISSUE, and CELL_LINE
+#  fasta_path: # path to FASTA (sequence file) used to generate bigwigs
+#  mappability_path: # optional

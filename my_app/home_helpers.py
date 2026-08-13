@@ -293,4 +293,4 @@ def genomic_mode_formatter(pre_feature_x:pd.DataFrame,
 
     return genomic_merged, genomic_slices
 
-# Functions to validate the transcript upload should go down here, ideally.
+

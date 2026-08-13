@@ -108,7 +108,7 @@ def txid_mode_style():
         gap: 4px;
     }
     /* Unselected radio - default state (outer ring) */
-    div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
+    div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child 
         border: 2px solid #888888 !important;
         background-color: transparent !important;
         box-sizing: border-box !important;
