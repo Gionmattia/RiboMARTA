@@ -3,9 +3,9 @@ import streamlit.elements.widgets.select_slider
 
 from home_helpers import *
 from app_helpers import *
+from server_parser_helpers import *
 
-# Page layout
-st.set_page_config(layout="wide")
+
 
 # Initialise runs dictionary, to store multiple runs. Each run is a AnalysisStatus class, with inputs, outputs, and logical flags.
 if "analysis_runs" not in st.session_state:
@@ -39,7 +39,7 @@ Once you are settled, press 'Next' to proceed to the dataset filtering page.
 ##### Organism Loader #####
 st.write("###  Select Organism 🦠")
 st.write("To run the analysis, you need to first decide which organism (and version of their references) to use.")
-organism_loader_interface()
+organism_loader_interface2()
 if st.session_state.get("selected_organism") is not None:
     st.write(f"**Loaded Organism:** {st.session_state.selected_organism}")
 

@@ -288,4 +288,4 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                                    "y_slice": current_mode.y_slice,
                                    "n_slice": current_mode.n_slice}
 
-        st.switch_page("pages/page_5.py")
+        st.switch_page("pages/Transcript_Mode_Results.py")

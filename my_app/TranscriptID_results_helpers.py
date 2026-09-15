@@ -707,152 +707,152 @@ def aggregator(input_df, results_meta, agg_meta_option):
     return agg_output_df
 
 
-# plot aggregated coverage for selected meta conditions
-def agg_line_plot(agg_output_df,  utr5_length = 0, cds_length = 0, aggregations = None, coordinates = None, x=None):
-    """
-    Plots each column of a dataframe as a line (except for x, if provided).
-    Args:
-        agg_output_df: DataFrame result of aggregator
-        utr5_length: length of 5' leader
-        cds_length: length of cds
-        aggregations: a list of metadata options for the field runs have been grouped by aggregator()
-        coordinates: the transcript_ranges adopted by the user for the analysis
-        x: Optional - Series or column name to use as x-axis (otherwise use index)
-    """
-
-    # First, normalise the data for comparability
-
-    # Second, extract (as dictionary) the studies matching aggregations. the value is the key, the value is the list of studies.
-
-    # For key in dict, aggregate the studies matching the list from df_normalised and append the result as a new column to "df"
-
-    df = agg_output_df.loc[:,aggregations].copy()
-
-    # Create a new dataframe, where we have a column for each different aggregation
-
-
-    palette = px.colors.qualitative.Plotly
-
-    fig = go.Figure()
-
-    if aggregations is not None:
-        df = df.loc[:, df.columns.isin(aggregations)]
-
-    # Decide x values
-    if x is not None:
-        if isinstance(x, str):
-            x_vals = df[x]
-        else:
-            x_vals = x
-        plot_cols = [col for col in df.columns if col != x]
-    else:
-        x_vals = df.index
-        plot_cols = df.columns
-
-    # Add background colours to selected regions
-    for i, (region, (start, end)) in enumerate(coordinates.items()):
-        fig.add_shape(
-            type="rect",
-            x0=start,
-            x1=end,
-            y0=0,
-            y1=1,
-            yref='paper',  # This makes the rectangle span the full y-axis
-            fillcolor= "#FFDFA0",
-            line=dict(width=0),
-            layer="below"
-        )
-
-    # Add labels
-    fig.add_annotation(
-        x=(coordinates["x_slice"][0] + coordinates["x_slice"][1]) / 2,
-        y= 1,
-        yref="paper",
-        text="1st Region",
-        showarrow=False,
-        font=dict(size=11, color="black"),
-        bgcolor="#FFDFA0",
-        borderpad=3
-    )
-    fig.add_annotation(
-        x=(coordinates["y_slice"][0] + coordinates["y_slice"][1]) / 2,
-        y= 1,
-        yref="paper",
-        text="2nd Region",
-        showarrow=False,
-        font=dict(size=11, color="black"),
-        bgcolor="#FFDFA0",
-        borderpad=3
-    )
-    fig.add_annotation(
-        x=(coordinates["n_slice"][0] + coordinates["n_slice"][1]) / 2,
-        y= 1,
-        yref="paper",
-        text="Noise Region",
-        showarrow=False,
-        font=dict(size=11, color="black"),
-        bgcolor="#FFDFA0",
-        borderpad=3
-    )
-
-    # Add a line for each column
-    for i, col in enumerate(plot_cols):
-        fig.add_trace(go.Bar(
-            x=x_vals,
-            y=df[col],
-            name=col,
-            marker=dict(color=palette[i % len(palette)])
-            # Optionally: hovertemplate=f"{col}: %{{y}}<extra></extra>"
-        ))
-
-    # Add lines to mark CDS
-    fig.add_vline(
-    x=utr5_length,  # your x-value
-    line_dash="dash",  # dashed line
-    line_color="black",  # or any color you want
-    line_width=2
-    )
-    fig.add_annotation(
-    x=utr5_length,
-    y=1,
-    yref="paper",
-    text="START",
-    showarrow=False,
-    font=dict(size=12, color="black"),
-    bgcolor="#daecf1",
-    #bordercolor="black",
-    borderpad=4
-    )
-    # Add lines to mark CDS
-    fig.add_vline(
-    x=utr5_length+cds_length,  # your x-value
-    line_dash="dash",
-    line_color="black",
-    line_width=2
-    )
-    fig.add_annotation(
-    x=utr5_length+cds_length,
-    y=1,
-    yref="paper",
-    text="STOP",
-    showarrow=False,
-    font=dict(size=12, color="black"),
-    bgcolor="#daecf1",
-    #bordercolor="black",
-    borderpad=4
-    )
-
-    fig.update_layout(
-        title=f"Aggregated Counts for {str(aggregations).replace('[','').replace(']','')}",
-        xaxis_title= "Position on Transcript",
-        yaxis_title= "Normalised counts (aggregated by tissue)",
-        plot_bgcolor="#daecf1"
-    )
-    fig.update_yaxes(
-        showgrid=True,
-        gridcolor="lightgray",
-        # ...other y-axis settings...
-    )
-
-    #fig.show()
-    return fig
+# # plot aggregated coverage for selected meta conditions
+# def agg_line_plot(agg_output_df,  utr5_length = 0, cds_length = 0, aggregations = None, coordinates = None, x=None):
+#     """
+#     Plots each column of a dataframe as a line (except for x, if provided).
+#     Args:
+#         agg_output_df: DataFrame result of aggregator
+#         utr5_length: length of 5' leader
+#         cds_length: length of cds
+#         aggregations: a list of metadata options for the field runs have been grouped by aggregator()
+#         coordinates: the transcript_ranges adopted by the user for the analysis
+#         x: Optional - Series or column name to use as x-axis (otherwise use index)
+#     """
+#
+#     # First, normalise the data for comparability
+#
+#     # Second, extract (as dictionary) the studies matching aggregations. the value is the key, the value is the list of studies.
+#
+#     # For key in dict, aggregate the studies matching the list from df_normalised and append the result as a new column to "df"
+#
+#     df = agg_output_df.loc[:,aggregations].copy()
+#
+#     # Create a new dataframe, where we have a column for each different aggregation
+#
+#
+#     palette = px.colors.qualitative.Plotly
+#
+#     fig = go.Figure()
+#
+#     if aggregations is not None:
+#         df = df.loc[:, df.columns.isin(aggregations)]
+#
+#     # Decide x values
+#     if x is not None:
+#         if isinstance(x, str):
+#             x_vals = df[x]
+#         else:
+#             x_vals = x
+#         plot_cols = [col for col in df.columns if col != x]
+#     else:
+#         x_vals = df.index
+#         plot_cols = df.columns
+#
+#     # Add background colours to selected regions
+#     for i, (region, (start, end)) in enumerate(coordinates.items()):
+#         fig.add_shape(
+#             type="rect",
+#             x0=start,
+#             x1=end,
+#             y0=0,
+#             y1=1,
+#             yref='paper',  # This makes the rectangle span the full y-axis
+#             fillcolor= "#FFDFA0",
+#             line=dict(width=0),
+#             layer="below"
+#         )
+#
+#     # Add labels
+#     fig.add_annotation(
+#         x=(coordinates["x_slice"][0] + coordinates["x_slice"][1]) / 2,
+#         y= 1,
+#         yref="paper",
+#         text="1st Region",
+#         showarrow=False,
+#         font=dict(size=11, color="black"),
+#         bgcolor="#FFDFA0",
+#         borderpad=3
+#     )
+#     fig.add_annotation(
+#         x=(coordinates["y_slice"][0] + coordinates["y_slice"][1]) / 2,
+#         y= 1,
+#         yref="paper",
+#         text="2nd Region",
+#         showarrow=False,
+#         font=dict(size=11, color="black"),
+#         bgcolor="#FFDFA0",
+#         borderpad=3
+#     )
+#     fig.add_annotation(
+#         x=(coordinates["n_slice"][0] + coordinates["n_slice"][1]) / 2,
+#         y= 1,
+#         yref="paper",
+#         text="Noise Region",
+#         showarrow=False,
+#         font=dict(size=11, color="black"),
+#         bgcolor="#FFDFA0",
+#         borderpad=3
+#     )
+#
+#     # Add a line for each column
+#     for i, col in enumerate(plot_cols):
+#         fig.add_trace(go.Bar(
+#             x=x_vals,
+#             y=df[col],
+#             name=col,
+#             marker=dict(color=palette[i % len(palette)])
+#             # Optionally: hovertemplate=f"{col}: %{{y}}<extra></extra>"
+#         ))
+#
+#     # Add lines to mark CDS
+#     fig.add_vline(
+#     x=utr5_length,  # your x-value
+#     line_dash="dash",  # dashed line
+#     line_color="black",  # or any color you want
+#     line_width=2
+#     )
+#     fig.add_annotation(
+#     x=utr5_length,
+#     y=1,
+#     yref="paper",
+#     text="START",
+#     showarrow=False,
+#     font=dict(size=12, color="black"),
+#     bgcolor="#daecf1",
+#     #bordercolor="black",
+#     borderpad=4
+#     )
+#     # Add lines to mark CDS
+#     fig.add_vline(
+#     x=utr5_length+cds_length,  # your x-value
+#     line_dash="dash",
+#     line_color="black",
+#     line_width=2
+#     )
+#     fig.add_annotation(
+#     x=utr5_length+cds_length,
+#     y=1,
+#     yref="paper",
+#     text="STOP",
+#     showarrow=False,
+#     font=dict(size=12, color="black"),
+#     bgcolor="#daecf1",
+#     #bordercolor="black",
+#     borderpad=4
+#     )
+#
+#     fig.update_layout(
+#         title=f"Aggregated Counts for {str(aggregations).replace('[','').replace(']','')}",
+#         xaxis_title= "Position on Transcript",
+#         yaxis_title= "Normalised counts (aggregated by tissue)",
+#         plot_bgcolor="#daecf1"
+#     )
+#     fig.update_yaxes(
+#         showgrid=True,
+#         gridcolor="lightgray",
+#         # ...other y-axis settings...
+#     )
+#
+#     #fig.show()
+#     return fig

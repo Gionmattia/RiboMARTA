@@ -101,7 +101,7 @@ if st.button("Next"):
     analysis.filters.filtering_criteria = filters
 
     if analysis.genomic_mode.active == True:
-        st.switch_page("pages/page_1.py")
+        st.switch_page("pages/Genomic_Mode_Setup.py")
 
     elif analysis.transcript_mode.active == True:
-        st.switch_page("pages/page_2.py")
+        st.switch_page("pages/Transcript_Mode_Setup.py")

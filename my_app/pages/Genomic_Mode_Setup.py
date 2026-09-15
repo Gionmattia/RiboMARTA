@@ -268,4 +268,4 @@ if current_mode.regions_extracted == True:
 
 
     if st.button("Next"):
-        st.switch_page("pages/page_4.py")
+        st.switch_page("pages/Genomic_Mode_Results.py")

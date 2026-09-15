@@ -103,8 +103,13 @@ def genomic_coordinates_selection():
 
     if st.button("Next"):
 
-        # Generate ID for current run
-        st.session_state.quirky_id = generate_quirky_id()
+        # Generate ID for current run and check against duplicates
+        quirky_id = generate_quirky_id()
+        while quirky_id in st.session_state.analysis_runs:
+            quirky_id = generate_quirky_id()
+
+        # Set analysis object
+        st.session_state.quirky_id = quirky_id
         # Initialize custom dataclasses (AnalysisStatus and GenomicCoordinatesMode) to keep track of analysis flow.
         st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
             quirky_id=st.session_state.quirky_id,
@@ -116,7 +121,7 @@ def genomic_coordinates_selection():
             )
         )
         # Proceed to next page of the analysis
-        st.switch_page("pages/metadata_filter.py")
+        st.switch_page("pages/Metadata_Selector.py")
 
 
 def ensembl_txid_selection():
@@ -127,7 +132,13 @@ def ensembl_txid_selection():
     txid = st.text_input("Ensembl Transcript ID")
 
     if st.button("Next"):
-        st.session_state.quirky_id = generate_quirky_id()
+        # Generate ID for current run and check against duplicates
+        quirky_id = generate_quirky_id()
+        while quirky_id in st.session_state.analysis_runs:
+            quirky_id = generate_quirky_id()
+
+        # Set analysis object
+        st.session_state.quirky_id = quirky_id
         # Create a new AnalysisStatus instance, associated to the quirky_id. Add flags for this mode.
         st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
             quirky_id = st.session_state.quirky_id,
@@ -139,7 +150,7 @@ def ensembl_txid_selection():
             )
         )
         # Proceed to next page of the analysis
-        st.switch_page("pages/metadata_filter.py")
+        st.switch_page("pages/Metadata_Selector.py")
 
 
 def upload_selection():
@@ -177,8 +188,13 @@ def upload_selection():
                                                                     noise_n)
 
         if st.button("Next"):
-            # Generate ID for current run
-            st.session_state.quirky_id = generate_quirky_id()
+            # Generate ID for current run and check against duplicates
+            quirky_id = generate_quirky_id()
+            while quirky_id in st.session_state.analysis_runs:
+                quirky_id = generate_quirky_id()
+
+            # Set analysis object
+            st.session_state.quirky_id = quirky_id
             st.session_state.analysis_runs[st.session_state.quirky_id] = AnalysisStatus(
                 quirky_id=st.session_state.quirky_id,
                 organism=st.session_state.selected_organism,
@@ -189,7 +205,7 @@ def upload_selection():
                     genomic_merged=genomic_merged,
                     genomic_merged_ranges=genomic_merged_ranges)
             )
-            st.switch_page("pages/metadata_filter.py")
+            st.switch_page("pages/Metadata_Selector.py")
 
     # Block to work in "Transcript Upload Submode"
     if st.session_state.get("tx_upload", False) is True:
@@ -222,8 +238,12 @@ def upload_selection():
             st.error("The File Uploaded does not come from RiboMARTA ('Sequence' column is missing).")
 
         if st.button("Next"):
-            # Generate ID for current run
-            st.session_state.quirky_id = generate_quirky_id()
+            # Generate ID for current run and check against duplicates
+            quirky_id = generate_quirky_id()
+            while quirky_id in st.session_state.analysis_runs:
+                quirky_id = generate_quirky_id()
+            # Set analysis object
+            st.session_state.quirky_id = quirky_id
 
             # Extracts mappability info, if available.
             if st.session_state.mappability_path is not None:
@@ -253,7 +273,7 @@ def upload_selection():
                     mappability_df = mappability_df
                 )
             )
-            st.switch_page("pages/metadata_filter.py")
+            st.switch_page("pages/Metadata_Selector.py")
 
 
 ##### Formatting Functions - These are input-validation functions #####
