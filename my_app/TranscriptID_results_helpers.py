@@ -21,8 +21,7 @@ def plot_rta_boxplot(results_df,
                      box_width=0.2,
                      jitter=0.5):
     """
-    Interactive box+points plot of “RTA” (where “significant” == True),
-    with hover labels, custom box color, and controlled box width.
+    Lorem ipsum
     """
     #
 
@@ -34,7 +33,7 @@ def plot_rta_boxplot(results_df,
     else:
         y_column = "RTA"
         plot_title = "Boxplot of observed RTAs across datasets"
-        min_y_range, max_y_range = 0, max(1, results_df[y_column].max() + 0.05)  # Should use a np.max and select either 1.15 or the highest among the data)
+        min_y_range, max_y_range = 0, max(1, results_df[y_column].max() + 0.05)
 
     filtered = results_df[y_column].dropna()
     y_vals = filtered.values
@@ -63,9 +62,8 @@ def plot_rta_boxplot(results_df,
     max_val = y_vals.max() if len(y_vals) else 1
     ticks2 = max_val*2
     ticks2_int = int(ticks2) + (ticks2 > int(ticks2))
-    # top_tick = ticks2_int/2
 
-    # Calculate descriptive statistics and text
+    # Calculate summary statistics and add text
     median_val = np.median(y_vals) if len(y_vals) else np.nan
     mean_val = np.mean(y_vals) if len(y_vals) else np.nan
     n_val = len(y_vals)
@@ -128,8 +126,6 @@ def plot_rta_boxplot(results_df,
                 text=stats_text,
                 showarrow=False,
                 align = "left",
-                #ax=40,
-                #ay=-30,
                 font=dict(color="black", size=12),
                 bgcolor="white",
                 bordercolor="black",
@@ -171,18 +167,24 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
 
     tissues = df[meta].unique()
 
-    # Color Palette (added manually)
+    # Color Palette (added manually) - add more colours?
+    # pastel_colors = [
+    #     'rgb(102, 197, 204)', 'rgb(246, 207, 113)', 'rgb(248, 156, 116)',
+    #     'rgb(220, 176, 242)', 'rgb(135, 197, 95)', 'rgb(158, 185, 243)',
+    #     'rgb(254, 136, 177)', 'rgb(201, 219, 116)', 'rgb(139, 224, 164)',
+    #     'rgb(180, 151, 231)', 'rgb(179, 179, 179)'
+    # ]
+
     pastel_colors = [
-        'rgb(102, 197, 204)', 'rgb(246, 207, 113)', 'rgb(248, 156, 116)',
-        'rgb(220, 176, 242)', 'rgb(135, 197, 95)', 'rgb(158, 185, 243)',
-        'rgb(254, 136, 177)', 'rgb(201, 219, 116)', 'rgb(139, 224, 164)',
-        'rgb(180, 151, 231)', 'rgb(179, 179, 179)'
-    ]
+         "#2a9d8f", "#ffb703", "#cd2713",
+        "#ffb8de", "#38b000", "#a682ff",
+         "affc41", "#e76f51", "#00eca9",
+        "#f10eb1", "#f08700", "#00b4d8"]
     tissue_color_map = {t: pastel_colors[i % len(pastel_colors)]
                         for i, t in enumerate(tissues)}
 
 
-# This might not work if CI are different than 95%... well it stays for now
+    # This might not work if CI are different than 95%... well it stays for now
     if logs:
         y_column = "log2RTA"
         df["log2RTA_ci_lower_95%"] = np.log2(df["RTA_ci_lower_95%"])
@@ -281,7 +283,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
                           line_width=1)
     hover_renderers.append(diamond_r)
 
-    # --- Hover (mirrors the original hovertemplate fields) ---
+    # --- Hover (mirrors the original hover-template fields) ---
 
     if show_n_members == False:
         hover = HoverTool(renderers=hover_renderers, tooltips=[
@@ -306,7 +308,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     # --- Legend (significance), only when non-significant points are shown ---
     if show_nonsignificant:
         # Empty renderers: they contribute a legend entry without drawing points,
-        # matching the original's x=[None], y=[None] "fake" traces.
+        # matching the original's x=[None], y=[None] "fake traces".
         d = p.scatter(x=[float('nan')], y=[float('nan')], marker='diamond', size=25, fill_color='black',
                       line_color='black')
         c = p.scatter(x=[float('nan')], y=[float('nan')], marker='circle', size=8, fill_color='black',
@@ -317,16 +319,16 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
 
         p.add_layout(legend, "right")
 
-    # --- y = 0 reference line (white, solid) ---
+    # --- y = 0 reference line ---
     p.add_layout(Span(location=0, dimension='width',
                       line_color='white', line_width=1))
 
-    # --- Categorical tick labels on the numeric x-axis ---
+    # ---  tick labels on the numeric x-axis ---
     p.xaxis.ticker = FixedTicker(ticks=list(tissue_positions.values()))
     p.xaxis.major_label_overrides = {i: str(t) for t, i in tissue_positions.items()}
     p.xaxis.major_label_orientation = np.pi / 4  # 45 degrees
 
-    # --- Cosmetics to match the original (white grid on pale-blue panel) ---
+    # --- Aesthetics to match the original (white grid on pale-blue panel) ---
     p.xgrid.grid_line_color = 'white'
     p.ygrid.grid_line_color = 'white'
     p.title.text_color = 'black'
