@@ -262,7 +262,7 @@ if st.button("Run Analysis"):
 
 if current_mode.txid_analysis_done is True:
 
-    srr_lookup_sidebar2(current_mode.txid_results, current_mode, analysis)
+    srr_txid_lookup_sidebar(current_mode.txid_results, current_mode, analysis)
 
     with st.expander("Show Tabular Results"):
 
@@ -364,12 +364,6 @@ if current_mode.txid_analysis_done is True:
             data_diamond_plot = current_mode.txid_results_meta
             data_diamond_plot = data_diamond_plot[data_diamond_plot["Tot Counts"] > tot_counts_min]
             data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
-
-            # d_plot = new_diamond_plotter(data_diamond_plot,
-            #                      meta=meta_option,
-            #                      logs = plot_logs_d,
-            #                      show_nonsignificant = show_nonsignificant)
-            # st.plotly_chart(d_plot, use_container_width=True)
 
 
             if current_mode.aggregation_option is None or current_mode.aggregation_option == "":

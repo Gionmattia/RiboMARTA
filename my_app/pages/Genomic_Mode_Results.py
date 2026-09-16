@@ -8,12 +8,11 @@ from streamlit_bokeh import streamlit_bokeh
 
 from STP_helpers import *
 from bokeh.plotting import figure
-from bokeh.models import (
-    ColumnDataSource, HoverTool, PanTool, Range1d, Span, Label, Legend
+from bokeh.models import (ColumnDataSource, HoverTool, PanTool, Range1d, Span, Label, Legend
 )
 import pandas as pd
 from bokeh.models import LinearAxis
-from app_helpers import AnalysisStatus
+from app_helpers import AnalysisStatus, srr_genco_lookup_sidebar
 from bokeh.layouts import column
 from bokeh.models import BoxAnnotation
 
@@ -100,42 +99,67 @@ if st.button("Run Analysis"):
 
 if current_mode.genco_analysis_done == True:
 
+    srr_genco_lookup_sidebar(current_mode.results_meta, current_mode, analysis)
+
     with st.expander("Show Tabular Results"):
 
-        tab1, tab2= st.tabs(["Detailed Results", "Results with Metadata"])
+        tab1, tab2, tab3= st.tabs(["Analysis Results", "Results with Selected Metadata", "Result with Full Metadtaa"])
 
         with tab1:
-            st.write("Here you can visualise the results of the analysis.")
+            st.write("Here you can visualise the results of the analysis. This table is useful to check "
+                     "the numerical aspects of the analysis results.")
             current_mode.genco_results
         with tab2:
-            st.write("Here you can visualise the results with relative metadata, either in a shortened or full version.")
-            col1, col2, col3 = st.columns([2.5, 2, 6])
-            verbose = False
-            with col1:
-                if st.button("Selected Metadata"):
-                    verbose = False
-            with col2:
-                if st.button("Full Metadata"):
-                    verbose = True
+            st.write("Here you can visualise the results with selected metadata of your choice. Useful to have a more 'easy-to-parse' table."
+                     "By default, it always showcases the SRR, the RTA, the padj, and the Total Counts.")
+            all_meta_options = current_mode.results_meta.columns
+            meta_options = st.multiselect("Select metadata field to visualise", all_meta_options)
+            default_meta = ["RTA", "padj_bh", "Tot Counts"]
+            table_meta = default_meta + meta_options
+            st.dataframe(current_mode.results_meta,
+                         column_order=(table_meta))
 
-            if not verbose:    # Display fewer metadata
-                st.dataframe(current_mode.results_meta,
-                         column_order=("RTA", "padj_bh", "significant", "TISSUE", "CELL_LINE", "Info",
-                                       "BioSample"))
-            else:
-                current_mode.results_meta
+        with tab3:
+            st.write("Here you can visualise the results of the analysis with the complete metadata. Quite verbose but the most informative")
+            current_mode.results_meta
 
 
     # Add expander for boxplot
     with st.expander("Interactive Plots"):
 
-        tab3, tab3_log, tab4, tab4_log, tab5 = st.tabs(
-            ["Box plot (RTAs)", "Box plot (logs)",
-             "Diamond plot (RTA)", "Diamond plot (logs)",
-             "Single Transcript Plot"])
+        max_val = max(int(max(current_mode.genco_results["Tot Counts"])),1)
+
+
+        tab3, tab4, tab5 = st.tabs(
+            ["Box plot (RTAs)", "Diamond plot (RTA)",
+             "Single Transcript Plot" ])
 
         with tab3:
-            fig2 = plot_rta_boxplot(current_mode.genco_results)
+            plot_logs = False
+            box_colour = "#00bf7d"
+
+            col1, col2, col3 = st.columns([2, 2, 6])
+            with col1:
+                if st.checkbox("Plot Log(2) values"):
+                    plot_logs = True
+                    box_colour = "#c44601"
+
+                if st.checkbox("Plot significant RTAs only"):
+                    data = current_mode.genco_results[current_mode.genco_results["significant"] == True]
+                else:
+                    data = current_mode.genco_results
+
+
+            with col3:
+
+                tot_counts_min = st.slider("Select min Tot Counts for a study to be considered",
+                          0, max_val, key =  "boxplot_slider")
+
+            data = data[data["Tot Counts"] > tot_counts_min]
+
+            fig2 = plot_rta_boxplot(results_df = data,
+                                    box_fill = box_colour,
+                                    logs = plot_logs)
             st.plotly_chart(fig2)
 
             if st.button("Store in the report", key = "rta_boxplot"):
@@ -143,49 +167,60 @@ if current_mode.genco_analysis_done == True:
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
 
-        with tab3_log:
-            # Modify results so that they are log2-based now!
-            log_2_genco_results = current_mode.genco_results
-            # plot the results
-            fig2_bis = plot_rta_boxplot(log_2_genco_results, logs = True, box_fill = "#c44601")
-            st.plotly_chart(fig2_bis, key = "plot_bis")
-
-            if st.button("Store in the report", key = "log_rta_boxplot"):
-                analysis.user_plots.append(fig2_bis)
-                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
-
-
     # Adds plot with breakdowns by metadata
         with tab4:
 
-            meta_option = st.selectbox(
-                "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.results_meta.columns[:])
+            if current_mode.aggregation_option == "Aggregate by metadata field":
+                meta_option = "Group"
+            elif current_mode.aggregation_option == "Total Aggregation":
+                meta_option = "Group"
+            else:
+                meta_option = st.selectbox("To visualise the diamond plot, select the medatadata column to use",
+                                           current_mode.results_meta.columns[:])
 
-            d_plot = new_diamond_plotter(current_mode.results_meta,
-                                         meta=meta_option,
-                                         logs = False)
-            st.plotly_chart(d_plot, use_container_width=True)
+            show_nonsignificant =  False
+            plot_logs_d = False
+
+            col1, col2, col3 = st.columns([2, 2, 6])
+            with col1:
+                if st.checkbox("Plot Non Significant"):
+                    show_nonsignificant = True
+
+                if st.checkbox("Plot Log(2) values", key = "diamond_plot_"):
+                    plot_logs_d = True
+
+            with col3:
+
+                tot_counts_min = st.slider("Select min Tot Counts for a study to be considered",
+                          0, max_val, key =  "diamond_plot_slider")
+
+            data_diamond_plot = current_mode.results_meta
+            data_diamond_plot = data_diamond_plot[data_diamond_plot["Tot Counts"] > tot_counts_min]
+            data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
+
+
+            if current_mode.aggregation_option is None or current_mode.aggregation_option == "":
+                jitter = 0.3
+                show_n_members =  False
+            else:
+                jitter = 0
+                show_n_members = True
+                # here we add the info on the # elements per group
+                data_diamond_plot = pd.merge(data_diamond_plot, current_mode.members_per_group, on = meta_option)
+
+            p = new_diamond_plotter_bokeh(df = data_diamond_plot,
+                                          meta=meta_option,
+                                          logs=plot_logs_d,
+                                          jitter_amount= jitter,
+                                          show_nonsignificant=show_nonsignificant,
+                                          show_n_members = show_n_members)
+            streamlit_bokeh(p, use_container_width=True, theme="light_minimal")
+
 
             if st.button("Store in the report", key = "diamond plot"):
-                analysis.user_plots.append(d_plot)
+                analysis.user_plots.append(p)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        with tab4_log:
-            meta_option_bis = st.selectbox(
-                "To visualise the diamond plot, select the medatadata column to use",
-                current_mode.results_meta.columns[:], key = "meta_dplot_bis")
-
-            d_plot_bis = new_diamond_plotter(current_mode.results_meta,
-                                     meta=meta_option_bis,
-                                     logs = True)
-            st.plotly_chart(d_plot_bis,
-                            use_container_width=True,
-                            key = "figure_d_bis")
-
-            if st.button("Store in the report", key = "log diamond plot"):
-                analysis.user_plots.append(d_plot_bis)
-                st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
         with tab5:
             st.write("Here you can visualise an individual Run of interest, in RAW COUNTS")
@@ -213,13 +248,14 @@ if current_mode.genco_analysis_done == True:
             elif options_STP == "Baseline Not Expressed":
                 dat_selected = baseline_failed
 
-            #elif:
-
             run_option = st.multiselect("Select one or more (max 5) different Runs to plot:",
                                         dat_selected,
                                         key = "new_multiline_stp_key")
 
-            margin = max(1, int((df.index.max()) - df.index.min())) * 0.01
+            val = int(df.index.max()) - int(df.index.min())
+
+            margin = max(1, val) * 0.01
+
             genco_ml_plot = genco_single_transcript_plot(df = df,
                                                          x_range = Range1d(start=int(df.index.min()) - margin, end=int(df.index.max()) + margin),
                                                          run_option = run_option,
@@ -232,33 +268,6 @@ if current_mode.genco_analysis_done == True:
             if st.button("Store in the report", key = "genco_ml_plot"):
                 analysis.user_plots.append(genco_ml_plot)
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
-            st.write("Here you can visualise all the data aggregated (regardless of the significance of the rta), depending on the metadata available.")
-
-        # with tab6:
-        #
-        #     # SHOULD I ADD AN OPTION TO SMOOTH THE DATA? maybe later on...
-        #     agg_meta_option = st.selectbox(
-        #         "Select the medatadata field to use for the aggregation",
-        #         current_mode.results_meta.columns[:5])
-        #
-        #     # SAME AS ABOVE< THIS SHOULD BE MADE TO WORK WITH THREE DFS, NOT JUST ONE!
-        #     # # Now to select the individual condition or conditions
-        #     aggregations = st.multiselect("You can visualise one or more (max 3) different conditions at the same time",
-        #                                  current_mode.results_meta[agg_meta_option].unique())
-        #
-        #     # Button to choose whether to aggregate only significant ones or everything.
-        #     agg_selection = aggregator(current_mode.genomic_merged,
-        #                                 current_mode.results_meta,
-        #                                 agg_meta_option)
-        #
-        #      # Function to normalise data, then aggregate it based on the elements selected in "aggregations".
-        #     genom_agg_meta_plot = genom_agg_line_plot(agg_selection,
-        #                                   aggregations = aggregations,
-        #                                   coordinates = coordinates)
-        #
-        #     st.plotly_chart(genom_agg_meta_plot, use_container_width=True)
-        #
-        #     # Should I use the new method (smooth criminal) here?
 
 
 else:

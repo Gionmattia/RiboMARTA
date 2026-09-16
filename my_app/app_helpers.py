@@ -14,7 +14,7 @@ import yaml
 from pyfaidx import Fasta
 import pyranges as pr
 import plotly.graph_objects as go
-from TranscriptID_results_helpers import multi_line_plot
+
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
 ADJECTIVES = [
@@ -208,24 +208,44 @@ class AnalysisStatus:
 
 
 ## --- Sidebar elements test --- #
-def srr_lookup_sidebar(data, current_run, analysis):
+def srr_genco_lookup_sidebar(studies_metadata, current_run, analysis):
+    # To avoid circular imports
+    from STP_helpers import genco_single_transcript_plot
+    from bokeh.models import Range1d
+    from streamlit_bokeh import streamlit_bokeh
 
     st.sidebar.header("Quick Run (SRR) Lookup")
-    srr_list = list(data.index)
-    srr = st.sidebar.selectbox("Select Colour", srr_list)
-    info = data.loc[srr]
+    srr_list = list(studies_metadata.index)
+    srr = st.sidebar.selectbox("Select Run ", srr_list)
+    info = studies_metadata.loc[srr]
 
     with st.sidebar.popover("Metadata", use_container_width=True):
         st.write(info)
     with st.sidebar.popover("Raw Data", use_container_width=True):
         # Add the plot (should just plot raw data for one selected SRR)
-        srr_plot = fa_tx_line_plot(current_run.fa_df,
-                                   current_run.utr5_length,
-                                   current_run.cds_length,
-                                   [srr],
-                                   current_run.txid_ranges)
+        df = current_run.genomic_merged
+        df["X"] = df.index
+        genco_lookup_plot = genco_single_transcript_plot(df=df,
+                                                         x_range=Range1d(start=int(df.index.min()),
+                                                                         end=int(df.index.max())),
+                                                         run_option=[srr],
+                                                         mappability_df=None,
+                                                         genomic_merged_ranges=current_run.genomic_merged_ranges)
 
-        st.plotly_chart(srr_plot, use_container_width=True)
+        # Formatting options - since it needs to "gracefully" fit the lookup bar.
+        genco_lookup_plot.sizing_mode = "scale_width"
+        genco_lookup_plot.title = None
+        genco_lookup_plot.xaxis.axis_label = None
+        genco_lookup_plot.yaxis.axis_label = None
+        genco_lookup_plot.xaxis.major_label_text_font_size = '0pt'
+        genco_lookup_plot.yaxis.major_label_text_font_size = '10pt'
+        genco_lookup_plot.legend.visible = False
+        genco_lookup_plot.min_border_top = 5
+        genco_lookup_plot.min_border_bottom = 5
+        genco_lookup_plot.aspect_ratio = 2
+        streamlit_bokeh(genco_lookup_plot, use_container_width=False)
+
+        #st.plotly_chart(srr_plot, use_container_width=True)
     if st.sidebar.button("Add SRR to cart"):
         analysis.flagged_datasets.append(srr)
     if st.sidebar.button("Remove SRR from cart"):
@@ -236,24 +256,45 @@ def srr_lookup_sidebar(data, current_run, analysis):
 
 
 ## --- Sidebar elements for txid mode (could be fused to the one above, but later on) --- #
-def srr_lookup_sidebar2(data, current_run, analysis):
+def srr_txid_lookup_sidebar(data, current_run, analysis):
+
+    from STP_helpers import subplot_single_transcript_plot
+    from bokeh.models import Range1d
+    from streamlit_bokeh import streamlit_bokeh
 
     st.sidebar.header("Quick Run (SRR) Lookup")
     srr_list = list(data.index)
-    srr = st.sidebar.selectbox("Select Colour", srr_list)
+    srr = st.sidebar.selectbox("Select Run", srr_list)
     info = current_run.txid_results_meta.loc[srr]
 
     with st.sidebar.popover("Metadata", use_container_width=True):
         st.write(info)
 
     with st.sidebar.popover("Raw Data", use_container_width=True):
-        srr_plot = multi_line_plot(current_run.all_studies_df,
-                                   current_run.utr5_length,
-                                   current_run.cds_length,
-                                   [srr],
-                                   current_run.txid_ranges)
+        df = current_run.all_studies_df
+        df["X"] = df.index
+        txid_lookup_plot = subplot_single_transcript_plot(
+                df = df,
+                x_range = Range1d(start=int(df.index.min()), end=int(df.index.max())),
+                utr5_length = current_run.utr5_length,
+                cds_length = current_run.cds_length,
+                txid =  "",
+                run_option = [srr],
+                coordinates=  current_run.txid_ranges)
 
-        st.plotly_chart(srr_plot, use_container_width=True)
+        # Formatting options - since it needs to "gracefully" fit the lookup bar.
+        txid_lookup_plot.sizing_mode = "scale_width"
+        txid_lookup_plot.title = None
+        txid_lookup_plot.xaxis.axis_label = None
+        txid_lookup_plot.yaxis.axis_label = None
+        txid_lookup_plot.xaxis.major_label_text_font_size = '0pt'
+        txid_lookup_plot.yaxis.major_label_text_font_size = '10pt'
+        txid_lookup_plot.legend.visible = False
+        txid_lookup_plot.min_border_top = 5
+        txid_lookup_plot.min_border_bottom = 5
+        txid_lookup_plot.aspect_ratio = 2
+
+        streamlit_bokeh(txid_lookup_plot, use_container_width=False)
     if st.sidebar.button("Add SRR to flagged ones"):
         if srr in analysis.flagged_datasets:
             st.sidebar.write(f"{str(srr)} has already been flagged!")

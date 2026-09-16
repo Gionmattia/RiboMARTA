@@ -1,4 +1,4 @@
-# page_1.py
+# Genomic_Mode_Setup (old page_1.py)
 from module0 import *
 import streamlit as st
 from app_helpers import *
@@ -70,21 +70,18 @@ if current_mode.regions_extracted == False:
             # store
             current_mode.mappabilities = [mapp_x, mapp_y, mapp_n]
 
-        # Save three mappabilities similarly, to plot easily.
-
+            # Create a single df and coordinates but for mappability, to be used by genco_data_smoother
+            current_mode.genomic_merged_mappability_df, current_mode.genomic_merged_mappability_ranges = genomic_mode_formatter(
+                mapp_x,
+                mapp_y,
+                mapp_n)
 
         # Create a single df and coordinates, to be used by run_analysis()
         current_mode.genomic_merged, current_mode.genomic_merged_ranges = genomic_mode_formatter(pre_feature_x,
                                                                                                   post_feature_y,
                                                                                                   noise_n)
-
         # Adds backup (to be used to reverse smoothing options down)
         current_mode.genomic_merged_backup = current_mode.genomic_merged.copy()
-
-        # Create a single df and coordinates but for mappability, to be used by genco_data_smoother
-        current_mode.genomic_merged_mappability_df, current_mode.genomic_merged_mappability_ranges = genomic_mode_formatter(mapp_x,
-                                                                                                  mapp_y,
-                                                                                                  mapp_n)
 
         current_mode.regions_extracted = True
 
@@ -117,7 +114,6 @@ if current_mode.regions_extracted == True:
                                     normalize = False,
                                     keep_pos = True)
 
-
         if current_mode.mappabilities is not None:
 
             x_plot = colorless_transcript_plot(df = agg_df_x,
@@ -130,10 +126,6 @@ if current_mode.regions_extracted == True:
                                                y_axis = "Global Aggregate")
             streamlit_bokeh(x_plot, use_container_width=False)
 
-
-        # Plot
-        # st.line_chart(agg_df_x, x = "Position", y = "Global Aggregate")
-        # Add option to save these plots in the report later on?
     with tab2:
         st.write("Target Region")
         agg_df_y = global_aggregate(current_mode.genomic_slices[1],
@@ -152,10 +144,6 @@ if current_mode.regions_extracted == True:
                                                y_axis = "Global Aggregate")
             streamlit_bokeh(y_plot, use_container_width=False)
 
-
-        # # Plot
-        # st.line_chart(agg_df_y, x = "Position", y = "Global Aggregate")
-
     with tab3:
         st.write("Noise control Region")
         agg_df_n = global_aggregate(current_mode.genomic_slices[2],
@@ -173,9 +161,6 @@ if current_mode.regions_extracted == True:
             n_plot = colorless_transcript_plot(df = agg_df_n,
                                                y_axis = "Global Aggregate")
             streamlit_bokeh(n_plot, use_container_width=False)
-
-        # Plot
-        # st.line_chart(agg_df_n, x = "Position", y = "Global Aggregate")
 
 
     with st.expander("Select Smoothing Option"):

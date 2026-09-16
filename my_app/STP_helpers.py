@@ -1,6 +1,6 @@
 import streamlit as st
 from module0 import global_aggregate
-from app_helpers import *
+from app_helpers import AnalysisStatus, TranscriptIDMode, GenomicCoordinatesMode
 
 from bokeh.plotting import figure
 from bokeh.models import (
@@ -8,7 +8,6 @@ from bokeh.models import (
 )
 import pandas as pd
 from bokeh.models import LinearAxis
-from app_helpers import AnalysisStatus
 from bokeh.layouts import column
 from bokeh.models import BoxAnnotation
 from streamlit_bokeh import streamlit_bokeh
@@ -438,7 +437,7 @@ def colorless_transcript_plot(
     """
     df = df.copy()
 
-    y_upper = df[y_axis].max()
+    y_upper = max(1, df[y_axis].max())
     y_lower = min(-1 * df[y_axis].quantile(0.10), -0.05 * y_upper)
 
     title = (
