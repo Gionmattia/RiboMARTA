@@ -10,7 +10,7 @@ if "config" not in st.session_state:
     st.session_state["config"] = load_config(config_path)
 
 # Name each page in the navigation bar
-home = st.Page("Home.py", title="Home - Organism/Analysis Setup", icon="🏠")
+home = st.Page("pages/Home.py", title="Home - Organism/Analysis Setup", icon="🏠")
 step_0 = st.Page("pages/Metadata_Selector.py", title="Metadata - Dataset Selector", icon="🔍")
 step_1_genco = st.Page("pages/Genomic_Mode_Setup.py", title="Genomic Mode - Setup", icon="🧭")
 step_2_genco = st.Page("pages/Genomic_Mode_Results.py", title="Genomic Mode - Results", icon="📑")
