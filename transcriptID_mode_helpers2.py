@@ -58,7 +58,7 @@ def txid_mode_intro():
              above the plots) through the use of a Smoothing Option.""")
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.image("martas/explaining_marta.png", width=180)
+        st.image(st.session_state["marta_images"]["explaining"], width=180)
 
 
 def txid_checkpoint(current_run):
@@ -72,7 +72,7 @@ def txid_checkpoint(current_run):
     if txid == "":
         col1, col2 = st.columns([1, 3])
         with col1:
-            st.image("martas/error_marta.png", width=127)
+            st.image(st.session_state["marta_images"]["error"], width=127)
         with col2:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.error(" The 'Transcript ID' field was empty. Please provide a value before proceeding!")

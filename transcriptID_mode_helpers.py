@@ -1,6 +1,5 @@
 # transcriptID_mode_helpers.py
 import pyfaidx
-import pyranges
 import streamlit as st
 import pyBigWig
 import pyranges as pr

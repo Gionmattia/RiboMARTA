@@ -329,7 +329,7 @@ def quirky_id_checkpoint():
     if st.session_state.get("quirky_id", None) is None:
         col1, col2 = st.columns([1, 3])
         with col1:
-            st.image("martas/error_marta.png", width=127)
+            st.image(st.session_state["marta_images"]["error"], width=127)
         with col2:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.error("You haven't initialised any analysis yet, please return to Home page")

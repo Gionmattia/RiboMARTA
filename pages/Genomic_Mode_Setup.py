@@ -42,7 +42,7 @@ if current_mode.regions_extracted == False:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.warning("Please provide valid Genomic Ranges before moving to this page!")
         with col2:
-            st.image("martas/error_marta.png", width=130)
+            st.image(st.session_state["marta_images"]["error"], width=130)
         st.stop()
 
     if st.button("Extract Regions"):

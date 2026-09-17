@@ -3,7 +3,7 @@ import streamlit.elements.widgets.select_slider
 
 from home_helpers import *
 from app_helpers import *
-
+import streamlit as st
 
 
 # Initialise runs dictionary, to store multiple runs. Each run is a AnalysisStatus class, with inputs, outputs, and logical flags.
@@ -15,7 +15,7 @@ if "analysis_runs" not in st.session_state:
 st.title("Welcome to RiboMARTA")
 col1, col2 = st.columns([1,4])
 with col1:
-    st.image("martas/marta.png", width = 200)
+    st.image(st.session_state["marta_images"]["welcome"], width = 200)
 with col2:
     st.markdown("""Welcome to the first prototype for RiboMARTA. My name is Marta, and I am here to guide you
 through the app and the analysis steps. You are currently in the starting page of the analysis workflow.

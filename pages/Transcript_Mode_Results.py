@@ -34,7 +34,7 @@ df = current_mode.all_studies_df
 if df is None:
     col1, col2 = st.columns([1,  3])
     with col1:
-        st.image("martas/error_marta.png", width=127)
+        st.image(st.session_state["marta_images"]["error"], width=127)
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.warning("Please, load the transcript before moving to this page!")
@@ -48,7 +48,7 @@ if coordinates is None:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.warning("Please, select transcript_ranges of transcript to compare before proceeding!")
     with col2:
-        st.image("martas/error_marta.png", width=127)
+        st.image(st.session_state["marta_images"]["error"], width=127)
     st.stop()
 else:
 
