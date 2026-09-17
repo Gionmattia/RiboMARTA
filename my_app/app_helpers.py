@@ -14,6 +14,8 @@ import yaml
 from pyfaidx import Fasta
 import pyranges as pr
 import plotly.graph_objects as go
+import argparse
+from pathlib import Path
 
 
 # Words used to define the analysis ID. Need to be human-readable and quirky, so that the user remembers them.
@@ -35,8 +37,16 @@ def generate_quirky_id() -> str:
     quirky_id = f"{adjective}_{noun}"
     return quirky_id
 
+# Read command line argument (when calling streamlit run RiboMARTA_main.py -- --config.yaml
+def retrieve_config_path():
+    app_default_config = Path(__file__).parent / "config.yaml"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default=str(app_default_config))
+    args, _ = parser.parse_known_args()
+    return args.config
+
 # Import config file with paths to files used by RiboMARTA
-@st.cache_resource
+@st.cache_data
 def load_config(path_to_yaml):
     with open(path_to_yaml, 'r') as f:
         return yaml.safe_load(f)

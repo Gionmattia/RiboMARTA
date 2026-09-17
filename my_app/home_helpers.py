@@ -13,6 +13,7 @@ import os
 import streamlit.elements.widgets.selectbox
 import streamlit.runtime.session_manager
 from transcriptID_mode_helpers2 import txid_map_extraction
+import streamlit as st
 from app_helpers import *
 
 # Organism Loader - Provides interface and code to load organism.
@@ -29,8 +30,8 @@ def organism_loader_interface():
         - Sets st.session_state.config_loaded = True upon successful loading.
     """
 
-    # Load configuration file
-    config = load_config("config.yaml")
+    # Retrieves config from session.state
+    config = st.session_state.config
     # Load path to annotation file, metadata, and the bigwigs in the app
     organisms_available = list(config.keys())
 
@@ -50,15 +51,27 @@ def organism_loader_interface():
 
             bigwigs_dir = organism_config["bigwigs_dir"]
             st.session_state.fasta_path = organism_config["fasta_path"]
-            st.session_state.bigwig_files = [
-                os.path.abspath(os.path.join(bigwigs_dir, f))
-                for f in os.listdir(bigwigs_dir)
-                if os.path.isfile(os.path.join(bigwigs_dir, f))
-            ]
-            st.session_state.full_dataset_list = [
-                f.replace(".bw", "") for f in os.listdir(bigwigs_dir)
-                if os.path.isfile(os.path.join(bigwigs_dir, f))
-            ]
+            # Parse urls if given https
+            if "http" in bigwigs_dir:
+                st.session_state.bigwig_files = get_bigwig_urls(bigwigs_dir)
+
+                urls = [
+                    f.replace(".bw", "") for f in st.session_state.bigwig_files
+                ]
+
+                st.session_state.full_dataset_list = [p.split("/")[-1] for p in urls]
+
+            else:
+                st.session_state.bigwig_files = [
+                    os.path.abspath(os.path.join(bigwigs_dir, f))
+                    for f in os.listdir(bigwigs_dir)
+                    if os.path.isfile(os.path.join(bigwigs_dir, f))
+                ]
+
+                st.session_state.full_dataset_list = [
+                    f.replace(".bw", "") for f in os.listdir(bigwigs_dir)
+                    if os.path.isfile(os.path.join(bigwigs_dir, f))
+                ]
 
             # These functions can be time-consuming
             st.session_state.fasta = read_fasta(st.session_state.fasta_path)
@@ -67,6 +80,42 @@ def organism_loader_interface():
         # 3. Set a flag indicating that the configuration is loaded
         st.session_state.config_loaded = True
         st.success(f"Loaded config for {st.session_state.selected_organism}!")
+
+# SECTION TO IMPORT BIGWIGS FROM REMOTE LINK! NOT FULLY IMPLEMENTED DUE TO PYBIGIWIG BEHAVIOUR
+# (does not support ranges request unless installed AFTER a required library..) so we will keep this temporary as a
+# comment until that issue is solved (when creating RiboMARTA docker image).
+# import requests
+# from bs4 import BeautifulSoup
+# from urllib.parse import urljoin
+# import streamlit as st
+# from home_helpers import *
+#
+# #  Needs to be implemented as an if/else for that specific hosting service...
+# # BUT IT COULD WORK
+# def get_bigwig_urls(base_url):
+#     urls = []
+#     try:
+#         # Connect to server
+#         response = requests.get(base_url)
+#         response.raise_for_status()
+#
+#         # Read the HTML directory listing that RangeHTTPServer creates
+#         soup = BeautifulSoup(response.text, 'html.parser')
+#
+#         # Find every link on that webpage
+#         for link in soup.find_all('a'):
+#             href = link.get('href')
+#
+#             # Only keep the BigWig files
+#             if href and href.endswith('.bw'):
+#                 # urljoin to safely combine
+#                 full_url = urljoin(base_url, href)
+#                 urls.append(full_url)
+#
+#     except requests.exceptions.RequestException as e:
+#         st.error(f"I am sorry but I could not connect to the GWIPS server: {e}")
+#
+#     return urls
 
 
 def genomic_coordinates_selection():

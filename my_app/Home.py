@@ -39,7 +39,8 @@ Once you are settled, press 'Next' to proceed to the dataset filtering page.
 ##### Organism Loader #####
 st.write("###  Select Organism 🦠")
 st.write("To run the analysis, you need to first decide which organism (and version of their references) to use.")
-organism_loader_interface2()
+st.write(st.session_state.config)
+organism_loader_interface()
 if st.session_state.get("selected_organism") is not None:
     st.write(f"**Loaded Organism:** {st.session_state.selected_organism}")
 
