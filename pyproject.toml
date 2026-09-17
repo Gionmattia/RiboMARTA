@@ -1,0 +1,41 @@
+[project]
+name = "RiboMARTA"
+version = "0.1.0"
+description = "Analysis of Relative Translational Activity using Ribo-Seq Data"
+authors = [
+    {name = "Gionmattia Carancini", email = "gionmattia@gmail.com"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+# This requires some extra work...
+dependencies = [
+    "streamlit==1.46.1",
+    "streamlit-bokeh == 3.9.0",
+    "bokeh == 3.9.0",
+    "pandas == 2.2.3",
+    "pyyaml == 6.0.2",
+    "pyfaidx == 0.8.1.4",
+    "pyranges == 0.1.3",
+    "plotly == 6.0.1",
+    "pybigwig == 0.3.24",
+    "joblib == 1.4.2",
+    "numpy == 2.2.3",
+    "statsmodels == 0.14.4",
+    "scipy == 1.15.2",
+    "biopython == 1.85"
+]
+
+[project.scripts]
+# Should I point to this script? I guess so... this is the one where I summon the RiboMARTA main, I suppose...
+RiboMARTA = "RiboMARTA.RiboMARTA_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"RiboMARTA" = ["*.yml","*.yaml", "**/*.png"]
