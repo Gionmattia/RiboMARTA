@@ -113,7 +113,7 @@ if st.button("Run Analysis"):
         df = df.drop(columns="Position")
 
     # Safety Check before execution
-    bstart, bend = [coordinates]["x_slice"]
+    bstart, bend = coordinates["x_slice"]
     baseline = df.iloc[bstart:bend]
     if (baseline.mean(axis=1) == 0).all():
         text = "There is no data from the Baseline region across all studies!"

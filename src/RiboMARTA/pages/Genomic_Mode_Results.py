@@ -12,7 +12,7 @@ from bokeh.models import (ColumnDataSource, HoverTool, PanTool, Range1d, Span, L
 )
 import pandas as pd
 from bokeh.models import LinearAxis
-from app_helpers import AnalysisStatus, srr_genco_lookup_sidebar, quirky_id_checkpoint
+from app_helpers import AnalysisStatus, srr_genco_lookup_sidebar, quirky_id_checkpoint, graceful_failure
 from bokeh.layouts import column
 from bokeh.models import BoxAnnotation
 
@@ -87,6 +87,14 @@ with st.expander("Change options"):
 if st.button("Run Analysis"):
     # NEED TO SAVE TO THE ANALYSIS STATUS THE ANALYSIS VALUES
     df = df.drop(columns=["Position"])
+
+    # Safety Check before execution
+    bstart, bend = coordinates["x_slice"]
+    baseline = df.iloc[bstart:bend]
+    if (baseline.mean(axis=1) == 0).all():
+        text = "There is no data from the Baseline region across all studies!"
+        graceful_failure(text)
+
     current_mode.genco_results, current_mode.seed = run_permutation_analysis(df = df, coordinates = coordinates,
                                                                             alpha_baseline = current_mode.alpha_baseline,
                                                                             alpha_target = current_mode.alpha_target,
