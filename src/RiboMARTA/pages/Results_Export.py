@@ -3,12 +3,13 @@ import streamlit as st
 from module2 import *
 import pandas as pd
 from TranscriptID_results_helpers import *
-from app_helpers import srr_lookup_sidebar
+from app_helpers import quirky_id_checkpoint
 import io
 import zipfile
 from bokeh.embed import file_html
 from bokeh.resources import CDN
 
+quirky_id_checkpoint()
 # Then I need a function to report the info as a table/something that can be exported
 st.write("# Analysis Report")
 st.write("Please select which analysis you want the report for")

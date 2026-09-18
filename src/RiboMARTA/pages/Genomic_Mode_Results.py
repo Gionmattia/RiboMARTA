@@ -12,11 +12,13 @@ from bokeh.models import (ColumnDataSource, HoverTool, PanTool, Range1d, Span, L
 )
 import pandas as pd
 from bokeh.models import LinearAxis
-from app_helpers import AnalysisStatus, srr_genco_lookup_sidebar
+from app_helpers import AnalysisStatus, srr_genco_lookup_sidebar, quirky_id_checkpoint
 from bokeh.layouts import column
 from bokeh.models import BoxAnnotation
 
 genco_mode_style()
+
+quirky_id_checkpoint()
 
 # We are retrieving the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
 analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
@@ -26,6 +28,8 @@ st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 
 st.title("Genomic Coodrinates Activity Analysis")
 st.write("In this page, you can run the analysis for your selected genomic coordinates of choice.")
+
+
 
 # Check if dataframe has been loaded
 df = current_mode.genomic_merged

@@ -13,6 +13,8 @@ from Style_options import txid_mode_style
 
 from streamlit_bokeh import streamlit_bokeh
 
+from RiboMARTA.app_helpers import graceful_failure
+
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
 # We are retrieving the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
@@ -109,6 +111,13 @@ with st.expander("Change options"):
 if st.button("Run Analysis"):
     if "Position" in df.columns:
         df = df.drop(columns="Position")
+
+    # Safety Check before execution
+    bstart, bend = [coordinates]["x_slice"]
+    baseline = df.iloc[bstart:bend]
+    if (baseline.mean(axis=1) == 0).all():
+        text = "There is no data from the Baseline region across all studies!"
+        graceful_failure(text)
 
     current_mode.txid_results, current_mode.seed = run_permutation_analysis(df = df, coordinates = coordinates,
                                                                             alpha_baseline=current_mode.alpha_baseline,

@@ -327,10 +327,21 @@ def srr_txid_lookup_sidebar(data, current_run, analysis):
 
 def quirky_id_checkpoint():
     if st.session_state.get("quirky_id", None) is None:
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.image(st.session_state["marta_images"]["error"], width=127)
-        with col2:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.error("You haven't initialised any analysis yet, please return to Home page")
-        st.stop()
+        text = "" "You haven't initialised any analysis yet, please return to Home page and start from there"
+        graceful_failure(text, "error")
+
+
+def graceful_failure(text:str = "", marta_type:str = "error"):
+    """
+    Simple function ton print a user-friendly message and stop execution is a failure is encountered in the analysis
+    :param text: User-friendly text to dispaly. Should inform on the triggering error.
+    :param marta_type: Type of Marta picture to render.
+    :return:
+    """
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        st.image(st.session_state["marta_images"][marta_type], width=127)
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.error(text)
+    st.stop()

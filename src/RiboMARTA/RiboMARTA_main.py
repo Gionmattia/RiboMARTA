@@ -19,7 +19,8 @@ if "marta_images" not in st.session_state:
     st.session_state["marta_images"] = {
         "error": (assets_folder/"error_marta.png").read_bytes(),
         "welcome": (assets_folder/"welcome_marta.png").read_bytes(),
-        "explaining": (assets_folder/"explaining_marta.png").read_bytes()
+        "explaining": (assets_folder/"explaining_marta.png").read_bytes(),
+        "failure": (assets_folder/"ko_marta.png").read_bytes()
     }
 
 # Name each page in the navigation bar

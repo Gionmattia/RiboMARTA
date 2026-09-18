@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
+from app_helpers import quirky_id_checkpoint
 import os
 
+quirky_id_checkpoint()
 analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
 st.write(f"######  :gray[ Analysis ID: {analysis.quirky_id}]")
 st.title("Dataset Selection")
