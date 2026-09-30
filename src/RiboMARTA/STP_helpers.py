@@ -70,7 +70,7 @@ def _map_type(codon):
     if codon == "ATG":
         return "ATG"
     elif codon in ["CTG", "GTG", "TTG"] : #, "GTG", "TTG"]:
-        return "CTG"
+        return "Near-Cognate Start"
     elif codon in ["TGA", "TAA", "TAG"]:
         return "stop codon"
     else:
@@ -342,18 +342,18 @@ def ORF_plotter2(
         codon_color_map = {
             "ATG": "white",
             "stop codon": "black",
-            "CTG": "#e3e3e3",
+            "Near-Cognate Start": "#e3e3e3",
             "None": bg_colour,
             "nan": bg_colour,
         }
     elif genco_mode == True:
 
-        bg_colour = "#676767"
+        bg_colour = "white"
 
         codon_color_map = {
-            "ATG": "white",
-            "stop codon": "black",
-            "CTG": "#e3e3e3",
+            "ATG": "green",
+            "stop codon": "red",
+            "Near-Cognate Start": "#65ba11",
             "None": bg_colour,
             "nan": bg_colour,
         }
@@ -865,149 +865,149 @@ def subplot_single_transcript_plot(
 
     return p
 
-
-def genco_single_transcript_plot(
-    df: pd.DataFrame,
-    x_range: Range1d,
-    run_option: list = None,
-    mappability_df: pd.DataFrame = None,
-    genomic_merged_ranges: dict = None,    # needs info on baseline/target/noise
-) -> figure:
-    """
-    Per-study coverage plot. Each SRR/study column is drawn as its own
-    coloured bar trace (raw counts, no smoothing, no frame colouring).
-    Expects wide format: an 'X' column plus one count column per study.
-    """
-    df = df.copy()
-
-    # Identify study columns (everything except X / Mappability)
-    reserved = {"X", "Mappability"}
-    study_cols = [c for c in df.columns if c not in reserved]
-    if run_option is not None:
-        study_cols = [c for c in study_cols if c in run_option]
-
-    # Colour palette sized to the number of studies
-    n = len(study_cols)
-    if n <= 10:
-        palette = Category10[max(3, n)]
-    else:
-        palette = (Category20[20] * (n // 20 + 1))[:n]
-
-    # Y bounds across all plotted studies
-    if study_cols:
-        y_upper = max(df[study_cols].max().max(), 10)
-    else:
-        y_upper = 10
-    y_lower = min(-0.05 * y_upper, -0.05)  # avoid the -0.0 bounds bug
-
-    p = figure(
-        x_range=x_range,
-        y_range=Range1d(start=y_lower, end=y_upper * 1.2),
-        sizing_mode="stretch_width",
-        height=700,
-        background_fill_color="white",
-        border_fill_color="white",
-        x_axis_label="Position on the transcript (nt)",
-        y_axis_label="Raw Counts",
-        title=f"Raw Counts",
-        tools="pan,wheel_zoom,box_zoom,reset,save",
-        active_scroll="wheel_zoom",
-    )
-    p.xgrid.grid_line_color = None
-    p.ygrid.grid_line_color = None
-    p.outline_line_color = None
-
-    # One bar trace per study
-    legend_items = []
-    hover_renderers = []
-    for i, col in enumerate(study_cols):
-        sub = df[["X", col]].sort_values("X")
-        source = ColumnDataSource(sub)
-        renderer = p.vbar(
-            x="X", top=col, bottom=0, width=1,
-            source=source,
-            fill_color=palette[i % len(palette)],
-            fill_alpha=0.6,
-            hover_fill_alpha=0.9,
-            line_color=None,
-        )
-        # per-renderer hover so the tooltip reads the right column
-        p.add_tools(HoverTool(
-            tooltips=[("Position", "@X"), ("Study", col), ("Counts", f"@{{{col}}}{{0}}")],
-            mode="vline",
-            renderers=[renderer],
-        ))
-        legend_items.append((col, [renderer]))
-        hover_renderers.append(renderer)
-
-    # Optional mappability overlay on secondary y-axis
-    if mappability_df is not None:
-        p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
-        mapp_line = p.line(
-            x="X", y="Mappability",
-            source=ColumnDataSource(mappability_df),
-            line_color="gray", line_dash="dotted", line_width=1.5,
-            y_range_name="mappability",
-        )
-        p.add_layout(
-            LinearAxis(
-                y_range_name="mappability",
-                axis_label="Mappability",
-                axis_label_text_color="gray",
-                major_label_text_color="gray",
-                axis_line_color="gray",
-            ),
-            "right",
-        )
-        legend_items.append(("Mappability", [mapp_line]))
-
-    # Code to add boundaries regions (baseline/target/noise)
-    delim_1 = genomic_merged_ranges["y_slice"][0]
-    delim_2 = genomic_merged_ranges["y_slice"][1]
-    vline = Span(
-        location=delim_1,
-        dimension="height",
-        line_color="black",
-        line_width=2,
-        line_dash="dashed",
-    )
-    vline2 = Span(
-        location=delim_2,
-        dimension="height",
-        line_color="black",
-        line_width=2,
-        line_dash="dashed",
-    )
-    p.add_layout(vline)
-    p.add_layout(vline2)
-    # Code to add textbox over regions
-    _add_region_box(p, genomic_merged_ranges["x_slice"][0],
-                    genomic_merged_ranges["x_slice"][1], label="Baseline", color="#d4d4d4", alpha=0)
-
-    _add_region_box(p, genomic_merged_ranges["y_slice"][0],
-                    genomic_merged_ranges["y_slice"][1], label="Target", color="#d4d4d4", alpha=0.35)
-    _add_region_box(p, genomic_merged_ranges["n_slice"][0],
-                    genomic_merged_ranges["n_slice"][1], label="Noise", color="#d4d4d4", alpha=0)
-
-    legend = Legend(items=legend_items, orientation="horizontal", click_policy="hide")
-    p.add_layout(legend, "above")
-
-    # Typography
-    p.title.text_font_size = "14pt"
-    p.xaxis.axis_label_text_font_size = "13pt"
-    p.xaxis.major_label_text_font_size = "14pt"
-    p.yaxis.axis_label_text_font_size = "13pt"
-    p.yaxis.major_label_text_font_size = "14pt"
-    p.title.text_color = "black"
-    p.xaxis.axis_label_text_color = "black"
-    p.yaxis.axis_label_text_color = "black"
-    p.xaxis.major_label_text_color = "black"
-    p.yaxis.major_label_text_color = "black"
-    p.legend.label_text_color = "black"
-    p.legend.background_fill_color = "white"
-
-    # Limit pan and zoom
-    p.y_range.bounds = (y_lower, y_upper * 1.5)
-    p.x_range.bounds = (x_range.start, x_range.end)
-
-    return p
+#
+# def genco_single_transcript_plot(
+#     df: pd.DataFrame,
+#     x_range: Range1d,
+#     run_option: list = None,
+#     mappability_df: pd.DataFrame = None,
+#     genomic_merged_ranges: dict = None,    # needs info on baseline/target/noise
+# ) -> figure:
+#     """
+#     Per-study coverage plot. Each SRR/study column is drawn as its own
+#     coloured bar trace (raw counts, no smoothing, no frame colouring).
+#     Expects wide format: an 'X' column plus one count column per study.
+#     """
+#     df = df.copy()
+#
+#     # Identify study columns (everything except X / Mappability)
+#     reserved = {"X", "Mappability"}
+#     study_cols = [c for c in df.columns if c not in reserved]
+#     if run_option is not None:
+#         study_cols = [c for c in study_cols if c in run_option]
+#
+#     # Colour palette sized to the number of studies
+#     n = len(study_cols)
+#     if n <= 10:
+#         palette = Category10[max(3, n)]
+#     else:
+#         palette = (Category20[20] * (n // 20 + 1))[:n]
+#
+#     # Y bounds across all plotted studies
+#     if study_cols:
+#         y_upper = max(df[study_cols].max().max(), 10)
+#     else:
+#         y_upper = 10
+#     y_lower = min(-0.05 * y_upper, -0.05)  # avoid the -0.0 bounds bug
+#
+#     p = figure(
+#         x_range=x_range,
+#         y_range=Range1d(start=y_lower, end=y_upper * 1.2),
+#         sizing_mode="stretch_width",
+#         height=700,
+#         background_fill_color="white",
+#         border_fill_color="white",
+#         x_axis_label="Position on the transcript (nt)",
+#         y_axis_label="Raw Counts",
+#         title=f"Raw Counts",
+#         tools="pan,wheel_zoom,box_zoom,reset,save",
+#         active_scroll="wheel_zoom",
+#     )
+#     p.xgrid.grid_line_color = None
+#     p.ygrid.grid_line_color = None
+#     p.outline_line_color = None
+#
+#     # One bar trace per study
+#     legend_items = []
+#     hover_renderers = []
+#     for i, col in enumerate(study_cols):
+#         sub = df[["X", col]].sort_values("X")
+#         source = ColumnDataSource(sub)
+#         renderer = p.vbar(
+#             x="X", top=col, bottom=0, width=1,
+#             source=source,
+#             fill_color=palette[i % len(palette)],
+#             fill_alpha=0.6,
+#             hover_fill_alpha=0.9,
+#             line_color=None,
+#         )
+#         # per-renderer hover so the tooltip reads the right column
+#         p.add_tools(HoverTool(
+#             tooltips=[("Position", "@X"), ("Study", col), ("Counts", f"@{{{col}}}{{0}}")],
+#             mode="vline",
+#             renderers=[renderer],
+#         ))
+#         legend_items.append((col, [renderer]))
+#         hover_renderers.append(renderer)
+#
+#     # Optional mappability overlay on secondary y-axis
+#     if mappability_df is not None:
+#         p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
+#         mapp_line = p.line(
+#             x="X", y="Mappability",
+#             source=ColumnDataSource(mappability_df),
+#             line_color="gray", line_dash="dotted", line_width=1.5,
+#             y_range_name="mappability",
+#         )
+#         p.add_layout(
+#             LinearAxis(
+#                 y_range_name="mappability",
+#                 axis_label="Mappability",
+#                 axis_label_text_color="gray",
+#                 major_label_text_color="gray",
+#                 axis_line_color="gray",
+#             ),
+#             "right",
+#         )
+#         legend_items.append(("Mappability", [mapp_line]))
+#
+#     # Code to add boundaries regions (baseline/target/noise)
+#     delim_1 = genomic_merged_ranges["y_slice"][0]
+#     delim_2 = genomic_merged_ranges["y_slice"][1]
+#     vline = Span(
+#         location=delim_1,
+#         dimension="height",
+#         line_color="black",
+#         line_width=2,
+#         line_dash="dashed",
+#     )
+#     vline2 = Span(
+#         location=delim_2,
+#         dimension="height",
+#         line_color="black",
+#         line_width=2,
+#         line_dash="dashed",
+#     )
+#     p.add_layout(vline)
+#     p.add_layout(vline2)
+#     # Code to add textbox over regions
+#     _add_region_box(p, genomic_merged_ranges["x_slice"][0],
+#                     genomic_merged_ranges["x_slice"][1], label="Baseline", color="#d4d4d4", alpha=0)
+#
+#     _add_region_box(p, genomic_merged_ranges["y_slice"][0],
+#                     genomic_merged_ranges["y_slice"][1], label="Target", color="#d4d4d4", alpha=0.35)
+#     _add_region_box(p, genomic_merged_ranges["n_slice"][0],
+#                     genomic_merged_ranges["n_slice"][1], label="Noise", color="#d4d4d4", alpha=0)
+#
+#     legend = Legend(items=legend_items, orientation="horizontal", click_policy="hide")
+#     p.add_layout(legend, "above")
+#
+#     # Typography
+#     p.title.text_font_size = "14pt"
+#     p.xaxis.axis_label_text_font_size = "13pt"
+#     p.xaxis.major_label_text_font_size = "14pt"
+#     p.yaxis.axis_label_text_font_size = "13pt"
+#     p.yaxis.major_label_text_font_size = "14pt"
+#     p.title.text_color = "black"
+#     p.xaxis.axis_label_text_color = "black"
+#     p.yaxis.axis_label_text_color = "black"
+#     p.xaxis.major_label_text_color = "black"
+#     p.yaxis.major_label_text_color = "black"
+#     p.legend.label_text_color = "black"
+#     p.legend.background_fill_color = "white"
+#
+#     # Limit pan and zoom
+#     p.y_range.bounds = (y_lower, y_upper * 1.5)
+#     p.x_range.bounds = (x_range.start, x_range.end)
+#
+#     return p
