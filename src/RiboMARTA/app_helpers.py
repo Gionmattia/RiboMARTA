@@ -99,13 +99,18 @@ class GenomicCoordinatesMode:
     genomic_merged_ranges: dict = None
     genomic_merged_mappability_df: pd.DataFrame = None
     genomic_merged_mappability_ranges: dict = None
+
+    # Step 3bis - Sequences
+    regions_sequence: dict = None # Keys: Baseline Region, Target Region, Noise Region
+
+    # Step 4 - Aggregation/smoothing
     smoothing_option: bool = False
     smoothing_criminal_thresh: int = 4
     aggregation_option: str = None  # Not yet implemented in genco!
     members_per_group : pd.DataFrame = None # Not yet implemented in genco!
 
 
-    # Step 4 - Analysis Parameters stored.
+    # Step 5 - Analysis Parameters stored.
     alpha_baseline: float = None
     alpha_target: float = None
     ci: int = None
@@ -113,15 +118,15 @@ class GenomicCoordinatesMode:
     n_jobs: int = None
     seed: int = None
 
-    # Step 5 - Flag. Analysis done | Results and metadata stored.
+    # Step 6 - Flag. Analysis done | Results and metadata stored.
     genco_analysis_done: bool = False
     results: pd.DataFrame = None
     results_meta: pd.DataFrame = None
 
-    # Step 5b - Flag. BERTA Analysis done | Results and metadata stored.
-    genco_BERTA_analysis_done: bool = False
-    BERTA_results: pd.DataFrame = None
-    BERTA_results_meta: pd.DataFrame = None
+    # # Step 5b - Flag. BERTA Analysis done | Results and metadata stored.
+    # genco_BERTA_analysis_done: bool = False
+    # BERTA_results: pd.DataFrame = None
+    # BERTA_results_meta: pd.DataFrame = None
 
 
 @dataclass

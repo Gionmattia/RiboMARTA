@@ -264,6 +264,13 @@ def genco_mode_style():
         background-color: #00855d !important;
         box-sizing: border-box !important;
     }
+    
+    /*TOGGLE (on state) */
+    div[data-testid="stCheckbox"] label:has(input:checked) > :not(input):first-of-type,
+    div[data-testid="stToggle"] label:has(input:checked) > :not(input):first-of-type {
+        background-color: #5ca274 !important;
+    }
+ 
     </style>
     """, unsafe_allow_html=True)
 

@@ -7,14 +7,14 @@ from Style_options import genco_mode_style
 from streamlit_bokeh import streamlit_bokeh
 
 from STP_helpers import *
-from bokeh.plotting import figure
+/ from bokeh.plotting import figure
 from bokeh.models import (ColumnDataSource, HoverTool, PanTool, Range1d, Span, Label, Legend
 )
 import pandas as pd
-from bokeh.models import LinearAxis
+# from bokeh.models import LinearAxis
 from app_helpers import AnalysisStatus, srr_genco_lookup_sidebar, quirky_id_checkpoint, graceful_failure
-from bokeh.layouts import column
-from bokeh.models import BoxAnnotation
+# from bokeh.layouts import column
+# from bokeh.models import BoxAnnotation
 
 genco_mode_style()
 

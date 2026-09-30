@@ -9,7 +9,55 @@ Date: 26-06-2025
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+import pyfaidx
 
+# Helper - Functions to create ORFplot in txid mode
+def get_sequence(fasta: pyfaidx.Fasta, df: pd.DataFrame):
+    """
+     This function extracts the sequence information for a transcript from the genome FASTA file.
+
+    Parameters
+    ----------
+    fasta: pyfaidx.Fasta
+        Fasta file containing the genome for the selected organism
+    df: pd.DataFrame
+        Data frame with the ranges for the transcript of interest
+
+    Returns
+    -------
+    sequences: dict
+         dictionary storing the sequences for each region
+
+    """
+
+    seq_dict = {}
+
+    # need to change the iteration mechanism
+    for row in df.itertuples():
+        region = row.Region
+        chrom = row.Chromosome
+        feature_start = row.Start
+        feature_end = row.End
+        # Coordinates need to be given as start < end, to extract sequence. Not a problem in txid (df is sorted before) but
+        # needs to be addressed here
+        if feature_start < feature_end:
+            start = feature_start
+            end = feature_end
+            strandedness = "+"
+
+        elif feature_start > feature_end:
+            start = feature_end
+            end = feature_start
+            strandedness = "-"
+        seq = fasta[chrom][start:end].seq
+
+        if strandedness == "-":
+            seq = str(Seq(seq).reverse_complement())
+        seq_dict[region] = seq
+
+
+
+    return seq_dict
 
 # plot to have the three genomic transcript_ranges plotted for the original raw data
 def multi_line_plot_genomic(df, run_option = None, coordinates = None, x=None):

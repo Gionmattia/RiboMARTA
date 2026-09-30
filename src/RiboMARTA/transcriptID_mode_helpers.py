@@ -7,13 +7,13 @@ import pandas as pd
 from joblib import Parallel, delayed
 import multiprocessing as mp
 mp.set_start_method("fork", force=True)
-import plotly.graph_objects as go
-import random
+# import plotly.graph_objects as go
+# import random
 from module0 import _extract_one
-import time
+# import time
 from Bio.Seq import Seq
-from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models import Span, Label, FactorRange, HoverTool, PanTool
+# from bokeh.plotting import figure, ColumnDataSource
+# from bokeh.models import Span, Label, FactorRange, HoverTool, PanTool
 
 
 # Function to load the transcript_ranges
@@ -309,58 +309,7 @@ def extract_from_multiple_bigwigs(bigwig_files: list,
     return all_studies_df
 
 
-# def txid_data_extraction(current_run, bigwig_files, gr):
-#
-#     """
-#     Wrapper function loads coverage information into a dataframe (all_studies_df) which is stored into current_run.
-#     Also extract features lengths (5', CDs, 3') and stores them in current_run object.
-#
-#     Parameters
-#     ----------
-#     current_run: TranscriptIDMode
-#         Custom DataClass instance storing all the info for the current analysis.
-#     bigwig_files: list
-#         List of paths pointing to bigwigs to use, given as strings
-#     gr: pr.PyRanges
-#         GTF annotation file, loaded as a PyRanges object.
-#
-#     Returns
-#     -------
-#     all_studies_df: pd.DataFrame
-#         Data frame with the raw count per position (rows) across all selected datasets (columns).
-#     strandedness: str
-#         A string encoding the strand (+ or -) for the features extracted.
-#     """
-#
-#     with st.spinner("I am retrieving the coverage data..."):
-#
-#         # Internal Check. Stops execution if the txid is not found for any reason.
-#         try:
-#             # 1 Retrieve transcript transcript_ranges
-#             transcript_ranges = extract_tx_pyranges(gr, current_run.txid)
-#         except KeyError:
-#             st.error("I am sorry, but the Transcript ID given was not found in the annotation file."
-#                      "Please, restart from the Home page.")
-#             st.stop()
-#
-#         # 2  Retrieve transcript features (CDS, UTRs) transcript_ranges and strandedness
-#         all_ranges, strandedness = regions_df_formatter(transcript_ranges)
-#         # 3  Retrieve features (CDS, UTRs) lengths
-#         current_run.utr5_length, current_run.cds_length, current_run.utr3_length = extract_features_length(
-#             transcript_ranges, strandedness)
-#         # 4 Extract coverage from given bigwigs
-#         current_run.all_studies_df = extract_from_multiple_bigwigs(bigwig_files,
-#                                                                    all_ranges,
-#                                                                    strandedness,
-#                                                                    n_jobs=1)
-#         # Updates logic flags within current_run
-#         current_run.loading_tx_cov = False
-#         current_run.tx_cov_extracted = True
-#
-#     return all_ranges, strandedness
-
-
-# Helper - Functions to create ORFplot
+# Helper - Functions to create ORFplot in txid mode
 def get_sequence(fasta: pyfaidx.Fasta, df: pd.DataFrame, strandedness: str) -> str:
     """
      This function extracts the sequence information for a transcript from the genome FASTA file.

@@ -10,7 +10,7 @@ import pandas as pd
 from bokeh.models import LinearAxis
 from bokeh.layouts import column
 from bokeh.models import BoxAnnotation
-from streamlit_bokeh import streamlit_bokeh
+# from streamlit_bokeh import streamlit_bokeh
 
 # Frame colors used everywhere — single source of truth
 FRAME_COLORS = {1: "#48cf4b", 2: "#68ace3", 3: "#e66343"}
@@ -140,23 +140,34 @@ def subplot_single_transcript_plot2(
     txid: str = "",
     k: int = 1,
     mappability_df: pd.DataFrame = None,
+    genco_mode = False,
 ) -> figure:
     """
-    Frame-coloured coverage plot. Uses vbar glyphs (one per frame) so hover
-    snaps cleanly to nucleotide positions.
+    Frame-colored plot (only in txid mode). Uses vbar glyphs (one per frame) so hover snaaps to nt position
     """
+
+
     df = df.copy()
     df["Frame"] = df["Frame"].astype(int)
 
     y_upper = df[y_axis].max()
     y_upper = max(y_upper, 10) # If a transcript has 0 counts, then we set the max y on the plot to 10 (for visualisation)
     y_lower = min(-1 * df[y_axis].quantile(0.10), -0.05 * y_upper)
-    y_lower = min(y_lower, -0.05)  # Ading safety line to not encour into "-0.0" bug. We keep some margin, but avoid -0.0
+    y_lower = min(y_lower, -0.05)  # Adding safety line to not encour into "-0.0" bug. We keep some margin, but avoid -0.0
 
-    title = (
-        f"Global Aggregate for {txid}, smoothed by k = {k}"
-        if k > 1 else f"Global Aggregate for {txid}"
-    )
+    if genco_mode != True:
+        title = (
+            f"Global Aggregate for {txid}, smoothed by k = {k}"
+            if k > 1 else f"Global Aggregate for {txid}"
+        )
+        x_label = "Position on the transcript (nt)"
+    elif genco_mode is True:
+        title = (
+            f"Global Aggregate, smoothed by k = {k}"
+            if k > 1 else f"Global Aggregate for {txid}"
+        )
+        x_label = "Relative Position from Region Start (nt)"
+
 
     p = figure(
         x_range=x_range,
@@ -165,7 +176,7 @@ def subplot_single_transcript_plot2(
         height=700,
         background_fill_color="white",
         border_fill_color="white",
-        x_axis_label="Position on the transcript (nt)",
+        x_axis_label=x_label,
         y_axis_label="Aggregate Counts",
         title=title,
         tools="pan,wheel_zoom,box_zoom,reset,save",
@@ -178,6 +189,11 @@ def subplot_single_transcript_plot2(
     # We plot tas area the various frames, but use an invisible bar for the hover functionality
     legend_items = []
     hover_renderers = []
+
+
+    if genco_mode == True:
+        FRAME_COLORS = {1: "#676767", 2: "#676767", 3: "#676767"}
+
     for frame in (1, 2, 3):
         sub = df[df["Frame"] == frame].sort_values("X")
         if sub.empty:
@@ -217,12 +233,13 @@ def subplot_single_transcript_plot2(
             )
             hover_renderers.append(hover_bar)
 
-        legend_items.append((f"Frame {frame}", [renderer]))
+        if genco_mode is False:
+            legend_items.append((f"Frame {frame}", [renderer]))
 
     # Optional mappability overlay on secondary y-axis
     if mappability_df is not None:
 
-        p.extra_y_ranges = {"mappability": Range1d(start=0, end=1)}
+        p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
 
         mapp_line = p.line(
             x="X",
@@ -247,12 +264,14 @@ def subplot_single_transcript_plot2(
 
         legend_items.append(("Mappability", [mapp_line]))
 
-    # Start/Stop labels
-    start_pos = utr5_length
-    stop_pos = utr5_length + cds_length
+    # Safeguard. If both are zero, no point in adding lines
+    if utr5_length + cds_length != 0:
+        # Start/Stop labels
+        start_pos = utr5_length
+        stop_pos = utr5_length + cds_length
 
-    _add_vline_and_label(p, start_pos, y_upper * 1.1, "Start")
-    _add_vline_and_label(p, stop_pos, y_upper * 1.1, "Stop")
+        _add_vline_and_label(p, start_pos, y_upper * 1.1, "Start")
+        _add_vline_and_label(p, stop_pos, y_upper * 1.1, "Stop")
 
     # Legend OUTSIDE the plot area, above the title
     legend = Legend(items=legend_items, orientation="horizontal", click_policy="hide")
@@ -288,7 +307,6 @@ def subplot_single_transcript_plot2(
     # Limit pan and zoom
     p.y_range.bounds = (y_lower, y_upper * 1.5)
     p.x_range.bounds = (x_range.start, x_range.end)
-    p.extra_y_ranges = {"mappability": Range1d(start=0, end=1, bounds=(0, 1))}
 
     return p
 
@@ -297,6 +315,7 @@ def ORF_plotter2(
     df: pd.DataFrame,
     frame: int,
     x_range: Range1d,
+    genco_mode = False,
 ) -> figure:
     """
     Single-frame ORF track. Background coloured by frame, with ATG (white),
@@ -317,25 +336,43 @@ def ORF_plotter2(
     plot_df.loc[mask, "type"] = None
     plot_df["type"] = plot_df["type"].astype(str)
 
-    bg_colour = FRAME_COLORS[frame]
+    if genco_mode == False:
+        bg_colour = FRAME_COLORS[frame]
 
-    codon_color_map = {
-        "ATG": "white",
-        "stop codon": "black",
-        "CTG": "#e3e3e3",
-        "None": bg_colour,
-        "nan": bg_colour,
-    }
+        codon_color_map = {
+            "ATG": "white",
+            "stop codon": "black",
+            "CTG": "#e3e3e3",
+            "None": bg_colour,
+            "nan": bg_colour,
+        }
+    elif genco_mode == True:
+
+        bg_colour = "#676767"
+
+        codon_color_map = {
+            "ATG": "white",
+            "stop codon": "black",
+            "CTG": "#e3e3e3",
+            "None": bg_colour,
+            "nan": bg_colour,
+        }
+
     plot_df["color"] = plot_df["type"].map(lambda x: codon_color_map.get(x, bg_colour))
 
     source = ColumnDataSource(plot_df)
+
+    if genco_mode == False:
+        title_orf_plot = f"Frame {frame}"
+    elif genco_mode == True:
+        title_orf_plot = "In-frame start/stop:"
 
     p = figure(
         x_range=x_range,
         y_range=Range1d(start=0, end=1),
         height=75,
         sizing_mode="stretch_width",
-        title=f"Frame {frame}",
+        title=title_orf_plot,
         background_fill_color="white",
         border_fill_color="white",
         tools="save",
@@ -377,6 +414,63 @@ def ORF_plotter2(
 
     return p
 
+# GENCO mode version!
+def plot_ga_with_frames1(
+    region_df: pd.DataFrame,
+    sequence: str,
+    mappability: pd.DataFrame = None,
+    smoothing: bool = True,
+    normalize: bool = False,
+) -> column:
+    """
+    Frame-aware (as much as possible, for genco mode) global aggregate plot with ORF tracks beneath, all sharing
+    a linked x-axis. Mappability (if available) is overlaid on the main plot.
+    """
+    # Prepare data
+    ga_df = global_aggregate(region_df, normalize = normalize)
+    processed_df, k = plot_smoother(ga_df, smoothing)
+
+    # Build shared numeric x-range
+    x_min = int(processed_df["X"].min())
+    x_max = int(processed_df["X"].max())
+    margin = max(1, int((x_max - x_min) * 0.01))
+    shared_x_range = Range1d(start=x_min - margin, end=x_max + margin)
+
+    if smoothing is True:
+        y_column = "Global Aggregate smoothed"
+    elif smoothing is False:
+        y_column =  "Global Aggregate"
+
+    # genco-specific difference #1
+    # Main transcript plot (with optional mappability overlay)
+    transcript_plot = subplot_single_transcript_plot2(
+        df=processed_df,
+        x_range=shared_x_range,
+        y_axis=y_column,
+        utr5_length=0,
+        cds_length=0,
+        k=k,
+        mappability_df=mappability,
+        genco_mode = True
+    )
+
+    # ORF tracks for each ""frame""
+    # Genco-specific difference #2 - sequence is given
+    orf_info = compute_codons_by_frame(sequence)
+    # Genco-specific difference #3 - genco set to True
+    orf_plots = [ORF_plotter2(orf_info, frame, shared_x_range, genco_mode = True) for frame in (1, 2, 3)]
+
+    # Stack everything
+    combined_plot = column(
+        transcript_plot,
+        *orf_plots,
+        sizing_mode="stretch_width",
+        height=925,
+    )
+
+    return combined_plot
+
+# TXID mode version
 def plot_ga_with_frames2(
     current_run: AnalysisStatus,
     all_studies_df: pd.DataFrame,

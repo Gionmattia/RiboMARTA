@@ -11,7 +11,7 @@ Date: 26-05-2025
 
 # Import libraries
 import pyBigWig
-import pyranges as pr
+#import pyranges as pr
 import pandas as pd
 from joblib import Parallel, delayed
 import os
@@ -85,7 +85,7 @@ def format_input_df(my_list):
     :return: The dataframe with transcript_ranges to extract from genomic
     """
     data = []
-    region_names = ["First Region", "Second Region", "Noise Region"]
+    region_names = ["Baseline Region", "Target Region", "Noise Region"]
     for i, reg in zip(my_list, region_names):
         fri = i.replace(",", "").replace(".", "").replace(":", "-").split("-")
         chrom = fri[0]
@@ -127,8 +127,8 @@ def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
             else:
                 final[region] = df_tmp
 
-    pre_feature_x = final["First Region"]
-    post_feature_y = final["Second Region"]
+    pre_feature_x = final["Baseline Region"]
+    post_feature_y = final["Target Region"]
     noise_n = final["Noise Region"]
 
     # Replace na with 0s instead
@@ -186,7 +186,7 @@ def global_aggregate(input_df: pd.DataFrame,
         df = df / col_sums.replace(0, 1)
 
 
-    # Compute global aggregate (sum across samples)
+    # Computes global aggregate (ignores Sequence column)
     result_df = pd.DataFrame({
         "Global Aggregate": df.select_dtypes(include='number').sum(axis=1)
     })

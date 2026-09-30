@@ -7,6 +7,7 @@ from smoothing_helpers import *
 from STP_helpers import *
 from streamlit_bokeh import streamlit_bokeh
 from Style_options import genco_mode_style
+from genomic_mode_helpers import get_sequence
 
 quirky_id_checkpoint()
 
@@ -47,10 +48,10 @@ if current_mode.regions_extracted == False:
 
     if st.button("Extract Regions"):
 
-        pre_feature_x, post_feature_y, noise_n = extract_regions_from_bw_parallel(analysis.filters.selected_studies,
-                                                                                  current_mode.formatted_genomic_ranges)
+        baseline_region, target_region, noise_region = extract_regions_from_bw_parallel(analysis.filters.selected_studies,
+                                                                                        current_mode.formatted_genomic_ranges)
         # Save the three dataframes as a list, so to be able to return to the raw plots
-        current_mode.genomic_slices = [pre_feature_x, post_feature_y, noise_n]
+        current_mode.genomic_slices = [baseline_region, target_region, noise_region]
 
         if analysis.mappability_path is not None:
             # Transform path to mappability .bw to a list
@@ -77,11 +78,21 @@ if current_mode.regions_extracted == False:
                 mapp_n)
 
         # Create a single df and coordinates, to be used by run_analysis()
-        current_mode.genomic_merged, current_mode.genomic_merged_ranges = genomic_mode_formatter(pre_feature_x,
-                                                                                                  post_feature_y,
-                                                                                                  noise_n)
+        current_mode.genomic_merged, current_mode.genomic_merged_ranges = genomic_mode_formatter(baseline_region,
+                                                                                                 target_region,
+                                                                                                 noise_region)
         # Adds backup (to be used to reverse smoothing options down)
         current_mode.genomic_merged_backup = current_mode.genomic_merged.copy()
+
+        # Extract and store the genomic sequence for each region
+        fasta = st.session_state.fasta
+        sequence_dict = get_sequence(fasta=fasta, df=current_mode.formatted_genomic_ranges)
+        current_mode.regions_sequence = sequence_dict
+
+        # Insert sequences into the dataframes
+        current_mode.genomic_slices[0].insert(0, 'Sequence', list(current_mode.regions_sequence["Baseline Region"]))
+        current_mode.genomic_slices[1].insert(0, 'Sequence', list(current_mode.regions_sequence["Target Region"]))
+        current_mode.genomic_slices[2].insert(0, 'Sequence', list(current_mode.regions_sequence["Noise Region"]))
 
         current_mode.regions_extracted = True
 
@@ -95,72 +106,72 @@ if current_mode.regions_extracted == True:
         with col1:
             st.write("Baseline Region")
             current_mode.genomic_slices[0]
+            # Add download button?
         with col2:
             st.write("Target Region")
             current_mode.genomic_slices[1]
+            # Add download button?
         with col3:
-            st.write("Noise control Region")
+            st.write("Noise Control Region")
             current_mode.genomic_slices[2]
+            # Add download button?
 
     # Show aggregated plots per genomic range extracted
     st.write("### Aggregate plots per region")
     st.write("""In these tabs, you can visualise the global aggregate (across all studies) for your genomic intervals of choice.
     You can expand each table by clicking on the top-right "fullscreen" button. 
     If you wish to download one of the plots, click on the '...' button on the same side.""")
-    tab1, tab2, tab3 = st.tabs(["Baseline Region", "Target Region", "Noise control Region"])
+    st.markdown("#### IMPORTANT: ")
+    st.markdown("Pseudo-ORF plots were added. For each region, frames are defined from the start of each interval."
+                "This is done ONLY to allow users to see the presence of in-frame starts or stops codons WITHIN a region."
+                " THESE ARE USER-DEFINED GENOMIC REGIONS, THE 'READING FRAMES' ARE JUST AN ABSTRACTION TO VISUALISE BETTER!")
+
+    tab1, tab2, tab3 = st.tabs(["Baseline Region", "Target Region", "Noise Control Region"])
     with tab1:
         st.write("Baseline Region")
-        agg_df_x = global_aggregate(current_mode.genomic_slices[0],
-                                    normalize = False,
-                                    keep_pos = True)
+        smooth = st.toggle("Smooth data", key = "baseline_toggle")
+        baseline_plot = plot_ga_with_frames1(region_df = current_mode.genomic_slices[0],
+                                             sequence = current_mode.regions_sequence["Baseline Region"],
+                                             smoothing = smooth,
+                                             mappability = current_mode.mappabilities[0].reset_index(names="X")
+                                             )
 
-        if current_mode.mappabilities is not None:
+        streamlit_bokeh(baseline_plot, use_container_width=False)
 
-            x_plot = colorless_transcript_plot(df = agg_df_x,
-                                               y_axis = "Global Aggregate",
-                                               mappability_df = current_mode.mappabilities[0])
-            streamlit_bokeh(x_plot, use_container_width=False)
+        if st.button("Store in the report", key="genco_baseline_plot"):
+            analysis.user_plots.append(baseline_plot)
+            st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
-        else:
-            x_plot = colorless_transcript_plot(df = agg_df_x,
-                                               y_axis = "Global Aggregate")
-            streamlit_bokeh(x_plot, use_container_width=False)
 
     with tab2:
         st.write("Target Region")
-        agg_df_y = global_aggregate(current_mode.genomic_slices[1],
-                                    normalize = False,
-                                    keep_pos = True)
+        smooth = st.toggle("Smooth data", key = "target_toggle")
+        target_plot = plot_ga_with_frames1(region_df = current_mode.genomic_slices[1],
+                                           sequence = current_mode.regions_sequence["Target Region"],
+                                           smoothing = smooth,
+                                           mappability=current_mode.mappabilities[1].reset_index(names="X")
+                                           )
 
-        if current_mode.mappabilities is not None:
+        streamlit_bokeh(target_plot, use_container_width=False)
 
-            y_plot = colorless_transcript_plot(df = agg_df_y,
-                                               y_axis = "Global Aggregate",
-                                               mappability_df = current_mode.mappabilities[1])
-            streamlit_bokeh(y_plot, use_container_width=False)
-
-        else:
-            y_plot = colorless_transcript_plot(df = agg_df_y,
-                                               y_axis = "Global Aggregate")
-            streamlit_bokeh(y_plot, use_container_width=False)
+        if st.button("Store in the report", key="genco_target_plot"):
+            analysis.user_plots.append(target_plot)
+            st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     with tab3:
-        st.write("Noise control Region")
-        agg_df_n = global_aggregate(current_mode.genomic_slices[2],
-                                    normalize = False,
-                                    keep_pos = True)
+        st.write("Noise Control Region")
+        smooth = st.toggle("Smooth data", key = "noise_toggle")
+        noise_plot = plot_ga_with_frames1(region_df = current_mode.genomic_slices[2],
+                                          sequence = current_mode.regions_sequence["Noise Region"],
+                                          smoothing = smooth,
+                                          mappability=current_mode.mappabilities[2].reset_index(names="X")
+                                          )
 
-        if current_mode.mappabilities is not None:
+        streamlit_bokeh(noise_plot, use_container_width=False)
 
-            n_plot = colorless_transcript_plot(df = agg_df_n,
-                                               y_axis = "Global Aggregate",
-                                               mappability_df = current_mode.mappabilities[2])
-            streamlit_bokeh(n_plot, use_container_width=False)
-
-        else:
-            n_plot = colorless_transcript_plot(df = agg_df_n,
-                                               y_axis = "Global Aggregate")
-            streamlit_bokeh(n_plot, use_container_width=False)
+        if st.button("Store in the report", key="genco_noise_plot"):
+            analysis.user_plots.append(noise_plot)
+            st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
 
     with st.expander("Select Smoothing Option"):
@@ -200,56 +211,50 @@ if current_mode.regions_extracted == True:
             # overwrites all_studies_df (ndr backup still safe) to add smoothing options
             genco_data_smoother(current_mode, current_mode.smoothing_option)
 
-
-            smoothed_w_ga = global_aggregate(current_mode.genomic_merged,
-                                        normalize=False,
-                                        keep_pos=True)
-
-            x_boundaries = current_mode.genomic_merged_ranges["x_slice"]
-            x_smooth = smoothed_w_ga[x_boundaries[0]:x_boundaries[1]]
-
-            tab4, tab5, tab6 = st.tabs(["Baseline Region", "Target Region", "Noise control Region"])
+            tab4, tab5, tab6 = st.tabs(["Baseline Region", "Target Region", "Noise Control Region"])
 
             with tab4:
 
                 x_boundaries = current_mode.genomic_merged_ranges["x_slice"]
-                x_smooth = smoothed_w_ga[x_boundaries[0]:x_boundaries[1]]
 
-                after_smooth_plot_x = colorless_transcript_plot(df = x_smooth,
-                                                                y_axis = "Global Aggregate",
-                                                                mappability_df = current_mode.mappabilities[0])
+                df1 = current_mode.genomic_merged[x_boundaries[0]:x_boundaries[1]].copy()
+                df1 = df1.drop(columns = ["Position"]).reset_index(drop = True)
+                smooth_baseline_plot = plot_ga_with_frames1(region_df=df1,
+                                                     sequence=current_mode.regions_sequence["Baseline Region"],
+                                                     smoothing=False,
+                                                     mappability=current_mode.mappabilities[0].reset_index(names="X")
+                                                     )
 
-                streamlit_bokeh(after_smooth_plot_x, use_container_width=False)
+                streamlit_bokeh(smooth_baseline_plot, use_container_width=False)
+
 
             with tab5:
 
                 y_boundaries = current_mode.genomic_merged_ranges["y_slice"]
-                y_smooth = smoothed_w_ga[y_boundaries[0]:y_boundaries[1]]
+                df2 = current_mode.genomic_merged[y_boundaries[0]:y_boundaries[1]].copy()
+                df2 = df2.drop(columns = ["Position"]).reset_index(drop = True)
+                smooth_target_plot = plot_ga_with_frames1(region_df= df2,
+                                                   sequence=current_mode.regions_sequence["Target Region"],
+                                                   smoothing=False,
+                                                   mappability=current_mode.mappabilities[1].reset_index(names="X")
+                                                   )
 
-                after_smooth_plot_y = colorless_transcript_plot(df = y_smooth,
-                                                                y_axis = "Global Aggregate",
-                                                                mappability_df = current_mode.mappabilities[1])
+                streamlit_bokeh(smooth_target_plot, use_container_width=False)
 
-                streamlit_bokeh(after_smooth_plot_y, use_container_width=False)
 
 
             with tab6:
 
                 n_boundaries = current_mode.genomic_merged_ranges["n_slice"]
-                n_smooth = smoothed_w_ga[n_boundaries[0]:n_boundaries[1]]
+                df3 = current_mode.genomic_merged[n_boundaries[0]:n_boundaries[1]].copy()
+                df3 = df3.drop(columns = ["Position"]).reset_index(drop = True)
+                smooth_noise_plot = plot_ga_with_frames1(region_df=df3,
+                                                  sequence=current_mode.regions_sequence["Noise Region"],
+                                                  smoothing=False,
+                                                  mappability=current_mode.mappabilities[2].reset_index(names="X")
+                                                  )
 
-                n_smooth
-
-                after_smooth_plot_n = colorless_transcript_plot(df = n_smooth,
-                                                                y_axis = "Global Aggregate",
-                                                                mappability_df = current_mode.mappabilities[2])
-
-                streamlit_bokeh(after_smooth_plot_n, use_container_width=False)
-
-            # Prepare data
-            # ga_df = global_aggregate(all_studies_df, normalize=normalize)
-            # processed_df, k = plot_smoother(ga_df, smoothing)
-            # #
+                streamlit_bokeh(smooth_noise_plot, use_container_width=False)
 
 
     if st.button("Next"):

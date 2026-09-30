@@ -17,12 +17,12 @@ col1, col2 = st.columns([1,4])
 with col1:
     st.image(st.session_state["marta_images"]["welcome"], width = 200)
 with col2:
-    st.markdown("""Welcome to the first prototype for RiboMARTA. My name is Marta, and I am here to guide you
+    st.markdown("""Welcome to RiboMARTA. My name is Marta, and I am here to guide you
 through the app and the analysis steps. You are currently in the starting page of the analysis workflow.
     
 First thing first, you need to decide which organism to use among the ones currently available 
 
-You can then proceed to compare translation across:
+You can then proceed to compare the Relative Translational Activity (RTA) across:
 
 - Regions of a transcript (Ensembl Transcript ID mode)
 - Genomic coordinates (Genomic Coordinates mode, currently in beta)

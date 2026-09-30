@@ -12,18 +12,18 @@ Date: 25-08-2025
 import streamlit as st
 from app_helpers import AnalysisStatus
 from transcriptID_mode_helpers import *
-from mappability_helpers import bokeh_mappability_track
-from mappability_helpers import txid_map_extraction
-from bokeh.models import FactorRange
-from bokeh.embed import file_html
-from bokeh.resources import CDN
-from bokeh.layouts import column
+from mappability_helpers import bokeh_mappability_track # Needed
+from mappability_helpers import txid_map_extraction # Needed
+# from bokeh.models import FactorRange
+# from bokeh.embed import file_html
+# from bokeh.resources import CDN
+# from bokeh.layouts import column
 from streamlit_bokeh import streamlit_bokeh
 import pandas as pd
 import numpy as np
 import warnings
-from statsmodels.stats.multitest import multipletests
-from joblib import Parallel, delayed
+# from statsmodels.stats.multitest import multipletests
+# from joblib import Parallel, delayed
 from bokeh.models import BoxAnnotation, Label
 from bokeh.plotting import figure, show
 from bokeh.models import (
