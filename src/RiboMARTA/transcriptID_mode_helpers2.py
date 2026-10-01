@@ -105,13 +105,13 @@ def ga_plots_UI_render(current_run, analysis):
     Also adds some info text.
     """
 
-    tab2, tab3, tab4, tab5 = st.tabs(["Raw Global Aggregate (smoothed)", "Raw Global Aggregate (unsmoothed)",
-                                      "Noise Region Selector", "Normalised Global Aggregate"])
+    tab2, tab3, tab4, tab5 = st.tabs(["Smoothed STP (Global Aggregate)", "Raw STP (Global Aggregate)",
+                                      "Noise Region Selector", "Normalised STP (Global Aggregate)"])
     with tab2:
-        st.write("####  Raw Global Aggregate & ORF plot")
+        st.write("#### Smoothed Single Transcript Plot  & ORF plot")
         st.write("Below you can see a Single Transcript plot for your data.")
         st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
-                 "(the sum of raw counts from each study, in that position), smoothed by a window of size k for easy exploration.")
+                 "(the sum of raw counts from each dataset, in that position), smoothed by a window of size k for easy exploration.")
         st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
                  "has been added.")
         if current_run.triplet_ga_plot is not None:
@@ -121,10 +121,10 @@ def ga_plots_UI_render(current_run, analysis):
                 st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     with tab3:
-        st.write("####  Raw Global Aggregate & ORF plot")
+        st.write("####  Raw Single Transcript Plot & ORF plot")
         st.write("Below you can see a Single Transcript plot for your data.")
         st.write("The x-axis represents the position on the transcript, while the y-axis represents the Global Aggregate"
-                 "(the sum of raw counts from each study, in that position). Values are kept raw and without smoothing,"
+                 "(the sum of raw counts from each dataset, in that position). Values are kept raw and without smoothing,"
                  "to allow easier visualisation of periodicity patterns when zooming in.")
         st.write("Counts have been coloured by frame, and beneath the plot an ORF plot displaying starts and stops "
                  "has been added.")
@@ -136,11 +136,13 @@ def ga_plots_UI_render(current_run, analysis):
 
     with tab4:
         st.write("#### Noise Control Region Selector")
-        st.write("In this panel you can visualise the 3' trailer of the transcript (or the whole, if not CDS is annotated)."
-        " For each position on the transcript, you can see how many of the high-coverage studies share at least a mapped footprint there."
-        "If a position is  conserved (= shared across studies) it will have a higher percentage."
+        st.markdown("In this panel you can visualise the 3' trailer of the transcript (or the whole, if not CDS is annotated)."
+        " For each position on the transcript, you can see the percentage of the high-coverage studies sharing at least a mapped footprint"
+        " We labelled it the ***Occupancy Consistency***, or ***OC***"
+        " If a position is conserved (= has mapped counts across many datasets) it will have a higher OC." 
+        " Assuming that Noise is random, it will not be conserved and thus have lower OC."
         "\n"
-        "\n Given that Noise is random, a good Noise Control Region is a section of low percentage (where mapped reads are shared by few studies)."
+        "\n  :orange[**Pick for Noise Control Region a section with low values of OC.**]"
         "\n"
         "\n Use the green section in the plot as a reference."
                  )
@@ -203,21 +205,11 @@ def ga_plots_UI_render(current_run, analysis):
                 else:
                     st.write(f"You are using the {studies} higher-coverage datasets out of {n_total} for this plot.")
 
-                OC_plot = trailer_signal_plot(percentage_sharing, studies)
-                streamlit_bokeh(OC_plot, use_container_width=True, theme="light_minimal")
-
-            # col1, col2 = st.columns([2, 6])
-            # with col1:
-            #     st.write("")
-            #     # window_size = st.number_input("Select the size of the noise region you want to get", value = 100, key="n_window")
-            # with col2:
-            #     st.write("")
-            #     st.write("")
-            #     st.write("Suggested Intervals not yet implemented. Requires extra work")
-            #     # give_intervals(percentage_sharing, int(window_size))
+        OC_plot = trailer_signal_plot(percentage_sharing, studies)
+        streamlit_bokeh(OC_plot, use_container_width=True, theme="light_minimal")
 
     with tab5:
-        st.write("#### Normalised Global Aggregate & ORF plot")
+        st.write("#### Normalised Single Transcript Plot & ORF plot")
         st.write("The x-axis represents the position on the transcript, while the y-axis represents the Normalised Global Aggregate"
                  "(each count in a position was normalised by the total counts of its study. The the normalised values have been summed to generate"
                  "the Normalised Global Aggregate), smoothed by a window of size k for easy exploration."
@@ -317,9 +309,9 @@ def trailer_signal_plot(series, studies):
     mapper = LinearColorMapper(palette="Viridis256", low=0.0, high=100.0)
 
     p = figure(
-        title=f"Per-position study-contribution — low = present in few studies out of {studies} -  more likely to be noise",
-        x_axis_label="3' Trailer position",
-        y_axis_label="Percentage of considered datasets sharing at least one count",
+        title=f"Occupancy Consistency Plot out of {studies} datasets",
+        x_axis_label="Position",
+        y_axis_label="OC (% of datasets)",
         height=380, width=950,
         tools="pan,box_zoom,wheel_zoom,reset,save",
         y_range=(0, 100),
@@ -333,10 +325,10 @@ def trailer_signal_plot(series, studies):
                fill_color={"field": "percentage", "transform": mapper},
                line_color=None)
 
-    p.add_layout(ColorBar(color_mapper=mapper, title="percentage"), "right")
+    p.add_layout(ColorBar(color_mapper=mapper, title="OC / percentage"), "right")
     p.add_tools(HoverTool(renderers=[hit],
                           tooltips=[("position", "@position"),
-                                    ("percentage", "@percentage{0.000}")]))
+                                    ("OC/percentage", "@percentage{0.000}")]))
 
     # advisory band, drawn but clearly non-binding
 
