@@ -83,7 +83,7 @@ if current_mode.loading_tx_cov:
         current_mode.mappability_df = mappability_df.rename(columns={other_col: 'Mappability'})
 
     current_mode.aggregation = None
-    current_mode.smoothing = False
+    current_mode.smoothing = None
 
     # Retrieves the sequence
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)

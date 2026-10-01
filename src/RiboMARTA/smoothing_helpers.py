@@ -226,15 +226,18 @@ def data_aggregator(current_run, aggregation):
         current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
 
 
-        current_run.post_aggregation_backup = current_run.all_studies_df
+        current_run.post_aggregation_backup = current_run.all_studies_df.copy()
         return
 
     # Total Aggregation
     elif aggregation  == "Total Aggregation":
 
         current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
+        studies_aggregated = current_run.all_studies_df.shape[1]
         current_run.all_studies_df = current_run.all_studies_df.sum(axis=1).to_frame("Global Aggregate")
+
         current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
 
-        current_run.post_aggregation_backup = current_run.all_studies_df
+        current_run.post_aggregation_backup = current_run.all_studies_df.copy()
+        current_run.members_per_group = pd.DataFrame([["Global Aggregate", studies_aggregated]], columns=["Group", "count"])
         return

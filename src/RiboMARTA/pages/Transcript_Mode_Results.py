@@ -15,6 +15,7 @@ from streamlit_bokeh import streamlit_bokeh
 
 from RiboMARTA.app_helpers import graceful_failure
 
+
 #First checkpoint. Stops rendering if the user has not initialised any analysis in the Home page
 quirky_id_checkpoint()
 # We are retrieving the AnalysysStatus class corresponding to the quirky_id, from the dictionary "runs"
@@ -33,6 +34,9 @@ st.write("In this page, you can run the analysis for a transcript of your choice
 
 # Check if dataframe has been loaded
 df = current_mode.all_studies_df
+if "X" in df.columns:
+    df.drop("X", axis=1, inplace=True)
+
 if df is None:
     col1, col2 = st.columns([1,  3])
     with col1:
@@ -198,6 +202,8 @@ if current_mode.txid_analysis_done is True:
                           0, max, key =  "boxplot_slider")
 
             data = data[data["Tot Counts"] > tot_counts_min]
+            if "X" in data.columns:
+                data.drop(columns = "X",inplace = True)
 
             fig2 = plot_rta_boxplot(results_df = data,
                                     box_fill = box_colour,
@@ -213,7 +219,6 @@ if current_mode.txid_analysis_done is True:
 
     # Adds plot with breakdowns by metadata
         with tab4:
-
 
             if current_mode.aggregation == "Aggregate by Metadata":
                 meta_option = "Group"
