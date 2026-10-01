@@ -243,7 +243,6 @@ if current_mode.txid_analysis_done is True:
             data_diamond_plot = data_diamond_plot[data_diamond_plot["Tot Counts"] > tot_counts_min]
             data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
 
-
             if current_mode.aggregation is None or current_mode.aggregation == "":
                 jitter = 0.3
                 show_n_members =  False

@@ -166,7 +166,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
         df = df[df['significant'] == True]
 
     # Wrapper to work even if "TISSUE" not in metadata columns... check
-    if meta not in df.columns():
+    if meta not in df.columns:
         meta = "Run"
 
     tissues = df[meta].unique()
