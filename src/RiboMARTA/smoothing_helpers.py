@@ -225,7 +225,6 @@ def data_aggregator(current_run, aggregation):
         current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
         current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
 
-
         current_run.post_aggregation_backup = current_run.all_studies_df.copy()
         return
 

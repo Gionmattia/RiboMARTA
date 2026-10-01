@@ -34,8 +34,8 @@ st.write("In this page, you can run the analysis for a transcript of your choice
 
 # Check if dataframe has been loaded
 df = current_mode.all_studies_df
-if "X" in df.columns:
-    df.drop("X", axis=1, inplace=True)
+if "X" in current_mode.all_studies_df:
+    current_mode.all_studies_df.drop("X", axis=1, inplace=True)
 
 if df is None:
     col1, col2 = st.columns([1,  3])

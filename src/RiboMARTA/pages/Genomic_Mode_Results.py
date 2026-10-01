@@ -7,7 +7,7 @@ from Style_options import genco_mode_style
 from streamlit_bokeh import streamlit_bokeh
 
 from STP_helpers import *
-/ from bokeh.plotting import figure
+from bokeh.plotting import figure
 from bokeh.models import (ColumnDataSource, HoverTool, PanTool, Range1d, Span, Label, Legend
 )
 import pandas as pd
@@ -30,6 +30,9 @@ st.title("Genomic Coodrinates Activity Analysis")
 st.write("In this page, you can run the analysis for your selected genomic coordinates of choice.")
 
 
+# Safeguard
+if "X" in current_mode.genomic_merged:
+    current_mode.genomic_merged.drop("X", axis=1, inplace=True)
 
 # Check if dataframe has been loaded
 df = current_mode.genomic_merged
