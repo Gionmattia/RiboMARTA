@@ -6,7 +6,7 @@ from home_helpers import genomic_mode_formatter
 from smoothing_helpers import *
 from STP_helpers import *
 from streamlit_bokeh import streamlit_bokeh
-from Style_options import genco_mode_style
+from Style_options import genco_mode_style, bubble
 from genomic_mode_helpers import get_sequence
 
 quirky_id_checkpoint()
@@ -163,8 +163,39 @@ if current_mode.regions_extracted == True:
             analysis.user_plots.append(noise_plot)
             st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
+    ##### Aggregation Options #####
+    with st.expander("1 ~ Select Aggregation Option (optional)"):
+        st.write("Here you can select whether to aggregate data (by metadata or overall) or not."
+                 "If you want to smooth and aggregate, ALWAYS start from aggregation!")
 
-    with st.expander("Select Smoothing Option"):
+        valid_agg_options = [None,
+                             "Aggregate by Metadata",
+                             "Total Aggregation"]
+
+        aggregation_option = st.radio(
+            "_",
+            label_visibility="collapsed",
+            options=valid_agg_options,
+            horizontal=True,
+            captions=["Default option. No aggregation of the data is applied.",
+                      "Aggregates datasets by selected metadata field.",
+                      "Aggregates everything, everywhere, all at once."],
+        )
+
+        if aggregation_option == "Aggregate by Metadata":
+            current_mode.meta_agg_option = st.selectbox(
+                "To visualise the diamond plot, select the metadata column to use",
+                st.session_state.metadata.columns[:], key="meta_option_aggregation")
+
+        if st.button("Aggregate it!"):
+            current_mode.aggregation = aggregation_option
+            genco_data_aggregator(current_mode,
+                                  current_mode.aggregation)  # Nb. overwrites all_studies_df (backup still safe)
+
+
+
+
+    with st.expander("2 ~ Select Smoothing Option (optional)"):
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappabilities is None:
@@ -195,11 +226,11 @@ if current_mode.regions_extracted == True:
                 st.caption("<div style='text-align:right'>Permissive (allows peaks) </div>", unsafe_allow_html=True)
 
         if st.button("Smooth it!"):
-            current_mode.smoothing_option = choice
+            current_mode.smoothing = choice
             if choice == "Criminal Smoothing (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
             # overwrites all_studies_df (ndr backup still safe) to add smoothing options
-            genco_data_smoother(current_mode, current_mode.smoothing_option)
+            genco_data_smoother(current_mode, current_mode.smoothing)
 
             tab4, tab5, tab6 = st.tabs(["Baseline Region", "Target Region", "Noise Control Region"])
 
@@ -245,6 +276,34 @@ if current_mode.regions_extracted == True:
                                                   )
 
                 streamlit_bokeh(smooth_noise_plot, use_container_width=False)
+
+    st.markdown("#### Recap of your current workflow:")
+
+    col1, col2, col3 = st.columns([4, 4, 4])
+
+
+    with col1:  # Aggregation Overview
+        if current_mode.aggregation is None:  # and current_mode.meta_agg_option is None:
+            bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
+                   outline_width=1)
+        elif current_mode.aggregation == "Total Aggregation":
+            bubble(f"{current_mode.aggregation}", bg_color="#000000",
+                   outline_color="#5ca274", text_color="#5ca274", outline_width=1)
+        else:
+            bubble(f"{current_mode.aggregation} : {current_mode.meta_agg_option}", bg_color="#000000",
+                   outline_color="#5ca274", text_color="#5ca274", outline_width=1)
+
+    with col2:  # Smoothing Overview
+        if current_mode.smoothing is None:
+            bubble("No Smoothing ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
+                   outline_width=1)
+        else:
+            bubble(f"{current_mode.smoothing}", bg_color="#000000", outline_color="#5ca274", text_color="#5ca274",
+                   outline_width=1)
+
+
+
+    st.write("")
 
 
     if st.button("Next"):

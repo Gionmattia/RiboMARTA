@@ -3,14 +3,17 @@ import pandas as pd
 import numpy as np
 from scipy.stats import zscore
 
-# analysis = st.session_state.analysis_runs[st.session_state.quirky_id]
-# current_mode = analysis.transcript_mode
 def genco_data_smoother(current_mode, option: str = "No Smoothing"):
-    # Resets dataframe to original, untouched version
-    current_mode.genomic_merged = current_mode.genomic_merged_backup.copy()
+
+    if current_mode.aggregation is None:
+        # Resets dataframe to original, untouched version
+        current_mode.genomic_merged = current_mode.genomic_merged_backup.copy()
+    elif current_mode is not None:
+        # Restore to post-aggregation version, if aggregation was done
+        current_mode.genomic_merged = current_mode.post_aggregation_backup
 
     if option == "No Smoothing":
-        current_mode.smoothing_option = False
+        current_mode.smoothing = False
         return
 
     elif option == "Mappability Smoothing (Proportional)": # Mappability Smoothing (Proportional)
@@ -81,6 +84,50 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
         return
 
 
+def genco_data_aggregator(current_run, aggregation):
+
+    # Restores to original backup, undoing all previous modifications
+    current_run.genomic_merged = current_run.genomic_merged_backup.copy()
+
+    # Resets everything
+    if aggregation == None:
+        current_run.meta_agg_option = None
+        current_run.post_aggregation_backup = None # Removes post_aggregation_backup
+        return
+
+    # Metadata Aggregation
+    elif aggregation  ==  "Aggregate by Metadata":
+
+        # Consistency, remove position (though it won't be aggregated, but better safe than sorry)
+        current_run.genomic_merged = current_run.genomic_merged.drop(columns = "Position")
+        metadata = st.session_state.metadata.copy()
+        #subset to keep only selected meta
+        sel_studies = current_run.genomic_merged.columns
+        metadata = metadata[metadata["Run"].isin(sel_studies)]
+
+        mapping = metadata.set_index("Run")[current_run.meta_agg_option]
+
+        current_run.members_per_group = mapping.value_counts().to_frame()
+        current_run.members_per_group["Group"] = current_run.members_per_group.index
+        current_run.genomic_merged = current_run.genomic_merged.T.groupby(mapping).sum().T
+        current_run.genomic_merged["Position"] = current_run.genomic_merged_backup["Position"]
+
+        current_run.post_aggregation_backup = current_run.genomic_merged.copy()
+        return
+
+    # Total Aggregation
+    elif aggregation  == "Total Aggregation":
+
+        current_run.genomic_merged = current_run.genomic_merged.drop(columns = "Position")
+        studies_aggregated = current_run.genomic_merged.shape[1]
+        current_run.genomic_merged = current_run.genomic_merged.sum(axis=1).to_frame("Global Aggregate")
+
+        current_run.genomic_merged["Position"] = current_run.genomic_merged_backup["Position"]
+
+        current_run.post_aggregation_backup = current_run.genomic_merged.copy()
+        current_run.members_per_group = pd.DataFrame([["Global Aggregate", studies_aggregated]], columns=["Group", "count"])
+        return
+
 
 # Calls the appropriate smoothing function, depending on the option given.
 def txid_data_smoother(current_mode, option: str = "No Smoothing"):
@@ -94,8 +141,8 @@ def txid_data_smoother(current_mode, option: str = "No Smoothing"):
     if current_mode.aggregation is None:
         # Resets dataframe to original, untouched version
         current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
-    elif current_mode is not None:
-        # Restore to post-aggregation vesio, if aggregation was done
+    elif current_mode.aggregation is not None:
+        # Restore to post-aggregation version, if aggregation was done
         current_mode.all_studies_df = current_mode.post_aggregation_backup
 
     if option == "No Smoothing":

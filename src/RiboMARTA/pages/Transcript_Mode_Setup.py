@@ -248,9 +248,6 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 ##### Workflow Recap #####
     st.markdown("#### Recap of your current workflow:")
 
-    if "X" in current_mode.all_studies_df.columns:
-        st.write("X IS HERE")
-
     col1, col2, col3= st.columns([4, 4, 4])
 
     with col1: # Ranges Overview

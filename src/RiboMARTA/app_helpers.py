@@ -104,11 +104,12 @@ class GenomicCoordinatesMode:
     regions_sequence: dict = None # Keys: Baseline Region, Target Region, Noise Region
 
     # Step 4 - Aggregation/smoothing
-    smoothing_option: bool = False
-    smoothing_criminal_thresh: int = 4
-
-    members_per_group : pd.DataFrame = None # Not yet implemented in genco!
-
+    smoothing: str = None
+    smoothing_criminal_thresh: int =  None
+    aggregation: str = None
+    post_aggregation_backup: pd.DataFrame =  None
+    members_per_group : pd.DataFrame = None
+    meta_agg_option: str = None
 
     # Step 5 - Analysis Parameters stored.
     alpha_baseline: float = None
