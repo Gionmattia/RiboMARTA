@@ -13,7 +13,7 @@ from bokeh.models import BoxAnnotation
 # from streamlit_bokeh import streamlit_bokeh
 
 # Frame colors used everywhere — single source of truth
-FRAME_COLORS = {1: "#48cf4b", 2: "#68ace3", 3: "#e66343"}
+#FRAME_COLORS = {1: "#48cf4b", 2: "#68ace3", 3: "#e66343"}
 CODON_COLORS = {"ATG": "white", "stop codon": "black", "CTG": "#e3e3e3"}
 
 # Introducing smoothing function:
@@ -192,6 +192,8 @@ def subplot_single_transcript_plot2(
 
     if genco_mode == True:
         FRAME_COLORS = {1: "#676767", 2: "#676767", 3: "#676767"}
+    else:
+        FRAME_COLORS = {1: "#48cf4b", 2: "#68ace3", 3: "#e66343"}
 
     for frame in (1, 2, 3):
         sub = df[df["Frame"] == frame].sort_values("X")
@@ -336,6 +338,7 @@ def ORF_plotter2(
     plot_df["type"] = plot_df["type"].astype(str)
 
     if genco_mode == False:
+        FRAME_COLORS = {1: "#48cf4b", 2: "#68ace3", 3: "#e66343"}
         bg_colour = FRAME_COLORS[frame]
 
         codon_color_map = {

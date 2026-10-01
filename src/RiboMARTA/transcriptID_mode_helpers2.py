@@ -136,42 +136,40 @@ def ga_plots_UI_render(current_run, analysis):
 
     with tab4:
         st.write("#### Noise Control Region Selector")
-        st.write("In this panel you can visualise the 3' trailer (if present) of your transcript."
-        " For each position on the transcript, you can see how many of the high-counts studies share at least a mapped footprint there."
+        st.write("In this panel you can visualise the 3' trailer of the transcript (or the whole, if not CDS is annotated)."
+        " For each position on the transcript, you can see how many of the high-coverage studies share at least a mapped footprint there."
         "If a position is  conserved (= shared across studies) it will have a higher percentage."
         "\n"
         "\n Given that Noise is random, a good Noise Control Region is a section of low percentage (where mapped reads are shared by few studies)."
         "\n"
         "\n Use the green section in the plot as a reference."
                  )
-        with st.expander("Options and help"):
+        with st.expander("Options and help for the scared"):
 
             st.markdown(""" 
-            What we are doing is: we take this datasets, and we check how many of them share at least one mapped read in their 3'UTRs.
+            
+            Ok so:
 
+            **Noise is random:** we expect the least conserved positions (low percentage) to be good candidates for the 
+            Noise Control region. You can assume there is no downstream translation/pausing/anything there!
+            
+            This line of reasoning holds so long as we assume to have high-coverage datasets.
+            
+            We first select the higher-coverage datasets. If the transcript has a CDS, we check how many total counts they have there.
+            If they don't have a CDS, we use the full transcript for the plot.
+            
+            We consider only datasets that have tot counts above the mean for all datasets.
 
-            **Noise is random:** we expect the least conserved positions (low percentage) to be good candidates for the Noise Control region.
-            You are definitely sure there is no downstream translation/pausing/anything there!
+            Since this might lead to a few high-coverage dominating the profile, there's the cutoff slider. You decide
+            what minimum percentage of the total is required.
             
-            ##### **IMPORTANT:** 
-            This method relies on the use of only the higher-coverage datasets (too sparse data might 
-            alter the plot and lead to inaccurate estimate of noise). It is important to select enough datasets to be representative, 
-            but also to not include datasets with too low counts!
+            If after filtering you have less than cutoff, the plot issues a warning and defaults to use all datasets.
+            You can:
             
-            By default, the plot requires that at least 20% of all available datasets to have high total counts (good compromise).
-            
-            If you get a warning, you can either:
-            
-            - a) Try reduce the percentage from 20% to less on the slider below (the method will work with less datasets, but still high counts).
+            - a) Try to reduce the percentage from 20% to less on the slider below (the method will work with fewer datasets, but still high counts).
             - b) Ignore the warning, but be aware that this might make regions look LESS conserved than what they truly are, due to low coverage.
             
-            This panel will also, given a desired length for the Noise Control region, find the stretch with the lowest percentage 
-            from the plot and return it to you!
-            
             Nb. This is a SUGGESTION, nothing beats your eye!
-            
-            More than this, I don't know what to do to help.
-            
             """)
                 
 
