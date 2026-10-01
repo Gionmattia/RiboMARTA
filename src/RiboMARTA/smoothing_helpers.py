@@ -84,13 +84,22 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
 
 # Calls the appropriate smoothing function, depending on the option given.
 def txid_data_smoother(current_mode, option: str = "No Smoothing"):
-    # Resets dataframe to original, untouched version
-    current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
+
+    #CHECK
     if current_mode.mappability_df is not None:
         assert current_mode.all_studies_df.index.equals(current_mode.mappability_df.index), "Index mismatch between studies and mappability"
 
+    # New bit: allows to do smoothing ON TOP of aggregation
+    # RESTORE BACKUP
+    if current_mode.aggregation is None:
+        # Resets dataframe to original, untouched version
+        current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
+    elif current_mode is not None:
+        # Restore to post-aggregation vesio, if aggregation was done
+        current_mode.all_studies_df = current_mode.post_aggregation_backup
+
     if option == "No Smoothing":
-        current_mode.smoothing_option = False
+        current_mode.smoothing = None
         return
 
     elif option == "Mappability Smoothing (Proportional)": # Mappability Smoothing (Proportional)
@@ -187,3 +196,45 @@ def smooth_criminal(df, z_thresh):
 
     return criminal_smoothed_df
 
+
+def data_aggregator(current_run, aggregation):
+
+    # Restores to original backup, undoing all previous modifications
+    current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
+
+    # Resets everything
+    if aggregation == None:
+        current_run.meta_agg_option = None
+        current_run.post_aggregation_backup = None # Removes pre_aggregation_backup
+        return
+
+    # Metadata Aggregation
+    elif aggregation  ==  "Aggregate by Metadata":
+
+        # Consistency, remove position (though it won't be aggregated, but better safe than sorry)
+        current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
+        metadata = st.session_state.metadata.copy()
+        #subset to keep only selected meta
+        sel_studies = current_run.all_studies_df.columns
+        metadata = metadata[metadata["Run"].isin(sel_studies)]
+
+        mapping = metadata.set_index("Run")[current_run.meta_agg_option]
+
+        current_run.members_per_group = mapping.value_counts().to_frame()
+        current_run.members_per_group["Group"] = current_run.members_per_group.index
+        current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
+        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+
+
+        current_run.post_aggregation_backup = current_run.all_studies_df
+        return
+
+    # Total Aggregation
+    elif aggregation  == "Total Aggregation":
+
+        current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
+        current_run.all_studies_df = current_run.all_studies_df.sum(axis=1).to_frame("Global Aggregate")
+        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+
+        current_run.post_aggregation_backup = current_run.all_studies_df
+        return

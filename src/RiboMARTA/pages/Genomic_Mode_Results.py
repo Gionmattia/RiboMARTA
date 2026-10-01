@@ -182,9 +182,9 @@ if current_mode.genco_analysis_done == True:
     # Adds plot with breakdowns by metadata
         with tab4:
 
-            if current_mode.aggregation_option == "Aggregate by metadata field":
+            if current_mode.aggregation == "Aggregate by metadata field":
                 meta_option = "Group"
-            elif current_mode.aggregation_option == "Total Aggregation":
+            elif current_mode.aggregation == "Total Aggregation":
                 meta_option = "Group"
             else:
                 meta_option = st.selectbox("To visualise the diamond plot, select the medatadata column to use",
@@ -211,7 +211,7 @@ if current_mode.genco_analysis_done == True:
             data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
 
 
-            if current_mode.aggregation_option is None or current_mode.aggregation_option == "":
+            if current_mode.aggregation is None or current_mode.aggregation == "":
                 jitter = 0.3
                 show_n_members =  False
             else:

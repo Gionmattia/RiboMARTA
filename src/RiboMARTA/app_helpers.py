@@ -106,7 +106,7 @@ class GenomicCoordinatesMode:
     # Step 4 - Aggregation/smoothing
     smoothing_option: bool = False
     smoothing_criminal_thresh: int = 4
-    aggregation_option: str = None  # Not yet implemented in genco!
+
     members_per_group : pd.DataFrame = None # Not yet implemented in genco!
 
 
@@ -157,8 +157,9 @@ class TranscriptIDMode:
     x_slice: tuple = None
     y_slice: tuple = None
     n_slice: tuple = None
-    smoothing_option: bool = False
-    aggregation_option: str = None
+    smoothing: str = None
+    aggregation: str = None
+    post_aggregation_backup: pd.DataFrame =  None
     members_per_group : pd.DataFrame = None
     meta_agg_option: str = None
     smoothing_criminal_thresh: int =  None

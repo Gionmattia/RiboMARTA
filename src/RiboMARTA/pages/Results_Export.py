@@ -102,7 +102,7 @@ elif run.transcript_mode.active == True:
         z-score threshold (Smooth Criminal only): {z_score_threshold}
         
     Dataset Aggregation:
-        Aggregation option: {run.transcript_mode.aggregation_option}
+        Aggregation option: {run.transcript_mode.aggregation}
         Metadata field used for aggregation: {run.transcript_mode.meta_agg_option}
 
     Parameters:

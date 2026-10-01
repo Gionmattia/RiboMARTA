@@ -82,8 +82,8 @@ if current_mode.loading_tx_cov:
         other_col = [c for c in mappability_df.columns if c not in ['Position', 'X']][0]
         current_mode.mappability_df = mappability_df.rename(columns={other_col: 'Mappability'})
 
-    current_mode.aggregation_option = ""
-    current_mode.smoothing_option = False
+    current_mode.aggregation = None
+    current_mode.smoothing = False
 
     # Retrieves the sequence
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
@@ -162,9 +162,37 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             control). Use the NOISE SELECTOR tab to identify the right one, unless you have reasons against that.
             """)
 
+    ##### Aggregation Options #####
+    with st.expander("1 ~ Select Aggregation Option (optional)"):
+        st.write("Here you can select whether to aggregate data (by metadata or overall) or not."
+                 "If you want to smooth and aggregate, ALWAYS start from aggregation!")
+
+        valid_agg_options = [None,
+                             "Aggregate by Metadata",
+                             "Total Aggregation"]
+
+        aggregation_option = st.radio(
+            "_",
+            label_visibility="collapsed",
+            options=valid_agg_options,
+            horizontal=True,
+            captions=["Default option. No aggregation of the data is applied.",
+                      "Aggregates datasets by selected metadata field.",
+                      "Aggregates everything, everywhere, all at once."],
+        )
+
+        if aggregation_option == "Aggregate by Metadata":
+            current_mode.meta_agg_option = st.selectbox(
+                "To visualise the diamond plot, select the metadata column to use",
+                st.session_state.metadata.columns[:], key="meta_option_aggregation")
+
+        if st.button("Aggregate it!"):
+            current_mode.aggregation = aggregation_option
+            data_aggregator(current_mode, current_mode.aggregation) # Nb. overwrites all_studies_df (backup still safe)
+
 
 ##### Smoothing Options #####
-    with st.expander("Option A ~ Select Smoothing Option (optional)"):
+    with st.expander("2 ~ Select Smoothing Option (optional)"):
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappability_df is None:
@@ -174,7 +202,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                      "Mappability Smoothing (Proportional)",
                      "Mappability Smoothing (Aggressive)",
                      "Criminal Smoothing (Experimental)"]
-        choice = st.radio(
+
+        smoothing_option = st.radio(
             "_",
             label_visibility="collapsed",
             options= valid_options,
@@ -185,8 +214,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                       "Per transcript region, finds extremes and smoothes them. Z-score 4 is a good start."],
         )
 
-
-        if choice == "Criminal Smoothing (Experimental)":
+        if smoothing_option == "Criminal Smoothing (Experimental)":
             z_score_threshold = st.slider("z_score_threshold", 1, 10)
             c1, c2 = st.columns(2)
             with c1:
@@ -195,19 +223,15 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                 st.caption("<div style='text-align:right'>Permissive (allows peaks) </div>", unsafe_allow_html=True)
 
         if st.button("Smooth it!"):
-            # Users cannot AGGREGATE and SMOOTH at the same time. One option negates the other.
-            current_mode.aggregation_option = None
-            current_mode.meta_agg_option = None
-            # Undoes any aggregation does beforehand
-            data_aggregator(current_mode, current_mode.aggregation_option)
+            # Creates backup here?
 
-            current_mode.smoothing_option = choice
-            if choice == "Criminal Smoothing (Experimental)":
+            current_mode.smoothing = smoothing_option
+            if smoothing_option == "Criminal Smoothing (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
             else:
                 current_mode.smoothing_criminal_thresh = None
             # overwrites all_studies_df (ndr backup still safe) to add smoothing options
-            txid_data_smoother(current_mode, current_mode.smoothing_option)
+            txid_data_smoother(current_mode, current_mode.smoothing)
 
             after_smooth_plot = plot_ga_with_frames2(current_mode, current_mode.all_studies_df,
                                                      y_column="Global Aggregate smoothed",
@@ -216,39 +240,6 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             streamlit_bokeh(after_smooth_plot, use_container_width=False)
 
 
-##### Aggregation Options #####
-    with st.expander("Option B ~ Select Aggregation Option (optional)"):
-        st.write("Here you can select whether to aggregate data (by metadata or overall) or not. Resetting this options"
-                 "resets also any smoothing option previously selected!")
-
-        valid_agg_options = [None,
-                         "Aggregate by metadata field",
-                         "Total Aggregation"]
-
-        aggregation_option = st.radio(
-            "_",
-            label_visibility="collapsed",
-            options=valid_agg_options,
-            horizontal=True,  # makes it look more toggle-like
-            captions=["Default option. No aggregation of the data is applied.",
-                      "Aggregates datasets by selected metadata field.",
-                      "Aggregates everything, everywhere, all at once."],
-        )
-
-        if aggregation_option == "Aggregate by metadata field":
-            current_mode.meta_agg_option = st.selectbox(
-                "To visualise the diamond plot, select the metadata column to use",
-                st.session_state.metadata.columns[:], key =  "meta_option_aggregation")
-
-        if st.button("Aggregate it!"):
-            # Users cannot AGGREGATE and SMOOTH at the same time. One option negates the other.
-            current_mode.smoothing_option = False
-            # Undoes any smoothing
-            txid_data_smoother(current_mode, current_mode.smoothing_option)
-
-            current_mode.aggregation_option = aggregation_option
-            # Nb. overwrites all_studies_df (ndr backup still safe)
-            data_aggregator(current_mode, current_mode.aggregation_option)
 
 
         # Functions that takes in current_mode, meta_agg_option, and does aggregation (stores it too for report).
@@ -265,21 +256,21 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         else:
             bubble("Ranges Selected ", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
 
-    with col2: # Smoothing Overview
-        if current_mode.smoothing_option is False:
+    with col2: # Aggregation Overview
+        if current_mode.aggregation is None: # and current_mode.meta_agg_option is None:
+            bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c", outline_width=1)
+        elif current_mode.aggregation == "Total Aggregation":
+            bubble(f"{current_mode.aggregation}", bg_color="#000000",
+                   outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
+        else:
+            bubble(f"{current_mode.aggregation} : {current_mode.meta_agg_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
+
+    with col3: # Smoothing Overview
+        if current_mode.smoothing is None:
             bubble("No Smoothing ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c",
                    outline_width=1)
         else:
-            bubble(f"{current_mode.smoothing_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
-
-    with col3: # Aggregation Overview
-        if current_mode.aggregation_option is None: # and current_mode.meta_agg_option is None:
-            bubble("No Aggregation ", bg_color="#000000", outline_color="#5c5c5c", text_color="#5c5c5c", outline_width=1)
-        elif current_mode.aggregation_option == "Total Aggregation":
-            bubble(f"{current_mode.aggregation_option}", bg_color="#000000",
-                   outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
-        else:
-            bubble(f"{current_mode.aggregation_option} : {current_mode.meta_agg_option}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
+            bubble(f"{current_mode.smoothing}", bg_color="#000000", outline_color="#f0aa2d", text_color="#f0aa2d", outline_width=1)
 
     st.write("")
 

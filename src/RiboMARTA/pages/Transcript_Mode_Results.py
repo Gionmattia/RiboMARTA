@@ -130,9 +130,9 @@ if st.button("Run Analysis"):
     current_mode.txid_results_meta = integrate_metadata(current_mode.txid_results,
                                                        st.session_state.metadata)
 
-    if current_mode.aggregation_option != "":
+    if current_mode.aggregation != None:
         current_mode.txid_results_meta["Group"] = current_mode.txid_results_meta.index
-    elif current_mode.aggregation_option == "":
+    elif current_mode.aggregation == None:
         current_mode.txid_results_meta["Dataset"] = current_mode.txid_results_meta.index
 
     current_mode.txid_analysis_done = True
@@ -215,9 +215,9 @@ if current_mode.txid_analysis_done is True:
         with tab4:
 
 
-            if current_mode.aggregation_option == "Aggregate by metadata field":
+            if current_mode.aggregation == "Aggregate by Metadata":
                 meta_option = "Group"
-            elif current_mode.aggregation_option == "Total Aggregation":
+            elif current_mode.aggregation == "Total Aggregation":
                 meta_option = "Group"
             else:
                 meta_option = st.selectbox("To visualise the diamond plot, select the medatadata column to use",
@@ -244,7 +244,7 @@ if current_mode.txid_analysis_done is True:
             data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
 
 
-            if current_mode.aggregation_option is None or current_mode.aggregation_option == "":
+            if current_mode.aggregation is None or current_mode.aggregation == "":
                 jitter = 0.3
                 show_n_members =  False
             else:

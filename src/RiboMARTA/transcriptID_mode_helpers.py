@@ -379,38 +379,5 @@ def ranges_selector(full_mRNA_length: int, region: str) -> tuple[int,int]:
 
     return (x_start, x_end)
 
-# Should move elsewhere... It doesn't feel like belonging here.
-def data_aggregator(current_run, aggregation_option):
 
-    current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
-
-    if aggregation_option == None:
-        current_run.meta_agg_option = None
-        return
-
-    elif aggregation_option  ==  "Aggregate by metadata field": # Metadata Aggregation
-
-        # Consistency, remove position (though it won't be aggregated, but better safe than sorry)
-        current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
-        metadata = st.session_state.metadata.copy()
-        #subset to keep only selected meta
-        sel_studies = current_run.all_studies_df.columns
-        metadata = metadata[metadata["Run"].isin(sel_studies)]
-
-        mapping = metadata.set_index("Run")[current_run.meta_agg_option]
-
-        current_run.members_per_group = mapping.value_counts().to_frame()
-        current_run.members_per_group["Group"] = current_run.members_per_group.index
-        current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
-        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
-
-        return
-
-    elif aggregation_option  == "Total Aggregation": # Total Aggregation
-
-        current_run.all_studies_df = current_run.all_studies_df.drop(columns = "Position")
-        current_run.all_studies_df = current_run.all_studies_df.sum(axis=1).to_frame("Global Aggregate")
-        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
-
-        return
 
