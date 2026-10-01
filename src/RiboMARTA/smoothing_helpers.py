@@ -66,10 +66,19 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
 
         z_thresh = current_mode.smoothing_criminal_thresh
 
+        # slice the genomic merged dataframe.
+        df = current_mode.genomic_merged
+        if "Position" in df.columns:
+            df = df.drop("Position", errors="ignore")
+
+        x_bound = current_mode.genomic_merged_ranges["x_slice"]
+        y_bound = current_mode.genomic_merged_ranges["y_slice"]
+        n_bound = current_mode.genomic_merged_ranges["n_slice"]
+
         # Using the slices, which have already been stored individually
-        df_x = current_mode.genomic_slices[0].copy()
-        df_y = current_mode.genomic_slices[1].copy()
-        df_n = current_mode.genomic_slices[2].copy()
+        df_x = df[x_bound[0]: x_bound[1]].copy()
+        df_y = df[y_bound[0]: y_bound[1]].copy()
+        df_n = df[n_bound[0]: n_bound[1]].copy()
 
         # run smooth criminal 3 times (one per slice)
         annie_x = smooth_criminal(df_x, z_thresh)

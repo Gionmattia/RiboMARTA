@@ -219,6 +219,8 @@ if current_mode.regions_extracted == True:
 
         if choice == "Criminal Smoothing (Experimental)":
             z_score_threshold = st.slider("z_score_threshold", 1, 10)
+
+
             c1, c2 = st.columns(2)
             with c1:
                 st.caption("Abrasive (removes a lot)")
@@ -239,7 +241,7 @@ if current_mode.regions_extracted == True:
                 x_boundaries = current_mode.genomic_merged_ranges["x_slice"]
 
                 df1 = current_mode.genomic_merged[x_boundaries[0]:x_boundaries[1]].copy()
-                df1 = df1.drop(columns = ["Position"]).reset_index(drop = True)
+                df1 = df1.reset_index(drop = True)
                 smooth_baseline_plot = plot_ga_with_frames1(region_df=df1,
                                                      sequence=current_mode.regions_sequence["Baseline Region"],
                                                      smoothing=False,
@@ -253,7 +255,7 @@ if current_mode.regions_extracted == True:
 
                 y_boundaries = current_mode.genomic_merged_ranges["y_slice"]
                 df2 = current_mode.genomic_merged[y_boundaries[0]:y_boundaries[1]].copy()
-                df2 = df2.drop(columns = ["Position"]).reset_index(drop = True)
+                df2 = df2.reset_index(drop = True)
                 smooth_target_plot = plot_ga_with_frames1(region_df= df2,
                                                    sequence=current_mode.regions_sequence["Target Region"],
                                                    smoothing=False,
@@ -268,7 +270,7 @@ if current_mode.regions_extracted == True:
 
                 n_boundaries = current_mode.genomic_merged_ranges["n_slice"]
                 df3 = current_mode.genomic_merged[n_boundaries[0]:n_boundaries[1]].copy()
-                df3 = df3.drop(columns = ["Position"]).reset_index(drop = True)
+                df3 = df3.reset_index(drop = True)
                 smooth_noise_plot = plot_ga_with_frames1(region_df=df3,
                                                   sequence=current_mode.regions_sequence["Noise Region"],
                                                   smoothing=False,
