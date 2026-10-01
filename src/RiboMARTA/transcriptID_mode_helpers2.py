@@ -180,34 +180,43 @@ def ga_plots_UI_render(current_run, analysis):
             cutoff = st.slider(cutoff_text,
                           1, 60, value = 20, key =  "a_slider")
 
-        if current_run.utr3_length is not None or current_run.utr3_length != 0:
-
-
-
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
-                percentage_sharing, studies = density_calculator(dataframe = current_run.all_studies_df,
-                                                          utr5 = current_run.utr5_length,
-                                                          cds = current_run.cds_length,
-                                                          cutoff = cutoff)
+                # Failsafe - if annotation is missing for either, it just defaults to 0
+                # density calculator will use the whole transcript for the OC plot
+                utr5_length = current_run.utr5_length if current_run.utr5_length is not None else 0
+                cds_length = current_run.cds_length if current_run.cds_length is not None else 0
+
+                percentage_sharing, studies, n_total = density_calculator(dataframe = current_run.all_studies_df,
+                                                                          utr5 = utr5_length,
+                                                                          cds = cds_length,
+                                                                          cutoff = cutoff)
 
                 for w in caught:
                     st.warning(str(w.message))
 
-            st.write("")
-            st.write(f" You are using the {studies} higher-coverage datasets out of {current_run.all_studies_df.shape[1]-1} for this plot.")
-            trailer_plot = trailer_signal_plot(percentage_sharing, studies)
-            streamlit_bokeh(trailer_plot, use_container_width=True, theme="light_minimal")
+            if percentage_sharing.empty:
+                st.warning("The transcript isoform ended with the annotated CDS. We advise to use another one or to "
+                           "resort to Genomic Coordinates mode to sample noise.")
+            else:
+                st.write("")
+                if studies == n_total:
+                    st.write(f"You are using all datasets ({n_total}) for this plot")
+                else:
+                    st.write(f"You are using the {studies} higher-coverage datasets out of {n_total} for this plot.")
 
-            col1, col2 = st.columns([2, 6])
-            with col1:
-                st.write("")
-                # window_size = st.number_input("Select the size of the noise region you want to get", value = 100, key="n_window")
-            with col2:
-                st.write("")
-                st.write("")
-                st.write("Suggested Intervals not yet implemented. Requires extra work")
-                # give_intervals(percentage_sharing, int(window_size))
+                OC_plot = trailer_signal_plot(percentage_sharing, studies)
+                streamlit_bokeh(OC_plot, use_container_width=True, theme="light_minimal")
+
+            # col1, col2 = st.columns([2, 6])
+            # with col1:
+            #     st.write("")
+            #     # window_size = st.number_input("Select the size of the noise region you want to get", value = 100, key="n_window")
+            # with col2:
+            #     st.write("")
+            #     st.write("")
+            #     st.write("Suggested Intervals not yet implemented. Requires extra work")
+            #     # give_intervals(percentage_sharing, int(window_size))
 
     with tab5:
         st.write("#### Normalised Global Aggregate & ORF plot")
@@ -222,21 +231,25 @@ def ga_plots_UI_render(current_run, analysis):
             streamlit_bokeh(current_run.norm_triplet_ga_plot, use_container_width=False)
 
 
-def density_calculator(dataframe, utr5, cds, cutoff = 20):
+def density_calculator(dataframe: pd.DataFrame,
+                       utr5: int,
+                       cds: int,
+                       cutoff: int = 20) -> tuple[pd.Series, int, int]:
     """
-
+    Function to compute the data for the OC plot: what % of the high-coverage datasets has (at least) a coutn mapped to
+     the position of the trailer?
+        If no CDS annotated, then it uses whole transcript instead.
     Parameters
-    ----------
-    dataframe: pd.DataFrame with all coverage per position for the selected transcript
-    utr5: int length of the 5' leader
-    cds: int length of the CDS
-    cutoff: percentage of studies we want to consider as high-coverage datasets
+    -------
+        dataframe: pd.DataFrame with all coverage per position for the selected transcript
+        utr5: int length of the 5' leader
+        cds: int length of the CDS
+        cutoff: percentage of studies we want to consider as high-coverage datasets
 
     Returns
     -------
-
+        tuple: series with the % of high-cov datasets with at least 1 count per position, and number of datasets
     """
-    dataset_cutoff = 100/cutoff
     # formatting
     input_df = dataframe.copy()
     if "Sequence" in input_df.columns:
@@ -244,37 +257,50 @@ def density_calculator(dataframe, utr5, cds, cutoff = 20):
     if "Position" in input_df.columns:
         input_df = input_df.drop(columns = ["Position"])
 
-    # extract cds and trailer
-    cds_df = input_df.iloc[utr5:utr5+cds]
-    trailer_temp= input_df.iloc[utr5+cds:]
-
-    # Filter studies with too low coverage (low tot counts)
-    tot_counts_cds = cds_df.sum(axis = 0)
-    mean = tot_counts_cds.mean()
-    median = tot_counts_cds.median()
-    threshold = max(median, mean)
-    dataset_cutoff = len(tot_counts_cds)/dataset_cutoff # At least 1/5 of the total datasets must support this (default).
-
-    n = (tot_counts_cds > threshold).sum()
-    if n > dataset_cutoff:
-        passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
+    # We have an annotated CDS on the transcript:
+    if cds > 0:
+        counts_df = input_df.iloc[utr5:utr5+cds]
+        trail_df_temp= input_df.iloc[utr5+cds:]
+        if trail_df_temp.empty:
+            warnings.warn("The CDS ends at the end of the annotated transcript: there is no 3' trailer to use for "
+                          "sampling noise. We suggest using Genomic Coordinates mode instead.")
+            return pd.Series(dtype=float), 0, input_df.shape[1]
     else:
-        warnings.warn("There were less datasets among the high-counts than the percentage selected. Using all datasets for the plot") # SHOULD RAISE A WARNING
-        passed_indexes = tot_counts_cds[tot_counts_cds > threshold].index.tolist()
+        counts_df = input_df
+        trail_df_temp = input_df
 
-    # filter trailer df - remove studies with too low total counts
-    trailer = trailer_temp[passed_indexes].copy()
+    tot_counts_cds = counts_df.sum(axis = 0)
+    n_total = len(tot_counts_cds)
+    # Select datasets where coverage is above mean
+    high_coverage = tot_counts_cds[tot_counts_cds > tot_counts_cds.mean()]
+    percentage_passed = len(high_coverage)/ n_total
+
+    if percentage_passed > cutoff /100:
+        passed_indexes = high_coverage.index.tolist()
+        # failsafe = False
+    else:
+        warnings.warn(f"Only {percentage_passed:.0%} datasets have coverage above the mean, "
+                      f"but the current cutoff requires at least > {cutoff}%. "
+                      f"Using all datasets for the profile.")
+
+        passed_indexes = tot_counts_cds.index.tolist()
+        # failsafe = True
+
+    # filter trail df - remove studies with too low coverage (ndr. could be 3' trailer or "everything". Trail is just a variable name)
+    trail = trail_df_temp[passed_indexes].copy()
 
     # Encode trailer as 0 (no footprint) and 1 (footprint)
-    trailer_encoded = (trailer !=0).astype(int)
+    trail_encoded = (trail !=0).astype(int)
 
-    density = trailer_encoded.mean(axis=1)
+    density = trail_encoded.mean(axis=1)
+
+    # Output 1 - pd.Series that reports percentage of datasets per position
     percentage_sharing = density * 100
 
-    # report number studies used for the mean
-    studies = trailer_encoded.shape[1]
+    # Output 2 - number studies used
+    studies = trail_encoded.shape[1]
 
-    return percentage_sharing, studies
+    return percentage_sharing, studies, n_total
 
 
 def trailer_signal_plot(series, studies):
