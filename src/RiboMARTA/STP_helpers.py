@@ -163,8 +163,7 @@ def subplot_single_transcript_plot2(
         x_label = "Position on the transcript (nt)"
     elif genco_mode is True:
         title = (
-            f"Global Aggregate, smoothed by k = {k}"
-            if k > 1 else f"Global Aggregate for {txid}"
+            f"Global Aggregate"
         )
         x_label = "Relative Position from Region Start (nt)"
 
@@ -365,7 +364,7 @@ def ORF_plotter2(
     if genco_mode == False:
         title_orf_plot = f"Frame {frame}"
     elif genco_mode == True:
-        title_orf_plot = "In-frame start/stop:"
+        title_orf_plot = "Same-frame start/stop codons:"
 
     p = figure(
         x_range=x_range,
@@ -419,7 +418,7 @@ def plot_ga_with_frames1(
     region_df: pd.DataFrame,
     sequence: str,
     mappability: pd.DataFrame = None,
-    smoothing: bool = True,
+    smoothing: bool = False,
     normalize: bool = False,
 ) -> column:
     """

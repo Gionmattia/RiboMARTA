@@ -122,17 +122,13 @@ if current_mode.regions_extracted == True:
     You can expand each table by clicking on the top-right "fullscreen" button. 
     If you wish to download one of the plots, click on the '...' button on the same side.""")
     st.markdown("#### IMPORTANT: ")
-    st.markdown("Pseudo-ORF plots were added. For each region, frames are defined from the start of each interval."
-                "This is done ONLY to allow users to see the presence of in-frame starts or stops codons WITHIN a region."
-                " THESE ARE USER-DEFINED GENOMIC REGIONS, THE 'READING FRAMES' ARE JUST AN ABSTRACTION TO VISUALISE BETTER!")
+    st.markdown("Plots to visualise start and stop codons falling in the same frame (relative to each other) were added. "
+                "IF THE REGIONS INCLUDE INTRONS THEN THE 'WITHIN SAME FRAME' REASONING DOES NOT APPLY!")
 
     tab1, tab2, tab3 = st.tabs(["Baseline Region", "Target Region", "Noise Control Region"])
     with tab1:
-        st.write("Baseline Region")
-        smooth = st.toggle("Smooth data", key = "baseline_toggle")
         baseline_plot = plot_ga_with_frames1(region_df = current_mode.genomic_slices[0],
                                              sequence = current_mode.regions_sequence["Baseline Region"],
-                                             smoothing = smooth,
                                              mappability = current_mode.mappabilities[0].reset_index(names="X")
                                              )
 
@@ -144,11 +140,8 @@ if current_mode.regions_extracted == True:
 
 
     with tab2:
-        st.write("Target Region")
-        smooth = st.toggle("Smooth data", key = "target_toggle")
         target_plot = plot_ga_with_frames1(region_df = current_mode.genomic_slices[1],
                                            sequence = current_mode.regions_sequence["Target Region"],
-                                           smoothing = smooth,
                                            mappability=current_mode.mappabilities[1].reset_index(names="X")
                                            )
 
@@ -159,11 +152,8 @@ if current_mode.regions_extracted == True:
             st.success(f"Plot added! You currently have {len(analysis.user_plots)} plots.")
 
     with tab3:
-        st.write("Noise Control Region")
-        smooth = st.toggle("Smooth data", key = "noise_toggle")
         noise_plot = plot_ga_with_frames1(region_df = current_mode.genomic_slices[2],
                                           sequence = current_mode.regions_sequence["Noise Region"],
-                                          smoothing = smooth,
                                           mappability=current_mode.mappabilities[2].reset_index(names="X")
                                           )
 

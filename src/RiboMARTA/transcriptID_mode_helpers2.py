@@ -197,7 +197,7 @@ def ga_plots_UI_render(current_run, analysis):
 
             if percentage_sharing.empty:
                 st.warning("The transcript isoform ended with the annotated CDS. We advise to use another one or to "
-                           "resort to Genomic Coordinates mode to sample noise.")
+                           "resort to RiboSeq.Org GWIPS + Genomic Coordinates mode to sample noise.")
             else:
                 st.write("")
                 if studies == n_total:
