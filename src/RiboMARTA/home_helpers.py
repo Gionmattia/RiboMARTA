@@ -13,6 +13,7 @@ import streamlit as st
 import streamlit.elements.widgets.selectbox
 from mappability_helpers import txid_map_extraction
 from app_helpers import *
+from module0 import format_input_df
 
 # Organism Loader - Provides interface and code to load organism.
 def organism_loader_interface():
@@ -164,7 +165,8 @@ def genomic_coordinates_selection():
             mappability_path=st.session_state.mappability_path,
             genomic_mode=GenomicCoordinatesMode(
                 active=True,
-                genomic_ranges=genomic_ranges
+                genomic_ranges=genomic_ranges,
+                formatted_genomic_ranges = format_input_df(genomic_ranges)
             )
         )
         # Proceed to next page of the analysis

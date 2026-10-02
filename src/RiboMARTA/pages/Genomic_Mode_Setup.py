@@ -24,27 +24,40 @@ st.title("Genomic Coordinates Mode")
 st.write("Welcome to Genomic Coordinates Analysis Page. Before proceeding, "
          "please take another look at your transcript_ranges below before starting.")
 
+if current_mode.formatted_genomic_ranges is None:
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.warning("Please provide valid Genomic Ranges before moving to this page!")
+    with col2:
+        st.image(st.session_state["marta_images"]["error"], width=130)
+    st.stop()
+
 # Prints on screen the transcript_ranges used for the extraction, if present
 if current_mode.regions_extracted == True:
     coord_display_df = current_mode.formatted_genomic_ranges.copy()
     coord_display_df = coord_display_df.set_index("Region")
+    coord_display_df["Strand"] = "\\" + coord_display_df["Strand"]
+    coord_display_df = coord_display_df.drop(columns = ["Start", "End"])
+    coord_display_df = coord_display_df.rename(columns={"Original Start": "Start", "Original End": "End"})
     st.table(coord_display_df)
 
 if current_mode.regions_extracted == False:
+    coord_display_df = current_mode.formatted_genomic_ranges.copy()
+    coord_display_df = coord_display_df.set_index("Region")
+    coord_display_df["Strand"] = "\\" + coord_display_df["Strand"]
+    coord_display_df = coord_display_df.drop(columns = ["Start", "End"])
+    coord_display_df = coord_display_df.rename(columns={"Original Start": "Start", "Original End": "End"})
+    st.table(coord_display_df)
     # Formats the transcript_ranges to use for the extraction
-    try:
-        current_mode.formatted_genomic_ranges = format_input_df(current_mode.genomic_ranges)
-        current_mode.formatted_genomic_ranges
-
-    # Not the best error-handling, but will do for now...
-    except (IndexError, TypeError, AttributeError):
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.warning("Please provide valid Genomic Ranges before moving to this page!")
-        with col2:
-            st.image(st.session_state["marta_images"]["error"], width=130)
-        st.stop()
+    # if current_mode.formatted_genomic_ranges is None:
+    #         col1, col2 = st.columns([3, 1])
+    #         with col1:
+    #             st.markdown("<br><br>", unsafe_allow_html=True)
+    #             st.warning("Please provide valid Genomic Ranges before moving to this page!")
+    #         with col2:
+    #             st.image(st.session_state["marta_images"]["error"], width=130)
+    #         st.stop()
 
     if st.button("Extract Regions"):
 
@@ -86,7 +99,8 @@ if current_mode.regions_extracted == False:
 
         # Extract and store the genomic sequence for each region
         fasta = st.session_state.fasta
-        sequence_dict = get_sequence(fasta=fasta, df=current_mode.formatted_genomic_ranges)
+        sequence_dict = get_sequence(fasta=fasta,
+                                     regions_df=current_mode.formatted_genomic_ranges)
         current_mode.regions_sequence = sequence_dict
 
         # Insert sequences into the dataframes

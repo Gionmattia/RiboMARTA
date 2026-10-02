@@ -45,7 +45,7 @@ def _extract_one(bw_path, regions_df):
                 )
                 vals = bw.values(chrom, start, end, numpy=True)
                 out[region] = pd.DataFrame({
-                    "Position": range(start, end),
+                    "Position": range(start + 1, end + 1), # Reconvert to 1-indexing
                     sid: vals
                 })
             bw.close()
@@ -69,7 +69,7 @@ def _extract_one(bw_path, regions_df):
                     )
                     # Fill with zeros (or None if you prefer)
                     out[region] = pd.DataFrame({
-                        "Position": range(start, end),
+                        "Position": range(start + 1, end + 1), # Reconvert to 1-indexing
                         sid: None
                     })
 
@@ -82,7 +82,7 @@ def format_input_df(my_list):
     Unpacks genomic coordinates and formats them into a table that is used by the code to extract coverage
 
     :param my_list: A list of strings (genomic coordinates) as "chrx:56,741,761-56,761,390"
-    :return: The dataframe with transcript_ranges to extract from genomic
+    :return: The dataframe with ranges to extract from genomic BigWigs
     """
     data = []
     region_names = ["Baseline Region", "Target Region", "Noise Region"]
@@ -91,9 +91,19 @@ def format_input_df(my_list):
         chrom = fri[0]
         if chrom.lower().startswith('chr'):
             chrom = chrom[3:]
-        start = int(fri[1]) - 1  # Converts from 1-indexed closed to 0-index open
-        end = int(fri[2])
-        data.append({"Region": reg, "Chromosome": chrom, "Start": start, "End": end})
+        original_start, original_end = int(fri[1]), int(fri[2])
+        if original_start > original_end:
+            start, end = original_end, original_start
+            strand = "-"
+        else:
+            start, end = original_start, original_end
+            strand = "+"
+        start = start - 1  # Converts from 1-indexed closed to 0-index open
+        data.append({"Region": reg, "Chromosome": chrom,
+                     "Start": start, "End": end,
+                     "Original Start": original_start,
+                     "Original End": original_end,
+                     "Strand": strand})
     return pd.DataFrame(data)
 
 
@@ -127,16 +137,25 @@ def extract_regions_from_bw_parallel(bigwig_files, regions_df, n_jobs=1):
             else:
                 final[region] = df_tmp
 
-    pre_feature_x = final["Baseline Region"]
-    post_feature_y = final["Target Region"]
-    noise_n = final["Noise Region"]
+    baseline = final["Baseline Region"]
+    target = final["Target Region"]
+    noise = final["Noise Region"]
 
     # Replace na with 0s instead
-    pre_feature_x.fillna(0, inplace=True)
-    post_feature_y.fillna(0, inplace=True)
-    noise_n.fillna(0, inplace=True)
+    baseline.fillna(0, inplace=True)
+    target.fillna(0, inplace=True)
+    noise.fillna(0, inplace=True)
 
-    return pre_feature_x, post_feature_y, noise_n
+    # Re-orient the - strand regions in 5'->3'
+    strand = dict(zip(regions_df["Region"], regions_df["Strand"]))
+    regions_5_to_3 = []
+    for sel_region, df in [("Baseline Region", baseline), ("Target Region", target), ("Noise Region", noise)]:
+        is_pos_strand = strand[sel_region] == "+" # will be True if strand +, False if -
+        # Restores each dataframe/region to its original
+        regions_5_to_3.append(df.sort_values("Position", ascending=is_pos_strand).reset_index(drop=True))
+    baseline, target, noise = regions_5_to_3
+
+    return baseline, target, noise
 
 
 # General-use Helper
