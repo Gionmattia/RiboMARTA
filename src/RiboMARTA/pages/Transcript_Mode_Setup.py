@@ -88,9 +88,9 @@ if current_mode.loading_tx_cov:
     # Retrieves the sequence
     current_mode.transcript_sequence = get_sequence(fasta, all_ranges, strandedness)
 
-    # Creates back-ups for the smoothing options and aggregation options.
+    # Creates backup for later smoothing/aggrgeation options. NDr. This is txid mode backup, not Txid Upload
     current_mode.all_studies_df_backup = current_mode.all_studies_df.copy()
-    current_mode.all_studies_df_pre_aggregation_backup = current_mode.all_studies_df.copy()
+    #current_mode.all_studies_df_pre__aggregation_backup = current_mode.all_studies_df.copy()
 
 
 # Checkpoint - Checks whether the coverage has been extracted
@@ -196,12 +196,12 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappability_df is None:
-            valid_options = ["No Smoothing", "Criminal Smoothing (Experimental)"]
+            valid_options = ["No Smoothing", "Smooth Criminal (Experimental)"]
         else:
             valid_options = ["No Smoothing",
                      "Mappability Smoothing (Proportional)",
                      "Mappability Smoothing (Aggressive)",
-                     "Criminal Smoothing (Experimental)"]
+                     "Smooth Criminal (Experimental)"]
 
         smoothing_option = st.radio(
             "_",
@@ -214,7 +214,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
                       "Per transcript region, finds extremes and smoothes them. Z-score 4 is a good start."],
         )
 
-        if smoothing_option == "Criminal Smoothing (Experimental)":
+        if smoothing_option == "Smooth Criminal (Experimental)":
             z_score_threshold = st.slider("z_score_threshold", 1, 10)
             c1, c2 = st.columns(2)
             with c1:
@@ -226,7 +226,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             # Creates backup here?
 
             current_mode.smoothing = smoothing_option
-            if smoothing_option == "Criminal Smoothing (Experimental)":
+            if smoothing_option == "Smooth Criminal (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
             else:
                 current_mode.smoothing_criminal_thresh = None

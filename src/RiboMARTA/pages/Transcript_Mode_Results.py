@@ -257,6 +257,8 @@ if current_mode.txid_analysis_done is True:
                 # here we add the info on the # elements per group
                 data_diamond_plot = pd.merge(data_diamond_plot, current_mode.members_per_group, on = meta_option)
 
+
+
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,
                                           meta=meta_option,
                                           logs=plot_logs_d,

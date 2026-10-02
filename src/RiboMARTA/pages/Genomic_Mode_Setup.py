@@ -199,12 +199,12 @@ if current_mode.regions_extracted == True:
 
         # Failsafe - If no mappability is given, no smoothing is done
         if current_mode.mappabilities is None:
-            valid_options = ["No Smoothing", "Criminal Smoothing (Experimental)"]
+            valid_options = ["No Smoothing", "Smooth Criminal (Experimental)"]
         else:
             valid_options = ["No Smoothing",
                      "Mappability Smoothing (Proportional)",
                      "Mappability Smoothing (Aggressive)",
-                     "Criminal Smoothing (Experimental)"]
+                     "Smooth Criminal (Experimental)"]
         choice = st.radio(
             "_",
             label_visibility="collapsed",
@@ -217,7 +217,7 @@ if current_mode.regions_extracted == True:
         )
 
 
-        if choice == "Criminal Smoothing (Experimental)":
+        if choice == "Smooth Criminal (Experimental)":
             z_score_threshold = st.slider("z_score_threshold", 1, 10)
 
 
@@ -229,7 +229,7 @@ if current_mode.regions_extracted == True:
 
         if st.button("Smooth it!"):
             current_mode.smoothing = choice
-            if choice == "Criminal Smoothing (Experimental)":
+            if choice == "Smooth Criminal (Experimental)":
                 current_mode.smoothing_criminal_thresh = z_score_threshold
             # overwrites all_studies_df (ndr backup still safe) to add smoothing options
             genco_data_smoother(current_mode, current_mode.smoothing)

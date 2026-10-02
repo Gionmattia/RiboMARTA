@@ -250,6 +250,7 @@ def upload_selection():
                 genomic_mode=GenomicCoordinatesMode(
                     active=True,
                     genomic_merged=genomic_merged,
+                    genomic_merged_backup = genomic_merged.copy(),
                     genomic_merged_ranges=genomic_merged_ranges)
             )
             st.switch_page("pages/Metadata_Selector.py")
@@ -316,7 +317,7 @@ def upload_selection():
                     utr3_length=utr3_length,
                     tx_cov_extracted=tx_cov_extracted,
                     all_studies_df_backup = all_studies_df.copy(), # Generates back-up right away
-                    all_studies_df_pre_aggregation_backup = all_studies_df.copy(), # Generates back-up right away
+                    # all_studies_df_pre__aggregation_backup = all_studies_df.copy(), # Generates back-up right away
                     mappability_df = mappability_df
                 )
             )

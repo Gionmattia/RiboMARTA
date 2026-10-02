@@ -146,7 +146,7 @@ class TranscriptIDMode:
     utr3_length: int = None
     all_studies_df: pd.DataFrame = None
     all_studies_df_backup: pd.DataFrame = None
-    all_studies_df_pre_aggregation_backup: pd.DataFrame = None
+    # all_studies_df_pre__aggregation_backup: pd.DataFrame = None
     transcript_sequence: str = None
     mappability_df: pd.DataFrame = None
     tx_ga_plot: go.Figure = None

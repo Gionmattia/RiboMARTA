@@ -109,6 +109,11 @@ if st.button("Run Analysis"):
     current_mode.results_meta = integrate_metadata(current_mode.genco_results, # DOUBLE CHECK THIS
                                                     st.session_state.metadata)
 
+    if current_mode.aggregation != None:
+        current_mode.results_meta["Group"] = current_mode.results_meta.index
+    elif current_mode.aggregation == None:
+        current_mode.results_meta["Dataset"] = current_mode.results_meta.index
+
     current_mode.genco_analysis_done = True
 
 
@@ -185,7 +190,7 @@ if current_mode.genco_analysis_done == True:
     # Adds plot with breakdowns by metadata
         with tab4:
 
-            if current_mode.aggregation == "Aggregate by metadata field":
+            if current_mode.aggregation == "Aggregate by Metadata":
                 meta_option = "Group"
             elif current_mode.aggregation == "Total Aggregation":
                 meta_option = "Group"
@@ -222,6 +227,9 @@ if current_mode.genco_analysis_done == True:
                 show_n_members = True
                 # here we add the info on the # elements per group
                 data_diamond_plot = pd.merge(data_diamond_plot, current_mode.members_per_group, on = meta_option)
+
+
+
 
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,
                                           meta=meta_option,
@@ -279,6 +287,8 @@ if current_mode.genco_analysis_done == True:
                                                          )
 
             streamlit_bokeh(genco_ml_plot, use_container_width=False)
+
+
 
             if st.button("Store in the report", key = "genco_ml_plot"):
                 analysis.user_plots.append(genco_ml_plot)

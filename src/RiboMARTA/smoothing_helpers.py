@@ -10,7 +10,7 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
         current_mode.genomic_merged = current_mode.genomic_merged_backup.copy()
     elif current_mode is not None:
         # Restore to post-aggregation version, if aggregation was done
-        current_mode.genomic_merged = current_mode.post_aggregation_backup
+        current_mode.genomic_merged = current_mode.post_aggregation_backup.copy()
 
     if option == "No Smoothing":
         current_mode.smoothing = False
@@ -62,7 +62,7 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
         current_mode.genomic_merged = agg_smoothed_df
         return
 
-    elif option == "Criminal Smoothing (Experimental)":  # Criminal Smoothing (Experimental)
+    elif option == "Smooth Criminal (Experimental)":  # Smooth Criminal (Experimental)
 
         z_thresh = current_mode.smoothing_criminal_thresh
 
@@ -97,6 +97,9 @@ def genco_data_aggregator(current_run, aggregation):
 
     # Restores to original backup, undoing all previous modifications
     current_run.genomic_merged = current_run.genomic_merged_backup.copy()
+    # Removes any flag from prior smoothing, as it's resetting the data
+    current_run.smoothing = None
+    current_run.smoothing_criminal_thresh = None
 
     # Resets everything
     if aggregation == None:
@@ -118,6 +121,7 @@ def genco_data_aggregator(current_run, aggregation):
 
         current_run.members_per_group = mapping.value_counts().to_frame()
         current_run.members_per_group["Group"] = current_run.members_per_group.index
+        current_run.members_per_group.index.name = None
         current_run.genomic_merged = current_run.genomic_merged.T.groupby(mapping).sum().T
         current_run.genomic_merged["Position"] = current_run.genomic_merged_backup["Position"]
 
@@ -152,7 +156,7 @@ def txid_data_smoother(current_mode, option: str = "No Smoothing"):
         current_mode.all_studies_df = current_mode.all_studies_df_backup.copy()
     elif current_mode.aggregation is not None:
         # Restore to post-aggregation version, if aggregation was done
-        current_mode.all_studies_df = current_mode.post_aggregation_backup
+        current_mode.all_studies_df = current_mode.post_aggregation_backup.copy()
 
     if option == "No Smoothing":
         current_mode.smoothing = None
@@ -174,7 +178,7 @@ def txid_data_smoother(current_mode, option: str = "No Smoothing"):
         current_mode.all_studies_df = agg_smoothed_df
         return
 
-    elif option == "Criminal Smoothing (Experimental)":  # Criminal Smoothing (Experimental)
+    elif option == "Smooth Criminal (Experimental)":  # Smooth Criminal (Experimental)
 
         df = current_mode.all_studies_df
         z_thresh = current_mode.smoothing_criminal_thresh
@@ -256,7 +260,10 @@ def smooth_criminal(df, z_thresh):
 def data_aggregator(current_run, aggregation):
 
     # Restores to original backup, undoing all previous modifications
-    current_run.all_studies_df = current_run.all_studies_df_pre_aggregation_backup.copy()
+    current_run.all_studies_df = current_run.all_studies_df_backup.copy() # current_run.all_studies_df_pre__aggregation_backup.copy()
+    # Removes any flag from prior smoothing, as it's resetting the data
+    current_run.smoothing = None
+    current_run.smoothing_criminal_thresh = None
 
     # Resets everything
     if aggregation == None:
@@ -279,7 +286,7 @@ def data_aggregator(current_run, aggregation):
         current_run.members_per_group = mapping.value_counts().to_frame()
         current_run.members_per_group["Group"] = current_run.members_per_group.index
         current_run.all_studies_df = current_run.all_studies_df.T.groupby(mapping).sum().T
-        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+        current_run.all_studies_df["Position"] = current_run.all_studies_df_backup["Position"]   # current_run.all_studies_df_pre__aggregation_backup["Position"]
 
         current_run.post_aggregation_backup = current_run.all_studies_df.copy()
         return
@@ -291,7 +298,7 @@ def data_aggregator(current_run, aggregation):
         studies_aggregated = current_run.all_studies_df.shape[1]
         current_run.all_studies_df = current_run.all_studies_df.sum(axis=1).to_frame("Global Aggregate")
 
-        current_run.all_studies_df["Position"] = current_run.all_studies_df_pre_aggregation_backup["Position"]
+        current_run.all_studies_df["Position"] = current_run.all_studies_df_backup["Position"]   # current_run.all_studies_df_pre__aggregation_backup["Position"]
 
         current_run.post_aggregation_backup = current_run.all_studies_df.copy()
         current_run.members_per_group = pd.DataFrame([["Global Aggregate", studies_aggregated]], columns=["Group", "count"])

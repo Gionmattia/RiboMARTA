@@ -51,7 +51,7 @@ if run.filters.selected_studies is not None:
 if run.genomic_mode.active == True:
     mode = "Genomic Coordinates"
 
-    if run.genomic_mode.smoothing_option == "Criminal Smoothing (Experimental)":
+    if run.genomic_mode.smoothing_option == "Smooth Criminal (Experimental)":
         z_score_threshold = run.genomic_mode.smoothing_criminal_thresh
     else:
         z_score_threshold =  "No z-score approach used to smooth the data (Smooth Criminal)"
@@ -82,7 +82,7 @@ if run.genomic_mode.active == True:
 
 elif run.transcript_mode.active == True:
     mode = "Ensembl Transcript ID"
-    if run.transcript_mode.smoothing_option == "Criminal Smoothing (Experimental)":
+    if run.transcript_mode.smoothing_option == "Smooth Criminal (Experimental)":
         z_score_threshold = run.transcript_mode.smoothing_criminal_thresh
     else:
         z_score_threshold =  "No z-score approach used to smooth the data (Smooth Criminal)"
