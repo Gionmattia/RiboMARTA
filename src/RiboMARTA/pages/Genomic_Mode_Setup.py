@@ -217,7 +217,7 @@ if current_mode.regions_extracted == True:
         else:
             valid_options = ["No Smoothing",
                      "Mappability Smoothing (Proportional)",
-                     "Mappability Smoothing (Aggressive)",
+                     "Mappability Masking (Aggressive)",
                      "Smooth Criminal (Experimental)"]
         choice = st.radio(
             "_",

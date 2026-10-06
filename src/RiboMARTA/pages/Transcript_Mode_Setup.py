@@ -200,7 +200,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         else:
             valid_options = ["No Smoothing",
                      "Mappability Smoothing (Proportional)",
-                     "Mappability Smoothing (Aggressive)",
+                     "Mappability Masking (Aggressive)",
                      "Smooth Criminal (Experimental)"]
 
         smoothing_option = st.radio(

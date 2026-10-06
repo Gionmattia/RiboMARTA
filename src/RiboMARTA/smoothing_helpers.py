@@ -36,7 +36,7 @@ def genco_data_smoother(current_mode, option: str = "No Smoothing"):
         current_mode.genomic_merged = prop_smoothed_df
         return
 
-    elif option == "Mappability Smoothing (Aggressive)": #Mappability Smoothing (Aggressive)
+    elif option == "Mappability Masking (Aggressive)": #Mappability Smoothing (Aggressive)
 
         # do smoothing
         df = current_mode.genomic_merged
@@ -170,7 +170,7 @@ def txid_data_smoother(current_mode, option: str = "No Smoothing"):
         current_mode.all_studies_df = prop_smoothed_df
         return
 
-    elif option == "Mappability Smoothing (Aggressive)": #Mappability Smoothing (Aggressive)
+    elif option == "Mappability Masking (Aggressive)": #Mappability Smoothing (Aggressive)
 
         # do something
         agg_smoothed_df = agg_smoother(current_mode)
