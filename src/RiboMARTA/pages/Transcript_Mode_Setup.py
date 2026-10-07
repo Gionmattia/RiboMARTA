@@ -200,8 +200,8 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
         else:
             valid_options = ["No Smoothing",
                      "Mappability Smoothing (Proportional)",
-                     "Mappability Masking (Aggressive)",
-                     "Smooth Criminal (Experimental)"]
+                     "Mappability Masking (Aggressive)"]
+                     #,"Smooth Criminal (Experimental)"]
 
         smoothing_option = st.radio(
             "_",
@@ -210,7 +210,7 @@ if current_mode.tx_cov_extracted == True and current_mode.transcript_sequence !=
             horizontal=True,  # makes it look more toggle-like
             captions=["Default option. No smoothing is applied.",
                       "Smoothes the coverage per position by their mappability value (see plot).",
-                      "Sets all non-1 mappability positions to 0-counts.",
+                      "Removes all 'non-perfect mappability' positions from the analysis.",
                       "Per transcript region, finds extremes and smoothes them. Z-score 4 is a good start."],
         )
 
