@@ -182,7 +182,7 @@ def new_diamond_plotter_bokeh(df, meta="TISSUE", logs=False, jitter_amount=0.4,
     pastel_colors = [
          "#2a9d8f", "#ffb703", "#cd2713",
         "#ffb8de", "#38b000", "#a682ff",
-         "affc41", "#e76f51", "#00eca9",
+         "#24de14ff", "#e76f51", "#00eca9",
         "#f10eb1", "#f08700", "#00b4d8"]
     tissue_color_map = {t: pastel_colors[i % len(pastel_colors)]
                         for i, t in enumerate(tissues)}

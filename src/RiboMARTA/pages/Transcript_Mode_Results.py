@@ -148,7 +148,7 @@ if current_mode.txid_analysis_done is True:
 
     with st.expander("Show Tabular Results"):
 
-        tab1, tab2, tab3= st.tabs(["Analysis Results", "Results with Selected Metadata", "Result with Full Metadtaa"])
+        tab1, tab2, tab3= st.tabs(["Analysis Results", "Results with Selected Metadata", "Result with Full Metadata"])
 
         with tab1:
             st.write("Here you can visualise the results of the analysis. This table is useful to check "
