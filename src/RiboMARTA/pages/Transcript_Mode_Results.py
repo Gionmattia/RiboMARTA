@@ -136,6 +136,14 @@ if st.button("Run Analysis"):
 
     if current_mode.aggregation != None:
         current_mode.txid_results_meta["Group"] = current_mode.txid_results_meta.index
+        # here we add the info on the # datasets per group
+        counts = current_mode.members_per_group.set_index("Group")["count"]
+        # mapping to the dataframe with the metadata
+        current_mode.txid_results_meta["N_datasets"] = (
+            current_mode.txid_results_meta["Group"].map(counts)
+        )
+
+        # current_mode.txid_results_meta = pd.merge(current_mode.txid_results_meta, current_mode.members_per_group, on="Group")
     elif current_mode.aggregation == None:
         current_mode.txid_results_meta["Dataset"] = current_mode.txid_results_meta.index
 
@@ -247,6 +255,7 @@ if current_mode.txid_analysis_done is True:
             data_diamond_plot = current_mode.txid_results_meta
             data_diamond_plot = data_diamond_plot[data_diamond_plot["Tot Counts"] > tot_counts_min]
             data_diamond_plot = data_diamond_plot.sort_values(by = meta_option, ascending = True)
+            data_diamond_plot = data_diamond_plot.rename(columns={"N_datasets": "count"})
 
             if current_mode.aggregation is None or current_mode.aggregation == "":
                 jitter = 0.3
@@ -254,9 +263,6 @@ if current_mode.txid_analysis_done is True:
             else:
                 jitter = 0
                 show_n_members = True
-                # here we add the info on the # elements per group
-                data_diamond_plot = pd.merge(data_diamond_plot, current_mode.members_per_group, on = meta_option)
-
 
 
             p = new_diamond_plotter_bokeh(df = data_diamond_plot,

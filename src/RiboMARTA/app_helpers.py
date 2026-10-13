@@ -281,7 +281,7 @@ def srr_txid_lookup_sidebar(data, current_run, analysis):
 
     st.sidebar.header("Quick Run (SRR) Lookup")
     srr_list = list(data.index)
-    srr = st.sidebar.selectbox("Select Run", srr_list)
+    srr = st.sidebar.selectbox("Select Run or Group", srr_list)
     info = current_run.txid_results_meta.loc[srr]
 
     with st.sidebar.popover("Metadata", use_container_width=True):
